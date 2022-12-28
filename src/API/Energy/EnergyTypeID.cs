@@ -1,4 +1,5 @@
-﻿using Terraria.ModLoader;
+﻿using System.Text.RegularExpressions;
+using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Energy {
 	public abstract class EnergyTypeID : ModType {
@@ -32,6 +33,17 @@ namespace SerousEnergyLib.API.Energy {
 			Type = EnergyConversions.Register(this);
 		}
 
-		public sealed override void SetupContent() => SetStaticDefaults();
+		public sealed override void SetupContent() {
+			AutoStaticDefaults();
+			SetStaticDefaults();
+		}
+
+		/// <summary>
+		/// Automatically sets certain static defaults. Override this if you do not want the properties to be set for you.
+		/// </summary>
+		public virtual void AutoStaticDefaults() {
+			if (DisplayName.IsDefault())
+				DisplayName.SetDefault(Regex.Replace(Name, "([A-Z])", " $1").Trim());
+		}
 	}
 }
