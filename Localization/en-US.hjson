@@ -1,0 +1,7 @@
+﻿Mods: {
+	SerousEnergyLib: {
+		EnergyTypeName: {
+			TerraFluxTypeID: "Terra Flux"
+		}
+	}
+}

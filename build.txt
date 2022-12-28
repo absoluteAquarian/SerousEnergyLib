@@ -1,0 +1,3 @@
+displayName = absoluteAquarian Machines
+author = absoluteAquarian
+version = 0.1
