@@ -16,7 +16,7 @@ namespace SerousEnergyLib.API.Energy {
 		public double ConversionRatioToTerraFlux { get; } = 1;
 
 		/// <summary>
-		/// The full display name for this energy type (e.g. "Terra Flux")
+		/// The translations for the display name of this energy type.
 		/// </summary>
 		public ModTranslation DisplayName { get; private set; }
 
