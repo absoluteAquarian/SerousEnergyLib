@@ -89,7 +89,7 @@ namespace SerousEnergyLib.Systems {
 			return false;
 		}
 
-		public bool IsJunction(Point16 location) => foundJunctions.Contains(location);
+		public bool HasKnownJunction(Point16 location) => foundJunctions.Contains(location);
 
 		private void CheckTile(int x, int y, int dirX, int dirY, ref Span<Point16> adjacent, ref int nextIndex) {
 			// Ignore the "parent" tile
@@ -104,7 +104,52 @@ namespace SerousEnergyLib.Systems {
 				Point16 pos = new Point16(x + dirX, y + dirY);
 				adjacent[nextIndex++] = pos;
 				queue.Enqueue(pos);
+
+				Tile check = Main.tile[x + dirX, y + dirY];
+
+				// If it's a junction, add the "next" tile that it should redirect to based on this tile's location
+				if (TileLoader.GetTile(check.TileType) is NetworkJunction)
+					CheckTile_FindJunctionOppositeTile(pos.X, pos.Y, dirX, dirY);
 			}
+		}
+
+		private static readonly (int offsetX, int offsetY)[,] junctionDirectionRedirect = new (int, int)[3, 4] {
+			// Entering from: left, up, right, down
+			// Mode 0
+			{ (1, 0), (0, 1), (-1, 0), (0, -1) },
+			// Mode 1
+			{ (0, 1), (1, 0), (0, -1), (-1, 0) },
+			// Mode 2
+			{ (0, -1), (-1, 0), (0, 1), (1, 0) }
+		};
+
+		private void CheckTile_FindJunctionOppositeTile(int x, int y, int dirX, int dirY) {
+			Tile check = Main.tile[x, y];
+
+			int mode = check.TileFrameX / 18;
+
+			if (mode > 2)
+				return;
+
+			int index;
+			if (dirY > 0) {
+				// Entering the junction from above
+				index = 1;
+			} else if (dirY < 0) {
+				// Entering the junction from below
+				index = 3;
+			} else if (dirX > 0) {
+				// Entering the junction from the left
+				index = 0;
+			} else if (dirX < 0) {
+				// Entering the junction from the right
+				index = 2;
+			} else
+				return;
+
+			(int offsetX, int offsetY) = junctionDirectionRedirect[mode, index];
+
+			queue.Enqueue(new Point16(x + offsetX, y + offsetY));
 		}
 
 		internal bool IsValidTile(int x, int y) {
