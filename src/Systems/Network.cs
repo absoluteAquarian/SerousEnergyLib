@@ -1,11 +1,19 @@
 ﻿using SerousEnergyLib.TileData;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Terraria;
+using Terraria.DataStructures;
+using Terraria.ID;
 
 namespace SerousEnergyLib.Systems {
 	/// <summary>
 	/// An abstraction over accessing and manipulating <see cref="NetworkInfo"/> data in tiles
 	/// </summary>
 	public static class Network {
+		// Pre-calculated collections of the full path trees in all existing networks
+		internal static readonly Dictionary<NetworkType, List<NetworkInstance>> networks = new();
+
 		/// <summary>
 		/// Updates the tile at position (<paramref name="x"/>, <paramref name="y"/>) and the 4 entries adjacent to it in the cardinal directions
 		/// </summary>
@@ -22,6 +30,9 @@ namespace SerousEnergyLib.Systems {
 			UpdateEntry(x, y - 1);
 			UpdateEntry(x + 1, y);
 			UpdateEntry(x, y + 1);
+
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+				Netcode.SyncNetworkInfoDiamond(x, y);
 		}
 
 		/// <summary>
@@ -39,6 +50,9 @@ namespace SerousEnergyLib.Systems {
 			UpdateEntry(x, y - 1);
 			UpdateEntry(x + 1, y);
 			UpdateEntry(x, y + 1);
+
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+				Netcode.SyncNetworkInfoDiamond(x, y);
 		}
 
 		public static bool IsItemPipe(int x, int y) => (Main.tile[x, y].Get<NetworkInfo>().Type & NetworkType.Items) == NetworkType.Items;
@@ -47,7 +61,7 @@ namespace SerousEnergyLib.Systems {
 
 		public static bool IsWire(int x, int y) => (Main.tile[x, y].Get<NetworkInfo>().Type & NetworkType.Power) == NetworkType.Power;
 
-		private static void UpdateEntry(int x, int y) {
+		internal static void UpdateEntry(int x, int y) {
 			ref NetworkInfo center = ref Main.tile[x, y].Get<NetworkInfo>();
 
 			bool hasLeft = false, hasUp = false, hasRight = false, hasDown = false;

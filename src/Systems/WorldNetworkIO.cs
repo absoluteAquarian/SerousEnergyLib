@@ -1,6 +1,6 @@
 ﻿using Ionic.Zlib;
 using SerousEnergyLib.TileData;
-using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Terraria;
@@ -13,23 +13,52 @@ namespace SerousEnergyLib.Systems {
 			byte[] data = TransformData(Main.tile.GetData<NetworkInfo>());
 
 			// Compress the data
-			using MemoryStream decompressed = new MemoryStream(data);
-			using DeflateStream compression = new DeflateStream(decompressed, CompressionMode.Compress, CompressionLevel.BestSpeed);
-			using MemoryStream compressed = new MemoryStream();
-			compression.CopyTo(compressed);
+			tag["network"] = IOHelper.Compress(data, CompressionLevel.BestSpeed);
 
-			tag["network"] = compressed.ToArray();
+			tag["maps"] = Network.networks
+				.Select(static kvp => new TagCompound() {
+					["type"] = (byte)kvp.Key,
+					["data"] = kvp.Value
+						.Select(static n => {
+							TagCompound data = new();
+							n.SaveData(data);
+							return data;
+						})
+						.ToList()
+				})
+				.ToList();
 		}
 
 		public override void LoadWorldData(TagCompound tag) {
 			if (tag.GetByteArray("network") is byte[] data) {
 				// Decompress the data
-				using MemoryStream compressed = new MemoryStream(data);
-				using DeflateStream decompression = new DeflateStream(compressed, CompressionMode.Decompress, CompressionLevel.BestSpeed);
-				using MemoryStream decompressed = new MemoryStream();
-				decompression.CopyTo(decompressed);
+				TransformData(IOHelper.Decompress(data, CompressionLevel.BestSpeed), Main.tile.GetData<NetworkInfo>());
+			}
 
-				TransformData(decompressed.ToArray(), Main.tile.GetData<NetworkInfo>());
+			Network.networks.Clear();
+			if (tag.GetList<TagCompound>("maps") is List<TagCompound> maps) {
+				foreach (var map in maps) {
+					byte type = map.GetByte("type");
+
+					if (type == 0 || type > (byte)(NetworkType.Items | NetworkType.Fluids | NetworkType.Power))
+						throw new IOException("Invalid network type: " + type);
+
+					NetworkType filter = (NetworkType)type;
+
+					if (map.GetList<TagCompound>("data") is List<TagCompound> list) {
+						List<NetworkInstance> instances;
+						Network.networks.Add(filter, instances = new());
+
+						foreach (var net in list) {
+							NetworkInstance instance = new NetworkInstance(filter);
+							instance.ReserveNextID();
+
+							instance.LoadData(net);
+
+							instances.Add(instance);
+						}
+					}
+				}
 			}
 		}
 
