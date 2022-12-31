@@ -1,1 +1,1 @@
-absoluteAquarian Machines is a pretty cool mod, it does...this. Modify this file with a description of your mod.
+This is a library mod used to add machines and interface with content from Terran Automation.

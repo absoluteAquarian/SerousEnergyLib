@@ -1,25 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using Terraria.DataStructures;
+﻿using Terraria.DataStructures;
 
 namespace SerousEnergyLib.Pathfinding.Nodes {
-	internal struct CoarseNodeEntry {
+	internal struct CoarseNodeEntry : IAStarEntry {
 		public readonly Point16 location;
 
-		public double travelTime;
-		public int tileDistance;
+		Point16 IAStarEntry.Location => location;
 
-		public double Heuristic => tileDistance + travelTime;
+		public double TravelTime { get; set; }
+
+		public double Heuristic => TileDistance + TravelTime;
+
+		public int TileDistance { get; set; }
+
+		IAStarEntry IAStarEntry.Parent { get; set; }
 
 		public CoarseNodeEntry(Point16 location) {
 			this.location = location;
-			travelTime = 0;
-			tileDistance = 0;
-		}
-
-		public void SetDistance(Point16 target) {
-			// How many tiles need to be iterated over to reach the target
-			tileDistance = Math.Abs(target.X - location.X) + Math.Abs(target.Y - location.Y);
 		}
 
 		public override bool Equals(object obj) => obj is CoarseNodeEntry entry && location == entry.location;
@@ -31,11 +27,5 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 		public static bool operator !=(CoarseNodeEntry left, CoarseNodeEntry right) => !(left == right);
 
 		public override string ToString() => $"Heuristic: {Heuristic}, Location: (X: {location.X}, Y: {location.Y})";
-	}
-
-	internal class EntryComparer : IComparer<CoarseNodeEntry>{
-		public static readonly EntryComparer Instance = new EntryComparer();
-
-		public int Compare(CoarseNodeEntry x, CoarseNodeEntry y) => x.Heuristic.CompareTo(y.Heuristic);
 	}
 }

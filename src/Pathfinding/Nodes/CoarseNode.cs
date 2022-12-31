@@ -1,11 +1,16 @@
-﻿namespace SerousEnergyLib.Pathfinding.Nodes {
+﻿using System.Collections.Generic;
+using Terraria.DataStructures;
+
+namespace SerousEnergyLib.Pathfinding.Nodes {
 	/// <summary>
 	/// A node representing a 10x10 tile area in the world
 	/// </summary>
 	public sealed class CoarseNode {
-		// Only the tiles at the edges of this node are considered for pathfinding purposes
-		// Furthermore, each tile says which other tiles it is "linked" to and how long it would take for an item to travel between the two
-		// (The shortest path is always used)
+		/// <summary>
+		/// How large each coarse square of tiles is in one dimension
+		/// </summary>
+		public const int Stride = 10;
 
+		internal readonly Dictionary<Point16, CoarseNodeThresholdTile> thresholds = new();
 	}
 }

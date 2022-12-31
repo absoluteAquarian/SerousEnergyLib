@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API.Upgrades;
+﻿using SerousEnergyLib.API.Machines.UI;
+using SerousEnergyLib.API.Upgrades;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,9 +13,14 @@ namespace SerousEnergyLib.API.Machines {
 	/// </summary>
 	public interface IMachine {
 		/// <summary>
-		/// The ID of the tile that this machine should be bound to
+		/// The ID of the tile that this machine should be bound to.
 		/// </summary>
 		int MachineTile { get; }
+
+		/// <summary>
+		/// The UI instance bound to this machine instance.
+		/// </summary>
+		BaseMachineUI MachineUI { get; }
 
 		public bool IsTileValid(int x, int y) {
 			Tile tile = Main.tile[x, y];
@@ -24,7 +30,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// The collection of upgrades contained within this machine
 		/// </summary>
-		List<BaseUpgrade> Upgrades { get; protected private set; }
+		List<BaseUpgrade> Upgrades { get; set; }
 
 		public static void Update(IMachine machine) {
 			// Ensure that the upgrades collection isn't null

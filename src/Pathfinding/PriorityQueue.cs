@@ -149,6 +149,9 @@ namespace SerousEnergyLib.Pathfinding {
 			if (index < 0)
 				Push(element);
 			else {
+				if (element is IPriorityNode<T> node)
+					node.OnNodeUpdate(_heap[index], ref element);
+
 				_heap[index] = element;
 				_isHeap = false;
 			}

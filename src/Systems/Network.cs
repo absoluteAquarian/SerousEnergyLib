@@ -1,9 +1,6 @@
 ﻿using SerousEnergyLib.TileData;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using Terraria;
-using Terraria.DataStructures;
 using Terraria.ID;
 
 namespace SerousEnergyLib.Systems {
