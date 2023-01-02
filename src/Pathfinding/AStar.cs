@@ -7,31 +7,38 @@ using Terraria.DataStructures;
 namespace SerousEnergyLib.Pathfinding {
 	public delegate TEntry GenerateEntryDelegate<TEntry>(Point16 location, Point16 headingFrom) where TEntry : IAStarEntry;
 	public delegate bool DoesEntryExistDelegate(Point16 location);
-	public delegate bool IsInterEntryPathValid(Point16 from, Point16 to);
+	public delegate bool IsInterEntryPathValidDelegate(Point16 from, Point16 to);
+	public delegate List<Point16> GetWalkableDirectionsDelegate(Point16 center, Point16 previous);
 
 	/// <summary>
 	/// Performs an A* pathfinding algorithm
 	/// </summary>
-	public class AStar<TEntry> where TEntry : IAStarEntry {
-		private readonly PriorityQueue<TEntry> activeMaze;
+	public class AStar<TEntry> : IDisposable where TEntry : IAStarEntry {
+		private PriorityQueue<TEntry> activeMaze;
 
-		private readonly GenerateEntryDelegate<TEntry> Generate;
-		private readonly DoesEntryExistDelegate EntryExists;
-		private readonly IsInterEntryPathValid PathToNextTileIsValid;
+		private GenerateEntryDelegate<TEntry> Generate;
+		private DoesEntryExistDelegate EntryExists;
+		private IsInterEntryPathValidDelegate PathToNextTileIsValid;
+		private GetWalkableDirectionsDelegate GetWalkableDirections;
 
-		public AStar(int capacity, GenerateEntryDelegate<TEntry> generateEntry, DoesEntryExistDelegate entryExists, IsInterEntryPathValid pathIsValid) {
+		public AStar(int capacity, GenerateEntryDelegate<TEntry> generateEntry, DoesEntryExistDelegate entryExists, IsInterEntryPathValidDelegate pathIsValid, GetWalkableDirectionsDelegate getWalkableDirections) {
 			ArgumentNullException.ThrowIfNull(generateEntry);
 			ArgumentNullException.ThrowIfNull(entryExists);
 			ArgumentNullException.ThrowIfNull(pathIsValid);
+			ArgumentNullException.ThrowIfNull(getWalkableDirections);
 
 			activeMaze = new PriorityQueue<TEntry>(capacity, AStarEntryComparer<TEntry>.Instance);
 
 			Generate = generateEntry;
 			EntryExists = entryExists;
 			PathToNextTileIsValid = pathIsValid;
+			GetWalkableDirections = getWalkableDirections;
 		}
 
 		public List<Point16> GetPath(Point16 start, Point16 end) {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
 			if (!EntryExists(start) || !EntryExists(end))
 				return null;
 
@@ -88,10 +95,10 @@ namespace SerousEnergyLib.Pathfinding {
 		private List<TEntry> GetWalkableEntries(HashSet<Point16> visited, TEntry parent, Point16 target) {
 			List<TEntry> possible = new ();
 
-			TryGenerateWalkableEntry(parent, visited, possible, new Point16(-1, 0));
-			TryGenerateWalkableEntry(parent, visited, possible, new Point16(0, -1));
-			TryGenerateWalkableEntry(parent, visited, possible, new Point16(1, 0));
-			TryGenerateWalkableEntry(parent, visited, possible, new Point16(0, 1));
+			var dirs = GetWalkableDirections(parent.Location, parent.Parent?.Location ?? Point16.NegativeOne);
+
+			foreach (var dir in dirs)
+				TryGenerateWalkableEntry(parent, visited, possible, dir);
 
 			for (int i = 0; i < possible.Count; i++) {
 				TEntry entry = possible[i];
@@ -115,5 +122,32 @@ namespace SerousEnergyLib.Pathfinding {
 				possible.Add(entry);
 			}
 		}
+
+		#region Implement IDisposable
+		private bool disposed;
+
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void Dispose(bool disposing) {
+			if (disposed)
+				return;
+
+			disposed = true;
+
+			if (disposing)
+				activeMaze.Clear();
+
+			activeMaze = null;
+			Generate = null;
+			EntryExists = null;
+			PathToNextTileIsValid = null;
+			GetWalkableDirections = null;
+		}
+
+		~AStar() => Dispose(false);
+		#endregion
 	}
 }

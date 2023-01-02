@@ -1,20 +1,22 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.API.Machines;
 using System.Text.RegularExpressions;
+using Terraria.Localization;
 using Terraria.ModLoader;
-using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Fluid {
 	/// <summary>
 	/// An ID representing a fluid (liquid/gas) that can be stored within machines and pipe networks
 	/// </summary>
 	public abstract class FluidTypeID : ModType {
-		public int Type { get; private set; }
+		public const int None = -1;
+
+		public int Type { get; protected private set; } = None;
 
 		/// <summary>
 		/// The translations for the display name of this fluid.
 		/// </summary>
-		public ModTranslation DisplayName { get; private set; }
+		public ModTranslation DisplayName { get; protected private set; }
 
 		/// <summary>
 		/// Whether this fluid is a liquid (<see langword="true"/>) or a gas (<see langword="false"/>)
@@ -47,8 +49,6 @@ namespace SerousEnergyLib.API.Fluid {
 				DisplayName.SetDefault(Regex.Replace(Name, "([A-Z])", " $1").Trim());
 		}
 
-		public virtual void SaveData(TagCompound tag) { }
-
-		public virtual void LoadData(TagCompound tag) { }
+		public virtual string GetPrintedDisplayName() => DisplayName.GetTranslation(Language.ActiveCulture);
 	}
 }

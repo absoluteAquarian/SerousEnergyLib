@@ -1,7 +1,10 @@
-﻿using Ionic.Zlib;
+﻿using SerousEnergyLib.API;
 using SerousEnergyLib.TileData;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -12,30 +15,57 @@ namespace SerousEnergyLib.Systems {
 
 			switch (msg) {
 				case NetcodeMessage.SyncNetworkDataSingle:
-					ReceiveNetworkInfoSync(reader, sender);
+					ReceiveNetworkInfoSync(reader);
 					break;
-				case NetcodeMessage.RequestNetworkDataSingle:
-					ReceiveNetworkInfoRequest(reader, sender);
+				case NetcodeMessage.RequestNetworkEntryPlacement:
+					ReceiveNetworkEntryPlacementRequest(reader);
 					break;
-				case NetcodeMessage.SyncNetworkDataArea:
-					ReceiveNetworkInfoAreaSync(reader, sender);
+				case NetcodeMessage.RequestNetworkEntryRemoval:
+					ReceiveNetworkEntryRemovalRequest(reader);
 					break;
-				case NetcodeMessage.RequestNetworkDataArea:
-					ReceiveNetworkInfoAreaRequest(reader, sender);
+				case NetcodeMessage.SyncNetworkDataDiamond:
+					ReceiveNetworkInfoDiamondSync(reader);
+					break;
+				case NetcodeMessage.SyncNetwork0_ResetNetwork:
+					ReceiveFullNetworkDataSync_0_ResetNetwork(reader);
+					break;
+				case NetcodeMessage.SyncNetwork1_Nodes:
+					ReceiveFullNetworkDataSync_1_Nodes(reader);
+					break;
+				case NetcodeMessage.SyncNetwork2_CoarsePath:
+					ReceiveFullNetworkDataSync_2_CoarsePath(reader);
+					break;
+				case NetcodeMessage.SyncNetwork3_CoarseInfo:
+					ReceiveFullNetworkDataSync_3_CoarseInfo(reader);
+					break;
+				case NetcodeMessage.SyncNetwork4_Junctions:
+					ReceiveFullNetworkDataSync_4_Junctions(reader);
+					break;
+				case NetcodeMessage.SyncNetwork5_ExtraInfo:
+					ReceiveFullNetworkDataSync_5_ExtraInfo(reader);
+					break;
+				case NetcodeMessage.RequestNetwork:
+					ReceiveFullNetworkDataRequest(reader, sender);
+					break;
+				case NetcodeMessage.RemoveNetwork:
+					ReceiveNetworkRemovalResponse(reader);
+					break;
+				case NetcodeMessage.SyncNetworkInstanceEntryPlacement:
+					ReceiveNetworkInstanceEntryPlacementSync(reader);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
 			}
 		}
 
-		private static ModPacket GetPacket(NetcodeMessage msg) {
+		internal static ModPacket GetPacket(NetcodeMessage msg) {
 			ModPacket packet = SerousMachines.Instance.GetPacket();
 			packet.Write((byte)msg);
 			return packet;
 		}
 
 		public static void SyncNetworkInfo(int x, int y) {
-			if (Main.netMode != NetmodeID.MultiplayerClient)
+			if (Main.netMode != NetmodeID.Server)
 				return;
 
 			var packet = GetPacket(NetcodeMessage.SyncNetworkDataSingle);
@@ -45,150 +75,63 @@ namespace SerousEnergyLib.Systems {
 			packet.Send();
 		}
 
-		private static void ReceiveNetworkInfoSync(BinaryReader reader, int sender) {
+		private static void ReceiveNetworkInfoSync(BinaryReader reader) {
 			short x = reader.ReadInt16();
 			short y = reader.ReadInt16();
 			byte data = reader.ReadByte();
 
-			if (Main.netMode == NetmodeID.MultiplayerClient)
-				Main.tile[x, y].Get<NetworkInfo>().netData = data;
-			else {
-				// Forward the data to the other clients
-				var packet = GetPacket(NetcodeMessage.SyncNetworkDataArea);
-				packet.Write(x);
-				packet.Write(y);
-				packet.Write(data);
-				packet.Send(ignoreClient: sender);
-			}
-		}
-
-		public static void RequestNetworkInfo(int x, int y) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
 
-			var packet = GetPacket(NetcodeMessage.RequestNetworkDataSingle);
+			Main.tile[x, y].Get<NetworkInfo>().netData = data;
+		}
+
+		public static void RequestNetworkEntryPlacement(int x, int y, NetworkType type) {
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.RequestNetworkEntryPlacement);
 			packet.Write((short)x);
 			packet.Write((short)y);
+			packet.Write((byte)type);
 			packet.Send();
 		}
 
-		private static void ReceiveNetworkInfoRequest(BinaryReader reader, int sender) {
+		private static void ReceiveNetworkEntryPlacementRequest(BinaryReader reader) {
 			short x = reader.ReadInt16();
 			short y = reader.ReadInt16();
+			NetworkType type = (NetworkType)reader.ReadByte();
 
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
-			var packet = GetPacket(NetcodeMessage.SyncNetworkDataSingle);
-			packet.Write(x);
-			packet.Write(y);
-			packet.Write(Main.tile[x, y].Get<NetworkInfo>().netData);
-			packet.Send(toClient: sender);
+			Network.PlaceEntry(x, y, type);
 		}
 
-		public static void SyncNetworkInfoArea(int x, int y, int width, int height) {
+		public static void RequestNetworkEntryRemoval(int x, int y, NetworkType type) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
 
-			var packet = GetPacket(NetcodeMessage.SyncNetworkDataArea);
+			var packet = GetPacket(NetcodeMessage.RequestNetworkEntryRemoval);
 			packet.Write((short)x);
 			packet.Write((short)y);
-			packet.Write((short)width);
-			packet.Write((short)height);
+			packet.Write((byte)type);
 			packet.Send();
 		}
 
-		private static void ReceiveNetworkInfoAreaSync(BinaryReader reader, int sender) {
+		private static void ReceiveNetworkEntryRemovalRequest(BinaryReader reader) {
 			short x = reader.ReadInt16();
 			short y = reader.ReadInt16();
-			short width = reader.ReadInt16();
-			short height = reader.ReadInt16();
-
-			if (Main.netMode == NetmodeID.MultiplayerClient) {
-				DecompressAndWrite(reader, x, y, width, height);
-			} else {
-				var packet = GetPacket(NetcodeMessage.SyncNetworkDataArea);
-
-				ReadAndCompress(packet, x, y, width, height);
-				
-				packet.Send(ignoreClient: sender);
-			}
-		}
-
-		private static void ReadAndCompress(ModPacket packet, int x, int y, int width, int height) {
-			byte[] data = new byte[width * height];
-			unsafe {
-				fixed (byte* fixedPtr = data) {
-					byte* ptr = fixedPtr;
-
-					for (int tileY = y; tileY < y + height; tileY++) {
-						for (int tileX = x; tileX < x + width; tileX++) {
-							*ptr = Main.tile[tileX, tileY].Get<NetworkInfo>().netData;
-							ptr++;
-						}
-					}
-				}
-			}
-
-			byte[] compressed = IOHelper.Compress(data, CompressionLevel.BestSpeed);
-
-			packet.Write(x);
-			packet.Write(y);
-			packet.Write(width);
-			packet.Write(height);
-			packet.Write(compressed.Length);
-			packet.Write(compressed);
-		}
-
-		private static void DecompressAndWrite(BinaryReader reader, int x, int y, int width, int height) {
-			int compressedLength = reader.ReadInt32();
-
-			byte[] decompressed = IOHelper.Decompress(reader.ReadBytes(compressedLength), CompressionLevel.BestSpeed);
-
-			unsafe {
-				fixed (byte* fixedPtr = decompressed) {
-					byte* ptr = fixedPtr;
-
-					for (int tileY = y; tileY < y + height; tileY++) {
-						for (int tileX = x; tileX < x + width; tileX++) {
-							Main.tile[tileX, tileY].Get<NetworkInfo>().netData = *ptr;
-							ptr++;
-						}
-					}
-				}
-			}
-		}
-
-		public static void RequestNetworkInfoArea(int x, int y, int width, int height) {
-			if (Main.netMode != NetmodeID.MultiplayerClient)
-				return;
-
-			var packet = GetPacket(NetcodeMessage.RequestNetworkDataArea);
-			packet.Write((short)x);
-			packet.Write((short)y);
-			packet.Write((short)width);
-			packet.Write((short)height);
-			packet.Send();
-		}
-
-		private static void ReceiveNetworkInfoAreaRequest(BinaryReader reader, int sender) {
-			short x = reader.ReadInt16();
-			short y = reader.ReadInt16();
-			short width = reader.ReadInt16();
-			short height = reader.ReadInt16();
+			NetworkType type = (NetworkType)reader.ReadByte();
 
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
-			var packet = GetPacket(NetcodeMessage.SyncNetworkDataArea);
-
-			ReadAndCompress(packet, x, y, width, height);
-
-			packet.Send(toClient: sender);
+			Network.RemoveEntry(x, y, type);
 		}
 
 		public static void SyncNetworkInfoDiamond(int x, int y) {
-			if (Main.netMode != NetmodeID.MultiplayerClient)
+			if (Main.netMode != NetmodeID.Server)
 				return;
 
 			bool leftExists = x > 0, upExists = y > 0, rightExists = x < Main.maxTilesX - 1, downExists = y < Main.maxTilesY - 1;
@@ -210,7 +153,7 @@ namespace SerousEnergyLib.Systems {
 			packet.Send();
 		}
 
-		private static void ReceiveNetworkInfoDiamondSync(BinaryReader reader, int sender) {
+		private static void ReceiveNetworkInfoDiamondSync(BinaryReader reader) {
 			short x = reader.ReadInt16();
 			short y = reader.ReadInt16();
 			byte data = reader.ReadByte();
@@ -218,79 +161,266 @@ namespace SerousEnergyLib.Systems {
 			bool leftExists = false, upExists = false, rightExists = false, downExists = false;
 			hasTile.Retrieve(ref leftExists, ref upExists, ref rightExists, ref downExists);
 
-			if (Main.netMode == NetmodeID.MultiplayerClient) {
-				Main.tile[x, y].Get<NetworkInfo>().netData = data;
+			byte left = 0, up = 0, right = 0, down = 0;
 
-				if (leftExists)
-					Main.tile[x - 1, y].Get<NetworkInfo>().netData = reader.ReadByte();
-				if (upExists)
-					Main.tile[x, y - 1].Get<NetworkInfo>().netData = reader.ReadByte();
-				if (rightExists)
-					Main.tile[x + 1, y].Get<NetworkInfo>().netData = reader.ReadByte();
-				if (downExists)
-					Main.tile[x, y + 1].Get<NetworkInfo>().netData = reader.ReadByte();
-			} else {
-				// Forward the data to the other clients
-				var packet = GetPacket(NetcodeMessage.SyncNetworkDataDiamond);
-				packet.Write(x);
-				packet.Write(y);
-				packet.Write(data);
-				packet.Write(hasTile);
-				if (leftExists)
-					packet.Write(reader.ReadByte());
-				if (upExists)
-					packet.Write(reader.ReadByte());
-				if (rightExists)
-					packet.Write(reader.ReadByte());
-				if (downExists)
-					packet.Write(reader.ReadByte());
-				packet.Send(ignoreClient: sender);
-			}
-		}
+			if (leftExists)
+				left = reader.ReadByte();
+			if (upExists)
+				up = reader.ReadByte();
+			if (rightExists)
+				right = reader.ReadByte();
+			if (downExists)
+				down = reader.ReadByte();
 
-		public static void RequestNetworkInfoDiamond(int x, int y) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
 
-			var packet = GetPacket(NetcodeMessage.RequestNetworkDataDiamond);
-			packet.Write((short)x);
-			packet.Write((short)y);
+			Main.tile[x, y].Get<NetworkInfo>().netData = data;
+
+			if (leftExists)
+				Main.tile[x - 1, y].Get<NetworkInfo>().netData = left;
+			if (upExists)
+				Main.tile[x, y - 1].Get<NetworkInfo>().netData = up;
+			if (rightExists)
+				Main.tile[x + 1, y].Get<NetworkInfo>().netData = right;
+			if (downExists)
+				Main.tile[x, y + 1].Get<NetworkInfo>().netData = down;
+		}
+
+		public static void SyncFullNetworkData(int id) => SyncFullNetworkDataToClient(id);
+
+		private static void SyncFullNetworkDataToClient(int id, int sender = -1) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			NetworkInstance instance = FindInstance(id);
+			if (instance is null)
+				return;
+
+			instance.SendNetworkData(sender);
+		}
+
+		private static void ReceiveFullNetworkDataSync_0_ResetNetwork(BinaryReader reader) {
+			int id = reader.ReadInt32();
+			byte filter = reader.ReadByte();
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			NetworkInstance instance = FindInstance(id);
+			if (instance is null || (byte)instance.Filter != filter) {
+				if (instance is not null)
+					instance.Reset();
+				else {
+					NetworkType type = (NetworkType)filter;
+
+					try {
+						// CreateNetwork() throws if the filter is invalid
+						instance = NetworkInstance.CreateNetwork(type);
+
+						switch (type) {
+							case NetworkType.Items:
+								Network.itemNetworks.Add(instance);
+								break;
+							case NetworkType.Fluids:
+								Network.fluidNetworks.Add(instance);
+								break;
+							case NetworkType.Power:
+								Network.powerNetworks.Add(instance);
+								break;
+						}
+					} catch (Exception ex) {
+						SerousMachines.Instance.Logger.Error("An error was thrown while receiving network sync header", ex);
+					}
+				}
+			}
+		}
+
+		private static void ReceiveFullNetworkDataSync_1_Nodes(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			instance?.ReceiveNetworkData_1_Nodes(reader);
+		}
+
+		private static void ReceiveFullNetworkDataSync_2_CoarsePath(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			instance?.ReceiveNetworkData_2_CoarsePath(reader);
+		}
+
+		private static void ReceiveFullNetworkDataSync_3_CoarseInfo(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			instance?.ReceiveNetworkData_3_CoarseInfo(reader);
+		}
+
+		private static void ReceiveFullNetworkDataSync_4_Junctions(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			instance?.ReceiveNetworkData_4_Junctions(reader);
+		}
+
+		private static void ReceiveFullNetworkDataSync_5_ExtraInfo(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			instance?.ReceiveNetworkData_5_ExtraInfo(reader);
+		}
+
+		internal static void WriteNetworkInstanceToPacket(ModPacket packet, NetworkInstance instance) {
+			packet.Write(instance.ID);
+			packet.Write((byte)instance.Filter);
+		}
+
+		private static NetworkInstance ReadNetworkInstanceOnClient(BinaryReader reader) {
+			int id = reader.ReadInt32();
+			byte filter = reader.ReadByte();
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return null;
+
+			NetworkInstance instance = FindInstance(id);
+			if (instance is null)
+				throw new IOException($"A network with ID {id} could not be found");
+
+			if ((byte)instance.Filter != filter)
+				throw new IOException($"The network with ID {id} did not match the filter specified in the packet (incoming = {(NetworkType)filter}, existing = {instance.Filter})");
+
+			return instance;
+		}
+
+		public static void RequestFullNetworkData(int id) {
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.RequestNetwork);
+			packet.Write(id);
 			packet.Send();
 		}
 
-		private static void ReceiveNetworkInfoDiamondRequest(BinaryReader reader, int sender) {
-			short x = reader.ReadInt16();
-			short y = reader.ReadInt16();
+		private static void ReceiveFullNetworkDataRequest(BinaryReader reader, int sender) {
+			int id = reader.ReadInt32();
 
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
-			bool leftExists = x > 0, upExists = y > 0, rightExists = x < Main.maxTilesX - 1, downExists = y < Main.maxTilesY - 1;
-			BitsByte hasTile = new BitsByte(leftExists, upExists, rightExists, downExists);
+			SyncFullNetworkDataToClient(id, sender);
+		}
 
-			var packet = GetPacket(NetcodeMessage.SyncNetworkDataDiamond);
-			packet.Write(x);
-			packet.Write(y);
-			packet.Write(Main.tile[x, y].Get<NetworkInfo>().netData);
-			packet.Write(hasTile);
-			if (leftExists)
-				packet.Write(Main.tile[x - 1, y].Get<NetworkInfo>().netData);
-			if (upExists)
-				packet.Write(Main.tile[x, y - 1].Get<NetworkInfo>().netData);
-			if (rightExists)
-				packet.Write(Main.tile[x + 1, y].Get<NetworkInfo>().netData);
-			if (downExists)
-				packet.Write(Main.tile[x, y + 1].Get<NetworkInfo>().netData);
-			packet.Send(toClient: sender);
+		internal static void SendNetworkRemoval(int id) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			NetworkInstance instance = FindInstance(id);
+			if (instance is null)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.RemoveNetwork);
+			packet.Write(id);
+			packet.Send();
+		}
+
+		private static void ReceiveNetworkRemovalResponse(BinaryReader reader) {
+			int id = reader.ReadInt32();
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			NetworkInstance instance = FindInstance(id, out var source, out int index);
+			if (instance is null)
+				return;
+			
+			source.RemoveAt(index);
+			instance.Dispose();
+		}
+
+		private static NetworkInstance FindInstance(int id) {
+			foreach (NetworkInstance instance in Network.itemNetworks) {
+				if (instance.ID == id)
+					return instance;
+			}
+
+			foreach (NetworkInstance instance in Network.fluidNetworks) {
+				if (instance.ID == id)
+					return instance;
+			}
+
+			foreach (NetworkInstance instance in Network.powerNetworks) {
+				if (instance.ID == id)
+					return instance;
+			}
+
+			return null;
+		}
+
+		private static NetworkInstance FindInstance(int id, out List<NetworkInstance> source, out int indexInSource) {
+			source = null;
+
+			indexInSource = -1;
+			foreach (NetworkInstance instance in Network.itemNetworks) {
+				indexInSource++;
+
+				if (instance.ID == id) {
+					source = Network.itemNetworks;
+					return instance;
+				}
+			}
+
+			indexInSource = -1;
+			foreach (NetworkInstance instance in Network.fluidNetworks) {
+				indexInSource++;
+
+				if (instance.ID == id) {
+					source = Network.fluidNetworks;
+					return instance;
+				}
+			}
+
+			indexInSource = -1;
+			foreach (NetworkInstance instance in Network.powerNetworks) {
+				indexInSource++;
+
+				if (instance.ID == id) {
+					source = Network.powerNetworks;
+					return instance;
+				}
+			}
+
+			indexInSource = -1;
+			return null;
+		}
+
+		internal static void SyncNetworkInstanceEntryPlacement(NetworkInstance instance, Point16 location) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncNetworkInstanceEntryPlacement);
+			WriteNetworkInstanceToPacket(packet, instance);
+			packet.Write(location);
+			packet.Send();
+		}
+
+		private static void ReceiveNetworkInstanceEntryPlacementSync(BinaryReader reader) {
+			NetworkInstance instance = ReadNetworkInstanceOnClient(reader);
+
+			Point16 location = reader.ReadPoint16();
+
+			instance?.AddEntry(location);
 		}
 	}
 
 	internal enum NetcodeMessage {
 		SyncNetworkDataSingle,
-		RequestNetworkDataSingle,
-		SyncNetworkDataArea,
-		RequestNetworkDataArea,
+		RequestNetworkEntryPlacement,
+		RequestNetworkEntryRemoval,
 		SyncNetworkDataDiamond,
-		RequestNetworkDataDiamond
+		SyncNetwork0_ResetNetwork,
+		SyncNetwork1_Nodes,
+		SyncNetwork2_CoarsePath,
+		SyncNetwork3_CoarseInfo,
+		SyncNetwork4_Junctions,
+		SyncNetwork5_ExtraInfo,
+		RequestNetwork,
+		RemoveNetwork,
+		SyncNetworkInstanceEntryPlacement
 	}
 }

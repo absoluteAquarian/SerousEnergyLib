@@ -1,5 +1,6 @@
 ﻿using Ionic.Zlib;
 using SerousEnergyLib.TileData;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,17 +16,20 @@ namespace SerousEnergyLib.Systems {
 			// Compress the data
 			tag["network"] = IOHelper.Compress(data, CompressionLevel.BestSpeed);
 
-			tag["maps"] = Network.networks
-				.Select(static kvp => new TagCompound() {
-					["type"] = (byte)kvp.Key,
-					["data"] = kvp.Value
-						.Select(static n => {
-							TagCompound data = new();
-							n.SaveData(data);
-							return data;
-						})
-						.ToList()
-				})
+			static TagCompound SaveNetwork(NetworkInstance instance) {
+				TagCompound netData = new();
+				TagCompound data = new() {
+					["type"] = (byte)instance.Filter,
+					["data"] = netData
+				};
+				instance.SaveData(netData);
+				return data;
+			}
+
+			tag["maps"] = Network.itemNetworks
+				.Concat(Network.fluidNetworks)
+				.Concat(Network.powerNetworks)
+				.Select(SaveNetwork)
 				.ToList();
 		}
 
@@ -35,28 +39,36 @@ namespace SerousEnergyLib.Systems {
 				TransformData(IOHelper.Decompress(data, CompressionLevel.BestSpeed), Main.tile.GetData<NetworkInfo>());
 			}
 
-			Network.networks.Clear();
+			Network.itemNetworks.Clear();
+			Network.fluidNetworks.Clear();
+			Network.powerNetworks.Clear();
 			if (tag.GetList<TagCompound>("maps") is List<TagCompound> maps) {
 				foreach (var map in maps) {
-					byte type = map.GetByte("type");
+					try {
+						NetworkType filter = (NetworkType)map.GetByte("filter");
 
-					if (type == 0 || type > (byte)(NetworkType.Items | NetworkType.Fluids | NetworkType.Power))
-						throw new IOException("Invalid network type: " + type);
+						if (filter != NetworkType.Items && filter != NetworkType.Fluids && filter != NetworkType.Power)
+							throw new IOException("Network type was invalid: " + filter);
 
-					NetworkType filter = (NetworkType)type;
+						NetworkInstance instance = NetworkInstance.CreateNetwork(filter);
+						instance.ReserveNextID();
 
-					if (map.GetList<TagCompound>("data") is List<TagCompound> list) {
-						List<NetworkInstance> instances;
-						Network.networks.Add(filter, instances = new());
+						if (map.GetCompound("data") is not TagCompound netData)
+							throw new IOException("Tag compound did not have a \"data\" entry");
 
-						foreach (var net in list) {
-							NetworkInstance instance = new NetworkInstance(filter);
-							instance.ReserveNextID();
+						instance.LoadData(netData);
 
-							instance.LoadData(net);
+						if (instance.IsEmpty)
+							continue;
 
-							instances.Add(instance);
-						}
+						if (instance.Filter == NetworkType.Items)
+							Network.itemNetworks.Add(instance);
+						else if (instance.Filter == NetworkType.Fluids)
+							Network.fluidNetworks.Add(instance);
+						else if (instance.Filter == NetworkType.Power)
+							Network.powerNetworks.Add(instance);
+					} catch (Exception ex) {
+						SerousMachines.Instance.Logger.Warn($"Failed to load network", ex);
 					}
 				}
 			}

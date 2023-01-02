@@ -3,5 +3,12 @@
 		EnergyTypeName: {
 			TerraFluxTypeID: "Terra Flux"
 		}
+
+		FluidName: {
+			WaterFluidID: "Water"
+			LavaFluidID: "Lava"
+			HoneyFluidID: "Honey"
+			UnloadedFluidID: "Unloaded"
+		}
 	}
 }

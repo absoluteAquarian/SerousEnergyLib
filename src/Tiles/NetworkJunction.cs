@@ -1,13 +1,16 @@
-﻿using SerousEnergyLib.TileData;
+﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.TileData;
 using Terraria.ObjectData;
 
 namespace SerousEnergyLib.Tiles {
-	public class NetworkJunction : BaseNetworkTile, IItemTransportTile {
+	public class NetworkJunction : BaseNetworkTile, IItemTransportTile, IFluidTransportTile, IPowerTransportTile {
 		public override string Texture => "SerousEnergyLib/Assets/Tiles/NetworkJunction";
+		public override NetworkType NetworkTypeToPlace => NetworkType.Items | NetworkType.Fluids | NetworkType.Power;
 
-		public double TransportTime { get; } = 60d;
+		public double TransportTime => 60d;
 
-		public override NetworkType NetworkTypeToPlace { get; } = NetworkType.Items | NetworkType.Fluids | NetworkType.Power;
+		double IFluidTransportTile.MaxCapacity => 1d;
+		TerraFlux IPowerTransportTile.MaxCapacity => new TerraFlux(200d);
 
 		protected override void PreRegisterTileObjectData() {
 			TileObjectData.newTile.StyleHorizontal = true;

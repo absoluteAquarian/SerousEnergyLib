@@ -7,6 +7,9 @@ namespace SerousEnergyLib.API.Machines {
 	/// An interface containing methods used by machines that can store items
 	/// </summary>
 	public interface IInventoryMachine : IMachine {
+		/// <summary>
+		/// The items contained within the machine
+		/// </summary>
 		Item[] Inventory { get; protected private set; }
 
 		int DefaultInventoryCapacity { get; }
@@ -19,6 +22,8 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machineX">The tile X-coordinate for the machine sub-tile</param>
 		/// <param name="machineY">The tile Y-coordinate for the machine sub-tile</param>
 		bool CanMergeWithItemPipe(int pipeX, int pipeY, int machineX, int machineY);
+
+		// TODO: methods for extracting/inserting items (with a "bool simulation" parameter for item pump usage)
 
 		public static void Update(IInventoryMachine machine) {
 			if (machine.Inventory is null) {

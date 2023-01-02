@@ -33,6 +33,13 @@ namespace SerousEnergyLib.API.Energy {
 		}
 
 		public void Import(ref TerraFlux amount) {
+			if (amount <= TerraFlux.Zero)
+				return;
+
+			// Cannot import power
+			if (IsFull)
+				return;
+
 			TerraFlux import = amount;
 
 			if (CurrentCapacity + import > MaxCapacity)
@@ -42,45 +49,44 @@ namespace SerousEnergyLib.API.Energy {
 			amount -= import;
 		}
 
-		public void ImportFrom(FluxStorage source, TerraFlux import) {
-			// No power to import
-			if (source.IsEmpty)
-				return;
-
-			// Cannot import power
-			if (this.IsFull)
-				return;
-
-			// Export the power
-			source.Export(ref import);
-			this.Import(ref import);
-
-			// Import any leftovers
-			source.Import(ref import);
-		}
+		public void ImportFrom(FluxStorage source, TerraFlux import) => Transfer(source, this, import);
 
 		public void Export(ref TerraFlux amount) {
+			if (amount <= TerraFlux.Zero)
+				return;
+
+			// Cannot export power
+			if (IsEmpty) {
+				amount = TerraFlux.Zero;
+				return;
+			}
+
 			if (amount > CurrentCapacity)
 				amount = CurrentCapacity;
 
 			CurrentCapacity -= amount;
 		}
 
-		public void ExportTo(FluxStorage destination, TerraFlux export) {
-			// No power to export
-			if (this.IsEmpty)
+		public void ExportTo(FluxStorage destination, TerraFlux export) => Transfer(this, destination, export);
+
+		private static void Transfer(FluxStorage source, FluxStorage destination, TerraFlux transfer) {
+			if (transfer <= TerraFlux.Zero)
 				return;
 
-			// Cannot export power
+			// No power to export
+			if (source.IsEmpty)
+				return;
+
+			// Cannot import power
 			if (destination.IsFull)
 				return;
 
-			// Import the power
-			this.Export(ref export);
-			destination.Import(ref export);
+			// Export the power
+			source.Export(ref transfer);
+			destination.Import(ref transfer);
 
 			// Import any leftovers
-			this.Import(ref export);
+			source.Import(ref transfer);
 		}
 	}
 }
