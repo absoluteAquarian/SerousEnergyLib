@@ -1,5 +1,4 @@
-﻿using Mono.Cecil;
-using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using System.Collections.Generic;
 using Terraria;
@@ -15,6 +14,17 @@ namespace SerousEnergyLib.Systems {
 		internal static readonly List<NetworkInstance> itemNetworks = new();
 		internal static readonly List<NetworkInstance> fluidNetworks = new();
 		internal static readonly List<NetworkInstance> powerNetworks = new();
+
+		internal static void Update() {
+			foreach (var net in itemNetworks)
+				net.Update();
+
+			foreach (var net in fluidNetworks)
+				net.Update();
+
+			foreach (var net in powerNetworks)
+				net.Update();
+		}
 
 		/// <summary>
 		/// Updates the tile at position (<paramref name="x"/>, <paramref name="y"/>) and the 4 entries adjacent to it in the cardinal directions
@@ -312,10 +322,6 @@ namespace SerousEnergyLib.Systems {
 				dirs |= ConnectionDirection.Down;
 
 			center.Connections = dirs;
-		}
-
-		private static void AttemptToCombineNetworks(int x, int y, NetworkType type) {
-			
 		}
 	}
 }

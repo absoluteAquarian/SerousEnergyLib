@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.API;
+using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.TileData;
 using System;
 using System.Collections.Generic;
@@ -52,6 +53,9 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncNetworkInstanceEntryPlacement:
 					ReceiveNetworkInstanceEntryPlacementSync(reader);
+					break;
+				case NetcodeMessage.SyncPipedItem:
+					ReceivePipedItemSync(reader);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -271,7 +275,7 @@ namespace SerousEnergyLib.Systems {
 			packet.Write((byte)instance.Filter);
 		}
 
-		private static NetworkInstance ReadNetworkInstanceOnClient(BinaryReader reader) {
+		internal static NetworkInstance ReadNetworkInstanceOnClient(BinaryReader reader) {
 			int id = reader.ReadInt32();
 			byte filter = reader.ReadByte();
 
@@ -406,6 +410,19 @@ namespace SerousEnergyLib.Systems {
 
 			instance?.AddEntry(location);
 		}
+
+		internal static void SyncPipedItem(PipedItem item, bool fullSync) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncPipedItem);
+			item.WriteToPacket(packet, fullSync);
+			packet.Send();
+		}
+
+		private static void ReceivePipedItemSync(BinaryReader reader) {
+			PipedItem.CreateOrUpdateFromNet(reader);
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -421,6 +438,7 @@ namespace SerousEnergyLib.Systems {
 		SyncNetwork5_ExtraInfo,
 		RequestNetwork,
 		RemoveNetwork,
-		SyncNetworkInstanceEntryPlacement
+		SyncNetworkInstanceEntryPlacement,
+		SyncPipedItem
 	}
 }

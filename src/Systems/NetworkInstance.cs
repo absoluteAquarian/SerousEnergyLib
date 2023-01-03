@@ -66,6 +66,11 @@ namespace SerousEnergyLib.Systems {
 			ID = nextID++;
 		}
 
+		/// <summary>
+		/// Update the network instance here
+		/// </summary>
+		public virtual void Update() { }
+
 		private readonly Queue<Point16> queue = new();
 
 		private bool recalculating;
@@ -225,17 +230,17 @@ namespace SerousEnergyLib.Systems {
 
 			ignoreTravelTimeWhenPathfinding = true;
 
-			if (orig.GeneratePath(left, up) is not null)
+			if (orig.GeneratePath(left, up, out _) is not null)
 				leftUpConnected = true;
-			if (orig.GeneratePath(left, right) is not null)
+			if (orig.GeneratePath(left, right, out _) is not null)
 				leftRightConnected = true;
-			if (orig.GeneratePath(left, down) is not null)
+			if (orig.GeneratePath(left, down, out _) is not null)
 				leftDownConnected = true;
-			if (orig.GeneratePath(up, right) is not null)
+			if (orig.GeneratePath(up, right, out _) is not null)
 				upRightConnected = true;
-			if (orig.GeneratePath(up, down) is not null)
+			if (orig.GeneratePath(up, down, out _) is not null)
 				upDownConnected = true;
-			if (orig.GeneratePath(right, down) is not null)
+			if (orig.GeneratePath(right, down, out _) is not null)
 				rightDownConnected = true;
 
 			ignoreTravelTimeWhenPathfinding = false;
@@ -306,10 +311,28 @@ namespace SerousEnergyLib.Systems {
 			if (!dirThreeConnected)
 				RemoveUnnecessaryNodes(net, dirThree);
 
+			HashSet<Point16> remainingCoarseNodes = new();
+			foreach (var loc in net.nodes.Keys)
+				remainingCoarseNodes.Add(loc / CoarseNode.Coarseness);
+
+			// Recalculate the coarse path
+			net.totalCoarsePaths = 1;
+			net.coarsePath.Clear();
+
+			foreach (var loc in remainingCoarseNodes) {
+				net.coarsePath[loc] = new CoarseNode();
+				net.UpdateCoarseNode(loc);
+			}
+
 			return net;
 		}
 
-		private static void RemoveUnnecessaryNodes(NetworkInstance net, Point16 start) {
+		/// <summary>
+		/// This method is called after this network was cloned from another network and this network's nodes were updated
+		/// </summary>
+		protected virtual void OnNetworkCloned() { }
+
+		private static void RemoveUnnecessaryNodes(NetworkInstance net, Point16 start, bool updateCoarseNodes = true) {
 			Queue<Point16> queue = new Queue<Point16>();
 			queue.Enqueue(start);
 
@@ -325,19 +348,6 @@ namespace SerousEnergyLib.Systems {
 
 				foreach (var adj in node.adjacent)
 					queue.Enqueue(adj);
-			}
-
-			HashSet<Point16> remainingCoarseNodes = new();
-			foreach (var loc in net.nodes.Keys)
-				remainingCoarseNodes.Add(loc / CoarseNode.Coarseness);
-
-			// Recalculate the coarse path
-			net.totalCoarsePaths = 1;
-			net.coarsePath.Clear();
-
-			foreach (var loc in remainingCoarseNodes) {
-				net.coarsePath[loc] = new CoarseNode();
-				net.UpdateCoarseNode(loc);
 			}
 		}
 
@@ -657,9 +667,11 @@ namespace SerousEnergyLib.Systems {
 		}
 		#endregion
 
-		public List<Point16> GeneratePath(Point16 start, Point16 end) {
+		public List<Point16> GeneratePath(Point16 start, Point16 end, out double travelTime) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
+
+			travelTime = 0;
 
 			if (!HasEntry(start) || !HasEntry(end))
 				return null;
@@ -671,8 +683,11 @@ namespace SerousEnergyLib.Systems {
 			Point16 endCoarse = end / CoarseNode.Coarseness;
 
 			// If the start end end coarse nodes are the same, then just perform A* pathfinding within the node since it would still be fast
-			if (startCoarse == endCoarse)
-				return innerCoarseNodePathfinder.GetPath(start, end);
+			if (startCoarse == endCoarse) {
+				var innerPath = innerCoarseNodePathfinder.GetPath(start, end);
+				travelTime = new CoarseNodePathHeuristic(innerPath.ToArray()).travelTime;
+				return innerPath;
+			}
 
 			// Sanity check
 			if (!coarsePath.TryGetValue(startCoarse, out CoarseNode startNode))
@@ -756,7 +771,9 @@ namespace SerousEnergyLib.Systems {
 			if (completedPaths.Count == 0)
 				return null;
 
-			return completedPaths.MinBy(b => b.travelTime).path;
+			var builtPath = completedPaths.MinBy(b => b.travelTime);
+			travelTime = builtPath.travelTime;
+			return builtPath.path;
 		}
 
 		#region Coarse Pathfinding Helpers
@@ -872,7 +889,13 @@ namespace SerousEnergyLib.Systems {
 			// Save the "start" of the network so that the logic is forced to recalculate it when loading the world
 			if (nodes.Count > 0)
 				tag["start"] = nodes.Keys.First();
+
+			TagCompound extra = new();
+			SaveExtraData(extra);
+			tag["extra"] = extra;
 		}
+
+		protected virtual void SaveExtraData(TagCompound tag) { }
 
 		public void LoadData(TagCompound tag) {
 			if (disposed)
@@ -887,7 +910,12 @@ namespace SerousEnergyLib.Systems {
 
 			if (tag.ContainsKey("start") && tag["start"] is Point16 start)
 				Recalculate(start);
+
+			if (tag.GetCompound("extra") is TagCompound extra)
+				LoadExtraData(extra);
 		}
+
+		protected virtual void LoadExtraData(TagCompound tag) { }
 
 		internal void SendNetworkData(int toClient = -1) {
 			// Packet #1
