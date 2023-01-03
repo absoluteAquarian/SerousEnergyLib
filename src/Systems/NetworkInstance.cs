@@ -150,6 +150,27 @@ namespace SerousEnergyLib.Systems {
 			return foundJunctions.Contains(location);
 		}
 
+		public bool HasPump(Point16 location, out PumpDirection direction) {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			direction = PumpDirection.Left;
+
+			if (!HasEntry(location))
+				return false;
+
+			Tile tile = Main.tile[location.X, location.Y];
+			NetworkInfo info = tile.Get<NetworkInfo>();
+			NetworkTaggedInfo tags = tile.Get<NetworkTaggedInfo>();
+
+			bool pump = info.IsPump;
+
+			if (pump)
+				direction = tags.PumpDirection;
+
+			return pump;
+		}
+
 		// Called in Network.cs when placing an entry
 		internal void AddEntry(Point16 location) {
 			if (disposed)
@@ -629,7 +650,28 @@ namespace SerousEnergyLib.Systems {
 		}
 
 		private bool CanContinuePath(Point16 from, Point16 to) {
-			// TODO: pump direction blocking
+			Tile fromTile = Main.tile[from.X, from.Y];
+			Tile toTile = Main.tile[to.X, to.Y];
+
+			NetworkTaggedInfo fromTags = fromTile.Get<NetworkTaggedInfo>();
+			NetworkTaggedInfo toTags = toTile.Get<NetworkTaggedInfo>();
+
+			if (!NetworkTaggedInfo.CanMergeColors(fromTags, toTags))
+				return false;
+
+			NetworkInfo fromInfo = fromTile.Get<NetworkInfo>();
+			NetworkInfo toInfo = toTile.Get<NetworkInfo>();
+
+			// Pumps cannot merge with each other
+			if (fromInfo.IsPump && toInfo.IsPump)
+				return false;
+
+			if (fromInfo.IsPump && NetworkTaggedInfo.DoesOrientationMatchPumpDirection(to - from, fromTags.PumpDirection))
+				return true;
+
+			if (toInfo.IsPump && NetworkTaggedInfo.DoesOrientationMatchPumpDirection(from - to, toTags.PumpDirection))
+				return true;
+
 			return true;
 		}
 
@@ -816,8 +858,8 @@ namespace SerousEnergyLib.Systems {
 			if (dirX != 0 && dirY != 0)
 				return;
 
-			if (IsValidTile(x + dirX, y + dirY)) {
-				Point16 pos = new Point16(x + dirX, y + dirY);
+			Point16 pos = new Point16(x + dirX, y + dirY);
+			if (IsValidTile(x + dirX, y + dirY) && CanContinuePath(new Point16(x, y), pos)) {
 				adjacent[nextIndex++] = pos;
 
 				if (recalculating) {
@@ -868,7 +910,9 @@ namespace SerousEnergyLib.Systems {
 
 			(int offsetX, int offsetY) = junctionDirectionRedirect[mode, index];
 
-			queue.Enqueue(new Point16(x + offsetX, y + offsetY));
+			Point16 pos = new Point16(x + offsetX, y + offsetY);
+			if (CanContinuePath(new Point16(x, y), pos))
+				queue.Enqueue(pos);
 		}
 
 		internal bool IsValidTile(int x, int y) {
