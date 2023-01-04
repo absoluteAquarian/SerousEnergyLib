@@ -1,8 +1,5 @@
 ﻿using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.Systems.Networks;
-using SerousEnergyLib.Systems;
-using SerousEnergyLib.Tiles;
-using Terraria.ModLoader;
 using Terraria.DataStructures;
 using Terraria.ModLoader.IO;
 using System.Linq;
@@ -35,11 +32,6 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="subtile">The tile coordinates of which sub-tile of this machine is being pumped from</param>
 		/// <returns>An instance from <see cref="FluidStorage"/> or <see langword="null"/> if no fluids can be extracted</returns>
 		FluidStorage SelectFluidExportSource(Point16 pump, Point16 subtile);
-
-		public void RemoveFromNearbyFluidNetworks() {
-			foreach (var result in GetAdjacentNetworks(NetworkType.Fluids))
-				(result.network as FluidNetwork)?.RemoveAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
-		}
 
 		public IEnumerable<FluidNetwork> GetAdjacentFluidNetworks() {
 			return GetAdjacentNetworks(NetworkType.Fluids)

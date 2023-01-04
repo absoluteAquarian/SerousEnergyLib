@@ -1,10 +1,6 @@
 ﻿using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.Systems.Networks;
-using SerousEnergyLib.Systems;
-using SerousEnergyLib.Tiles;
-using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
-using Terraria.DataStructures;
 using System.Collections.Generic;
 using SerousEnergyLib.TileData;
 using System.Linq;
@@ -56,11 +52,6 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machineX">The tile X-coordinate for the machine sub-tile</param>
 		/// <param name="machineY">The tile Y-coordinate for the machine sub-tile</param>
 		bool CanMergeWithWire(int wireX, int wireY, int machineX, int machineY);
-
-		public void RemoveFromNearbyFluxNetworks() {
-			foreach (var result in GetAdjacentNetworks(NetworkType.Power))
-				(result.network as PowerNetwork)?.RemoveAdjacentFluxStorage(result.machineTileAdjacentToNetwork);
-		}
 
 		public IEnumerable<PowerNetwork> GetAdjacentPowerNetworks() {
 			return GetAdjacentNetworks(NetworkType.Power)

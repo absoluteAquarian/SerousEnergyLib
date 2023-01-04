@@ -2,7 +2,6 @@
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -219,11 +218,6 @@ namespace SerousEnergyLib.API.Machines {
 			}
 
 			return results;
-		}
-
-		public void RemoveFromNearbyItemNetworks() {
-			foreach (var result in GetAdjacentNetworks(NetworkType.Items))
-				(result.network as ItemNetwork)?.RemoveAdjacentInventory(result.machineTileAdjacentToNetwork);
 		}
 
 		public IEnumerable<ItemNetwork> GetAdjacentItemNetworks() {

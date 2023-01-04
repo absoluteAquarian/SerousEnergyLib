@@ -98,6 +98,11 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentFluidStorageTiles.Add(down);
 		}
 
+		public void AddAdjacentFluidStorage(Point16 storage) {
+			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IFluidMachine)
+				adjacentFluidStorageTiles.Add(storage);
+		}
+
 		public void RemoveAdjacentFluidStorage(Point16 storage) {
 			adjacentFluidStorageTiles.Remove(storage);
 		}

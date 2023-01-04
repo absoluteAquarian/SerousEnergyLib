@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Terraria.ModLoader;
-using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Fluid.Default {
 	[Autoload(false)]

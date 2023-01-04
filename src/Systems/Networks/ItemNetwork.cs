@@ -78,8 +78,6 @@ namespace SerousEnergyLib.Systems.Networks {
 					goto makeItems;
 				}
 
-				Tile source = Main.tile[possibleInventory.X, possibleInventory.Y];
-
 				if (IMachine.TryFindMachine(possibleInventory, out IMachine machine) && machine is IInventoryMachine inventory)
 					extractions = inventory.ExtractItems(this, ref numExtract, simulation: false);
 
@@ -184,6 +182,11 @@ namespace SerousEnergyLib.Systems.Networks {
 			}
 
 			return -1;
+		}
+
+		public void AddAdjacentInventory(Point16 inventory) {
+			if (IMachine.TryFindMachine(inventory, out IMachine machine) && machine is IInventoryMachine)
+				adjacentInventoryTiles.Add(inventory);
 		}
 
 		public void RemoveAdjacentInventory(Point16 inventory) {

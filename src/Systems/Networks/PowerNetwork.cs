@@ -63,6 +63,11 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentFluxStorageTiles.Add(down);
 		}
 
+		public void AddAdjacentFluxStorage(Point16 storage) {
+			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IPoweredMachine)
+				adjacentFluxStorageTiles.Add(storage);
+		}
+
 		public void RemoveAdjacentFluxStorage(Point16 storage) {
 			adjacentFluxStorageTiles.Remove(storage);
 		}

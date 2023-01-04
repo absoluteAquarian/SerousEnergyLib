@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
+using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -23,7 +24,7 @@ namespace SerousEnergyLib.API.Machines {
 		int MachineTile { get; }
 
 		/// <summary>
-		/// The UI instance bound to this machine instance.
+		/// The UI instance bound to this machine type.
 		/// </summary>
 		BaseMachineUI MachineUI { get; }
 
@@ -52,6 +53,99 @@ namespace SerousEnergyLib.API.Machines {
 
 			machine = null;
 			return false;
+		}
+
+		public static ModTileEntity PlaceInWorld(IMachine machine, Point16 location) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("IMachine parameter was not a ModTileEntity", nameof(machine));
+
+			if (entity.Find(location.X, location.Y) == -1) {
+				int id = entity.Place(location.X, location.Y);
+
+				if (Main.netMode == NetmodeID.MultiplayerClient)
+					NetMessage.SendData(MessageID.TileEntitySharing, ignoreClient: Main.myPlayer, number: id);
+
+				ModTileEntity placed = TileEntity.ByID[id] as ModTileEntity;
+
+				if (placed is not IMachine placedMachine)
+					return null;
+
+				placedMachine.AddToAdjacentNetworks();
+
+				Netcode.SyncMachinePlacement(placed.Type, location);
+
+				return placed;
+			}
+
+			return null;
+		}
+
+		public static TagCompound RemoveFromWorld(Point16 location) {
+			if (!TryFindMachine(location, out IMachine machine))
+				return null;
+
+			if (machine is not ModTileEntity entity)
+				throw new InvalidOperationException("IMachine was not a ModTileEntity");
+
+			TagCompound tag = new();
+			entity.SaveData(tag);
+
+			machine.RemoveFromAdjacentNetworks();
+
+			entity.Kill(entity.Position.X, entity.Position.Y);
+
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+				NetMessage.SendData(MessageID.TileEntitySharing, ignoreClient: Main.myPlayer, number: entity.ID);
+
+			Netcode.SyncMachineRemoval(entity.Type, location);
+
+			return tag;
+		}
+
+		internal void AddToAdjacentNetworks() {
+			NetworkType search = NetworkType.None;
+			if (this is IInventoryMachine)
+				search |= NetworkType.Items;
+			if (this is IFluidMachine)
+				search |= NetworkType.Fluids;
+			if (this is IPoweredMachine)
+				search |= NetworkType.Power;
+
+			if (search != NetworkType.None) {
+				foreach (var result in GetAdjacentNetworks(search)) {
+					var net = result.network;
+
+					if (net is ItemNetwork itemNet)
+						itemNet.AddAdjacentInventory(result.machineTileAdjacentToNetwork);
+					else if (net is FluidNetwork fluidNet)
+						fluidNet.AddAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
+					else if (net is PowerNetwork powerNet)
+						powerNet.AddAdjacentFluxStorage(result.machineTileAdjacentToNetwork);
+				}
+			}
+		}
+
+		internal void RemoveFromAdjacentNetworks() {
+			NetworkType search = NetworkType.None;
+			if (this is IInventoryMachine)
+				search |= NetworkType.Items;
+			if (this is IFluidMachine)
+				search |= NetworkType.Fluids;
+			if (this is IPoweredMachine)
+				search |= NetworkType.Power;
+
+			if (search != NetworkType.None) {
+				foreach (var result in GetAdjacentNetworks(search)) {
+					var net = result.network;
+
+					if (net is ItemNetwork itemNet)
+						itemNet.RemoveAdjacentInventory(result.machineTileAdjacentToNetwork);
+					else if (net is FluidNetwork fluidNet)
+						fluidNet.RemoveAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
+					else if (net is PowerNetwork powerNet)
+						powerNet.RemoveAdjacentFluxStorage(result.machineTileAdjacentToNetwork);
+				}
+			}
 		}
 
 		protected T CalculateFromUpgrades<T>(T @base, Func<BaseUpgrade, T, T> mutator) {

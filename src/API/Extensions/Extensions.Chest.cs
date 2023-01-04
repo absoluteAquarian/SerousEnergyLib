@@ -1,5 +1,4 @@
-﻿using Humanizer;
-using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.Systems.Networks;
 using System;
 using System.Collections.Generic;
 using Terraria;

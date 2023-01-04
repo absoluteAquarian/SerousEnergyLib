@@ -21,7 +21,7 @@ namespace SerousEnergyLib {
 
 			// Sync the item for mp
 			if (Main.netMode == NetmodeID.MultiplayerClient)
-				NetMessage.SendData(MessageID.SyncItem, -1, -1, null, index, 1f, 0f, 0f, 0, 0, 0);
+				NetMessage.SendData(MessageID.SyncItem, number: index, number2: 1);
 
 			return index;
 		}

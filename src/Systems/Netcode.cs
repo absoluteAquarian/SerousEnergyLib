@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.API;
+using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -57,6 +58,15 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncPipedItem:
 					ReceivePipedItemSync(reader);
+					break;
+				case NetcodeMessage.SyncPump:
+					ReceivePumpTimerSync(reader);
+					break;
+				case NetcodeMessage.SyncMachinePlacement:
+					ReceiveMachinePlacementSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncMachineRemoval:
+					ReceiveMachineRemovalSync(reader, sender);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -450,6 +460,62 @@ namespace SerousEnergyLib.Systems {
 			if (net is ItemNetwork itemNet)
 				itemNet.AddPumpTimer(location, timer);
 		}
+
+		internal static void SyncMachinePlacement(int type, Point16 location) {
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncMachinePlacement);
+			packet.Write(type);
+			packet.Write(location);
+			packet.Send();
+		}
+
+		private static void ReceiveMachinePlacementSync(BinaryReader reader, int sender) {
+			int type = reader.ReadInt32();
+			Point16 location = reader.ReadPoint16();
+
+			if (!TileEntity.manager.TryGetTileEntity(type, out ModTileEntity entity) || entity is not IMachine machine)
+				throw new IOException($"Tile entity ID {type} did not correspond with a valid machine type");
+
+			machine.AddToAdjacentNetworks();
+
+			if (Main.netMode == NetmodeID.Server) {
+				// Forward to other clients
+				var packet = GetPacket(NetcodeMessage.SyncMachinePlacement);
+				packet.Write(type);
+				packet.Write(location);
+				packet.Send(ignoreClient: sender);
+			}
+		}
+
+		internal static void SyncMachineRemoval(int type, Point16 location) {
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncMachineRemoval);
+			packet.Write(type);
+			packet.Write(location);
+			packet.Send();
+		}
+
+		private static void ReceiveMachineRemovalSync(BinaryReader reader, int sender) {
+			int type = reader.ReadInt32();
+			Point16 location = reader.ReadPoint16();
+
+			if (!TileEntity.manager.TryGetTileEntity(type, out ModTileEntity entity) || entity is not IMachine machine)
+				throw new IOException($"Tile entity ID {type} did not correspond with a valid machine type");
+
+			machine.RemoveFromAdjacentNetworks();
+
+			if (Main.netMode == NetmodeID.Server) {
+				// Forward to other clients
+				var packet = GetPacket(NetcodeMessage.SyncMachineRemoval);
+				packet.Write(type);
+				packet.Write(location);
+				packet.Send(ignoreClient: sender);
+			}
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -467,6 +533,8 @@ namespace SerousEnergyLib.Systems {
 		RemoveNetwork,
 		SyncNetworkInstanceEntryPlacement,
 		SyncPipedItem,
-		SyncPump
+		SyncPump,
+		SyncMachinePlacement,
+		SyncMachineRemoval
 	}
 }
