@@ -9,7 +9,7 @@ using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Items {
 	public sealed class NetworkJunctionItem : ModItem {
-		public override string Texture => "SerousEnergyLib/Tiles/NetworkJunction";
+		public override string Texture => "SerousEnergyLib/Assets/Tiles/NetworkJunction";
 
 		public override void SetStaticDefaults() {
 			// Frame gets overwritten in custom PlayerDrawLayers
