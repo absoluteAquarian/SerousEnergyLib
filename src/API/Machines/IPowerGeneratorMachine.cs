@@ -29,6 +29,8 @@ namespace SerousEnergyLib.API.Machines {
 			double generate = GetPowerGenerationWithUpgrades(1);
 			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(generate, EnergyID);
 			PowerStorage.Import(ref flux);
+
+			ExportPowerToAdjacentNetworks();
 		}
 
 		public void ExportPowerToAdjacentNetworks() {
