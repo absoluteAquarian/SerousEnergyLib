@@ -5,7 +5,7 @@ using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
-	/// A default implementation of an <see cref="IMachine"/>
+	/// A default implementation of <see cref="IMachine"/>
 	/// </summary>
 	public abstract class BaseMachineEntity : ModTileEntity, IMachine {
 		public abstract int MachineTile { get; }

@@ -1,14 +1,12 @@
-﻿using SerousEnergyLib.Systems;
-using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
-using Steamworks;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
-using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines {
@@ -21,7 +19,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// The items contained within the machine
 		/// </summary>
-		Item[] Inventory { get; protected private set; }
+		Item[] Inventory { get; set; }
 
 		int DefaultInventoryCapacity { get; }
 
@@ -47,7 +45,33 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="import">The item to be imported</param>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
 		/// <param name="stackImported">How many items would be imported should the import be successful</param>
-		bool CanImportItemAtSlot(Item import, int slot, out int stackImported);
+		public virtual bool CanImportItemAtSlot(Item import, int slot, out int stackImported) {
+			stackImported = 0;
+
+			if (import.IsAir)
+				return false;
+
+			var inv = Inventory;
+			var stack = import.stack;
+
+			Item existing = inv[slot];
+
+			if (existing.IsAir)
+				return true;
+
+			if (ItemFunctions.AreStrictlyEqual(import, existing) && existing.stack < existing.maxStack) {
+				int diff = existing.maxStack - existing.stack;
+
+				stackImported += Math.Min(diff, stack);
+
+				stack -= diff;
+
+				if (stack <= 0)
+					return true;
+			}
+
+			return stackImported > 0;
+		}
 
 		public bool CanImportItem(Item import, out int stackImported) {
 			stackImported = 0;
@@ -79,10 +103,32 @@ namespace SerousEnergyLib.API.Machines {
 		/// If any part of <paramref name="import"/>'s stack is to be sent back to the network, indicate as such by making its stack positive.
 		/// </summary>
 		/// <param name="import">The item to import</param>
-		/// <param name="slot">The slot in <see cref="Inventory"/></param>
-		void ImportItemAtSlot(Item import, int slot);
+		/// <param name="slot">The slot in <see cref="Inventory"/></param
+		public virtual void ImportItemAtSlot(Item import, int slot) {
+			var inv = Inventory;
+
+			Item existing = inv[slot];
+
+			if (existing.IsAir) {
+				inv[slot] = import.Clone();
+				import.TurnToAir();
+				return;
+			}
+
+			if (existing.stack + import.stack <= existing.maxStack) {
+				existing.stack += import.stack;
+				// TODO: Copy the OnStackHooks DMD code from Magic Storage
+				import.stack = 0;
+			} else if (existing.stack < existing.maxStack) {
+				import.stack -= existing.maxStack - existing.stack;
+				existing.stack = existing.maxStack;
+			}
+		}
 
 		public void ImportItem(Item import) {
+			if (import.IsAir)
+				return;
+
 			var slots = GetInputSlotsOrDefault();
 
 			int capacity = slots.Length;
@@ -92,6 +138,8 @@ namespace SerousEnergyLib.API.Machines {
 
 				if (CanImportItemAtSlot(import, slot, out _))
 					ImportItemAtSlot(import, slot);
+
+				// TODO: netcode message for syncing machine inventory slot?
 
 				if (import.stack <= 0)
 					return;
