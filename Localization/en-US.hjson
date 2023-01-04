@@ -10,5 +10,17 @@
 			HoneyFluidID: "Honey"
 			UnloadedFluidID: "Unloaded"
 		}
+
+		ItemName: {
+			NetworkJunctionItem: "Junction"
+		}
+
+		ItemTooltip: {
+			NetworkJunctionItem:
+			'''
+			Allows wires and pipes paths to intersect without making them part of the same network.
+			Right click while holding this item to cycle through the three junction modes.
+			'''
+		}
 	}
 }
