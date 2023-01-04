@@ -28,12 +28,6 @@ namespace SerousEnergyLib.Systems {
 
             // Sanity check
             SetNetworkTilesToSolid(solid: false);
-
-			// TODO: reset wire network export counts
-		}
-
-		public override void PreUpdateItems() {
-			// TODO: update item and fluid networks
 		}
 	}
 }
