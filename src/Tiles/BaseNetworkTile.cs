@@ -1,5 +1,9 @@
-﻿using SerousEnergyLib.API.Machines;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using SerousEnergyLib.API;
+using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Systems;
+using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using Terraria;
 using Terraria.DataStructures;
@@ -201,10 +205,10 @@ namespace SerousEnergyLib.Tiles {
 			if (target.TileType < TileID.Count)
 				return false;
 
-			if (modTarget is BaseNetworkTile and not NetworkJunction) {
+			int chestNum;
+			if (modTarget is BaseNetworkTile and not NetworkJunction and not IItemPumpTile) {
 				bool mergeMatches = (networkType & target.Get<NetworkInfo>().Type) != 0;
 
-				// TODO: check if the tile is an item/fluid pump and it's pointed in the right direction
 				return mergeMatches;
 			} else if (modTarget is NetworkJunction) {
 				// Always mergeable with a junction tile
@@ -217,13 +221,68 @@ namespace SerousEnergyLib.Tiles {
 					return true;
 				else if ((networkType & NetworkType.Power) == NetworkType.Power && modTarget is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
 					return true;
+			} else if ((chestNum = Chest.FindChestByGuessing(targetX, targetY)) > -1) {
+				// Merge if, and only if, this tile is part of an item network
+				if ((networkType & NetworkType.Items) == NetworkType.Items)
+					return true;
+			} else if (modTarget is IPumpTile pump) {
+				// Merge if the pump's network type matches this tile's network type
+				bool attemptMerge = false;
 
-				return false;
+				if ((networkType & NetworkType.Items) == NetworkType.Items && pump is IItemPumpTile)
+					attemptMerge = true;
+				if ((networkType & NetworkType.Fluids) == NetworkType.Fluids && pump is IFluidPumpTile)
+					attemptMerge = true;
+
+				if (attemptMerge)
+					return NetworkTaggedInfo.DoesOrientationMatchPumpDirection(new Point16(-dirX, -dirY), target.Get<NetworkTaggedInfo>().PumpDirection);
 			}
-			// TODO: check item/fluid pump tiles
 
 			// Tile couldn't be merged with
 			return false;
+		}
+
+		public override bool PreDraw(int i, int j, SpriteBatch spriteBatch) {
+			if (this is not IItemTransportTile)
+				return true;
+
+			Rectangle tileRect = new Rectangle(i * 16, j * 16, 16, 16);
+
+			// For every item in an item network, if the item would be in this network tile, draw it
+			// However, if the item is partially in the tile to the left or above this tile, do not draw it in order to prevent clipping issues
+			if (Network.GetItemNetworkAt(i, j) is ItemNetwork network) {
+				foreach (var pipedItem in network.items) {
+					if (pipedItem is null || pipedItem.Destroyed)
+						continue;
+
+					// If the item isn't at a valid location, don't draw it
+					if (!pipedItem.GetItemDrawInformation(out Item item, out Vector2 worldCenter, out float size))
+						continue;
+
+					if (size < 1f)
+						size = 1f;
+					if (size > 8f)
+						size = 8f;
+
+					// Item must not poke out above this tile or to the left of it
+					// If there is no entry in those directions, draw the item anyway
+					Vector2 halfSize = new Vector2(size) / 2f;
+					Vector2 topLeft = worldCenter - halfSize;
+
+					if (network.HasEntry(topLeft.ToTileCoordinates16()) && (topLeft.X < tileRect.X || topLeft.Y < tileRect.Y))
+						continue;
+
+					// Item must at least be partially inside this tile
+					Vector2 bottomRight = worldCenter + halfSize;
+					if (!tileRect.Contains(topLeft) && !tileRect.Contains(bottomRight))
+						continue;
+
+					// Draw the item
+					Main.spriteBatch.DrawItemInWorld(item, worldCenter - Main.screenPosition + TileFunctions.GetLightingDrawOffset(), size);
+				}
+			}
+
+			return true;
 		}
 	}
 }

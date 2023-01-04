@@ -1,4 +1,9 @@
 ﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.Systems;
+using SerousEnergyLib.Systems.Networks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -12,10 +17,31 @@ namespace SerousEnergyLib.API.Machines {
 
 		public double GetPowerGenerationWithUpgrades(double ticks) => GetPowerGeneration(ticks) * CalculateFromUpgrades(1d, static (u, v) => u.GetPowerGenerationMultiplier() * v);
 
-		public void ExportPower(ref FluxStorage destination) {
-			double export = GetPowerGenerationWithUpgrades(1);
+		protected double GetPowerExportRate(double ticks);
 
-			PowerStorage.ExportTo(destination, EnergyConversions.ConvertToTerraFlux(export, EnergyID));
+		/// <summary>
+		/// Generates power and adds it to this machine's flux storage
+		/// </summary>
+		public void GeneratePower() {
+			if (!Network.UpdatingPowerGenerators)
+				return;
+
+			double generate = GetPowerGenerationWithUpgrades(1);
+			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(generate, EnergyID);
+			PowerStorage.Import(ref flux);
+		}
+
+		public void ExportPowerToAdjacentNetworks() {
+			List<PowerNetwork> adjacent = GetAdjacentPowerNetworks().ToList();
+
+			if (adjacent.Count == 0)
+				return;  // No networks to export to
+
+			double export = GetPowerExportRate(1);
+			TerraFlux slicedExport = EnergyConversions.ConvertToTerraFlux(Math.Min(export, (double)PowerStorage.CurrentCapacity) / adjacent.Count, EnergyID);
+
+			foreach (var network in adjacent)
+				PowerStorage.ExportTo(network.Storage, slicedExport);
 		}
 	}
 }

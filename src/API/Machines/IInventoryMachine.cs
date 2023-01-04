@@ -1,13 +1,22 @@
-﻿using System;
+﻿using SerousEnergyLib.Systems;
+using SerousEnergyLib.Systems.Networks;
+using SerousEnergyLib.TileData;
+using SerousEnergyLib.Tiles;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Terraria;
+using Terraria.DataStructures;
+using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
 	/// An interface containing methods used by machines that can store items
 	/// </summary>
-	public interface IInventoryMachine : IMachine {
+	public interface IInventoryMachine : IMachine, IPipedItemDrawingTile {
+		float IPipedItemDrawingTile.GetItemSize(int x, int y) => 3.85f * 2;
+
 		/// <summary>
 		/// The items contained within the machine
 		/// </summary>
@@ -81,7 +90,8 @@ namespace SerousEnergyLib.API.Machines {
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				ImportItemAtSlot(import, slot);
+				if (CanImportItemAtSlot(import, slot, out _))
+					ImportItemAtSlot(import, slot);
 
 				if (import.stack <= 0)
 					return;
@@ -96,6 +106,17 @@ namespace SerousEnergyLib.API.Machines {
 		public int[] GetExportSlotsOrDefault() => GetExportSlots() ?? Enumerable.Range(0, DefaultInventoryCapacity).ToArray();
 
 		// TODO: item pump methods for checking if an item can be exported
+
+		public void RemoveFromNearbyItemNetworks() {
+			foreach (var result in GetAdjacentNetworks(NetworkType.Items))
+				(result.network as ItemNetwork)?.RemoveAdjacentInventory(result.machineTileAdjacentToNetwork);
+		}
+
+		public IEnumerable<ItemNetwork> GetAdjacentItemNetworks() {
+			return GetAdjacentNetworks(NetworkType.Items)
+				.Select(r => r.network as ItemNetwork)
+				.OfType<ItemNetwork>();
+		}
 
 		public static void Update(IInventoryMachine machine) {
 			if (machine.Inventory is null) {

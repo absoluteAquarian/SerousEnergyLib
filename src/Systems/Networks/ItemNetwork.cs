@@ -59,16 +59,78 @@ namespace SerousEnergyLib.Systems.Networks {
 			}
 		}
 
+		// IInventoryMachine has a paired method for removing the machine from item networks
+		public override void OnEntryAdded(Point16 location) {
+			Point16 left = location + new Point16(-1, 0),
+				up = location + new Point16(0, -1),
+				right = location + new Point16(1, 0),
+				down = location + new Point16(0, 1);
+			
+			// Add adjacent chests
+			if (TryFindChest(left, up, right, down) > -1)
+				adjacentInventoryTiles.Add(left);
+
+			// Add adjacent machines
+			if (IMachine.TryFindMachine(left, out IMachine machine) && machine is IInventoryMachine)
+				adjacentInventoryTiles.Add(left);
+			if (IMachine.TryFindMachine(up, out machine) && machine is IInventoryMachine)
+				adjacentInventoryTiles.Add(up);
+			if (IMachine.TryFindMachine(right, out machine) && machine is IInventoryMachine)
+				adjacentInventoryTiles.Add(right);
+			if (IMachine.TryFindMachine(down, out machine) && machine is IInventoryMachine)
+				adjacentInventoryTiles.Add(down);
+		}
+
+		// Manual logic to improve OnEntryAdded performance
+		private static int TryFindChest(Point16 left, Point16 up, Point16 right, Point16 down) {
+			for (int i = 0; i < 8000; i++) {
+				Chest chest = Main.chest[i];
+
+				if (chest is null)
+					continue;
+
+				if (chest.x >= left.X && chest.x < left.X + 2 && chest.y >= left.Y && chest.y < left.Y + 2)
+					return i;
+
+				if (chest.x >= up.X && chest.x < up.X + 2 && chest.y >= up.Y && chest.y < up.Y + 2)
+					return i;
+
+				if (chest.x >= right.X && chest.x < right.X + 2 && chest.y >= right.Y && chest.y < right.Y + 2)
+					return i;
+
+				if (chest.x >= down.X && chest.x < down.X + 2 && chest.y >= down.Y && chest.y < down.Y + 2)
+					return i;
+			}
+
+			return -1;
+		}
+
+		public void RemoveAdjacentInventory(Point16 inventory) {
+			if (adjacentInventoryTiles.Remove(inventory)) {
+				// Update any items whose target was this location
+				foreach (var item in items) {
+					if (item.Target == inventory)
+						item.OnTargetLost();
+				}
+			}
+		}
+
 		protected override void SaveExtraData(TagCompound tag) {
-			tag["inventories"] = adjacentInventoryTiles.ToList();
+			static TagCompound SaveItem(PipedItem item) {
+				TagCompound itemTag = new TagCompound();
+				item.SaveData(itemTag);
+				return itemTag;
+			}
+
+			tag["items"] = items.Select(SaveItem).ToList();
 		}
 
 		protected override void LoadExtraData(TagCompound tag) {
-			adjacentInventoryTiles.Clear();
+			items.Clear();
 
-			if (tag.GetList<Point16>("inventories") is List<Point16> list) {
-				foreach (var point in list)
-					adjacentInventoryTiles.Add(point);
+			if (tag.GetList<TagCompound>("items") is List<TagCompound> itemTags) {
+				foreach (var item in itemTags)
+					items.Add(PipedItem.LoadData(this, item));
 			}
 		}
 

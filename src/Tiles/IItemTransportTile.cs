@@ -2,10 +2,10 @@
 	/// <summary>
 	/// An interface representing a tile that contains metadata for item transportation pathfinding
 	/// </summary>
-	public interface IItemTransportTile {
+	public interface IItemTransportTile : IPipedItemDrawingTile {
 		/// <summary>
-		/// How long it takes for the item to move through this tile, measured in game ticks
+		/// How fast an item can move in this tile, measured in tiles per second
 		/// </summary>
-		double TransportTime { get; }
+		double TransportSpeed { get; }
 	}
 }

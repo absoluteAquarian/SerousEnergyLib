@@ -631,7 +631,7 @@ namespace SerousEnergyLib.Systems {
 			if (!ignoreTravelTimeWhenPathfinding) {
 				if (Filter == NetworkType.Items) {
 					time = TileLoader.GetTile(Main.tile[location.X, location.Y].TileType) is IItemTransportTile transport
-						? transport.TransportTime
+						? transport.TransportSpeed
 						: double.PositiveInfinity;
 				}
 
@@ -952,7 +952,7 @@ namespace SerousEnergyLib.Systems {
 
 			Filter = (NetworkType)filter;
 
-			if (tag.ContainsKey("start") && tag["start"] is Point16 start)
+			if (tag.TryGet("start", out Point16 start))
 				Recalculate(start);
 
 			if (tag.GetCompound("extra") is TagCompound extra)

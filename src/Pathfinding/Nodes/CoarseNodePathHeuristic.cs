@@ -24,7 +24,7 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 				Tile tile = Main.tile[pos.X, pos.Y];
 
 				if (TileLoader.GetTile(tile.TileType) is IItemTransportTile transport)
-					travelTime += transport.TransportTime;
+					travelTime += transport.TransportSpeed;
 				else {
 					// Path was invalid
 					travelTime = double.PositiveInfinity;

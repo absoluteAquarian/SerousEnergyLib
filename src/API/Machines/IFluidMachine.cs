@@ -1,4 +1,13 @@
 ﻿using SerousEnergyLib.API.Fluid;
+using SerousEnergyLib.Systems.Networks;
+using SerousEnergyLib.Systems;
+using SerousEnergyLib.Tiles;
+using Terraria.ModLoader;
+using Terraria.DataStructures;
+using Terraria.ModLoader.IO;
+using System.Linq;
+using System.Collections.Generic;
+using SerousEnergyLib.TileData;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -18,5 +27,33 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machineX">The tile X-coordinate for the machine sub-tile</param>
 		/// <param name="machineY">The tile Y-coordinate for the machine sub-tile</param>
 		bool CanMergeWithFluidPipe(int pipeX, int pipeY, int machineX, int machineY);
+
+		public void RemoveFromNearbyFluidNetworks() {
+			foreach (var result in GetAdjacentNetworks(NetworkType.Fluids))
+				(result.network as FluidNetwork)?.RemoveAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
+		}
+
+		public IEnumerable<FluidNetwork> GetAdjacentFluidNetworks() {
+			return GetAdjacentNetworks(NetworkType.Fluids)
+				.Select(r => r.network as FluidNetwork)
+				.OfType<FluidNetwork>();
+		}
+
+		public void SaveFluids(TagCompound tag) {
+			static TagCompound SaveFluid(FluidStorage storage) {
+				TagCompound fluidTag = new TagCompound();
+				storage.SaveData(fluidTag);
+				return fluidTag;
+			}
+
+			tag["fluids"] = FluidStorage.Select(SaveFluid).ToList();
+		}
+
+		public void LoadFluids(TagCompound tag) {
+			if (tag.GetList<TagCompound>("fluids") is List<TagCompound> fluids && fluids.Count == FluidStorage.Length) {
+				for (int i = 0; i < FluidStorage.Length; i++)
+					FluidStorage[i].LoadData(fluids[i]);
+			}
+		}
 	}
 }

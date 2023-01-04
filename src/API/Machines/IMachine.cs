@@ -1,15 +1,20 @@
 ﻿using SerousEnergyLib.API.Machines.UI;
 using SerousEnergyLib.API.Upgrades;
+using SerousEnergyLib.Systems;
+using SerousEnergyLib.Systems.Networks;
+using SerousEnergyLib.TileData;
+using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
-	/// An interface containing methods used by all machines
+	/// The base interface used by all machine tile entities
 	/// </summary>
 	public interface IMachine {
 		/// <summary>
@@ -37,6 +42,18 @@ namespace SerousEnergyLib.API.Machines {
 			machine.Upgrades ??= new();
 		}
 
+		public static bool TryFindMachine(Point16 location, out IMachine machine) {
+			Point16 topleft = TileFunctions.GetTopLeftTileInMultitile(location.X, location.Y);
+
+			if (TileEntity.ByPosition.TryGetValue(topleft, out TileEntity entity) && entity is IMachine m) {
+				machine = m;
+				return true;
+			}
+
+			machine = null;
+			return false;
+		}
+
 		protected T CalculateFromUpgrades<T>(T @base, Func<BaseUpgrade, T, T> mutator) {
 			T calculated = @base;
 
@@ -47,6 +64,57 @@ namespace SerousEnergyLib.API.Machines {
 			}
 
 			return calculated;
+		}
+
+		public readonly struct NetworkSearchResult {
+			public readonly NetworkInstance network;
+			public readonly Point16 machineTileAdjacentToNetwork;
+
+			internal NetworkSearchResult(NetworkInstance instance, Point16 adjacentLocation) {
+				network = instance;
+				machineTileAdjacentToNetwork = adjacentLocation;
+			}
+		}
+
+		public IEnumerable<NetworkSearchResult> GetAdjacentNetworks(NetworkType type) {
+			if (this is not ModTileEntity entity)
+				yield break;
+
+			if (TileLoader.GetTile(MachineTile) is not IMachineTile machineTile)
+				yield break;
+
+			// Check all adjacent tiles in the cardinal directions
+			machineTile.GetMachineDimensions(out uint width, out uint height);
+
+			int x = -1;
+			int y;
+
+			// Check left edge
+			for (y = 0; y < height; y++) {
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X, entity.Position.Y + y));
+			}
+
+			// Check top edge
+			y = -1;
+			for (x = 0; x < width; x++) {
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y));
+			}
+
+			// Check right edge
+			x = (int)width;
+			for (y = 0; y < height; y++) {
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X, entity.Position.Y + y));
+			}
+
+			// Check bottom edge
+			y = (int)height;
+			for (x = 0; x < width; x++) {
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y));
+			}
 		}
 
 		public void SaveUpgrades(TagCompound tag) {

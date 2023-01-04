@@ -1,9 +1,13 @@
-﻿using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
+using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
+using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Systems {
 	/// <summary>
@@ -15,12 +19,25 @@ namespace SerousEnergyLib.Systems {
 		internal static readonly List<NetworkInstance> fluidNetworks = new();
 		internal static readonly List<NetworkInstance> powerNetworks = new();
 
-		internal static void Update() {
+		internal static bool UpdatingPowerGenerators { get; private set; }
+
+		internal static void UpdateItemNetworks() {
 			foreach (var net in itemNetworks)
 				net.Update();
+		}
 
+		internal static void UpdateFluidNetworks() {
 			foreach (var net in fluidNetworks)
 				net.Update();
+		}
+
+		internal static void UpdatePowerNetworks() {
+			UpdatingPowerGenerators = true;
+
+			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>())
+				machine.GeneratePower();
+			
+			UpdatingPowerGenerators = false;
 
 			foreach (var net in powerNetworks)
 				net.Update();
@@ -38,9 +55,21 @@ namespace SerousEnergyLib.Systems {
 				return;
 			}
 
-			ref NetworkInfo info = ref Main.tile[x, y].Get<NetworkInfo>();
+			Tile tile = Main.tile[x, y];
 
+			ref NetworkInfo info = ref tile.Get<NetworkInfo>();
 			info.Type |= type;
+
+			ref NetworkTaggedInfo tags = ref tile.Get<NetworkTaggedInfo>();
+			tags.Color = NetworkColor.None;
+
+			if (TileLoader.GetTile(tile.TileType) is IPumpTile pump) {
+				info.IsPump = true;
+				tags.PumpDirection = pump.GetDirection(x, y);
+			} else {
+				info.IsPump = false;
+				tags.PumpDirection = PumpDirection.Left;
+			}
 
 			UpdateEntryConnections(x, y);
 			UpdateEntryConnections(x - 1, y);
@@ -210,7 +239,7 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
-		private static NetworkInstance GetNetworkAt(int x, int y, NetworkType type, out int networkIndex) {
+		internal static NetworkInstance GetNetworkAt(int x, int y, NetworkType type, out int networkIndex) {
 			List<NetworkInstance> source;
 			networkIndex = -1;
 

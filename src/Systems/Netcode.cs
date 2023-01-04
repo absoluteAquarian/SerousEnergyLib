@@ -75,19 +75,24 @@ namespace SerousEnergyLib.Systems {
 			var packet = GetPacket(NetcodeMessage.SyncNetworkDataSingle);
 			packet.Write((short)x);
 			packet.Write((short)y);
-			packet.Write(Main.tile[x, y].Get<NetworkInfo>().netData);
+			Tile tile = Main.tile[x, y];
+			packet.Write(tile.Get<NetworkInfo>().netData);
+			packet.Write(tile.Get<NetworkTaggedInfo>().tagData);
 			packet.Send();
 		}
 
 		private static void ReceiveNetworkInfoSync(BinaryReader reader) {
 			short x = reader.ReadInt16();
 			short y = reader.ReadInt16();
-			byte data = reader.ReadByte();
+			byte infoData = reader.ReadByte();
+			byte tagData = reader.ReadByte();
 
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
 
-			Main.tile[x, y].Get<NetworkInfo>().netData = data;
+			Tile tile = Main.tile[x, y];
+			tile.Get<NetworkInfo>().netData = infoData;
+			tile.Get<NetworkTaggedInfo>().tagData = tagData;
 		}
 
 		public static void RequestNetworkEntryPlacement(int x, int y, NetworkType type) {
