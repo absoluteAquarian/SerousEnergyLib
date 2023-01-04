@@ -99,7 +99,9 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 			return new PipedItem(parent, previous, target, path, item) {
 				CurrentTile = current,
-				NextTile = next
+				NextTile = next,
+				pathIndex = pathIndex,
+				travelFactor = travelFactor
 			};
 		}
 

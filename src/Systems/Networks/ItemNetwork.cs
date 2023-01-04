@@ -21,8 +21,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				if (items[i].Destroyed)
 					items[i] = null;
 
-				if (items[i] is not null)
-					items[i].Update();
+				items[i]?.Update();
 			}
 		}
 
