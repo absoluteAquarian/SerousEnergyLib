@@ -1,5 +1,6 @@
 ﻿using SerousEnergyLib.API;
 using SerousEnergyLib.Pathfinding.Objects;
+using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using System;
 using System.Collections.Generic;
@@ -428,6 +429,27 @@ namespace SerousEnergyLib.Systems {
 		private static void ReceivePipedItemSync(BinaryReader reader) {
 			PipedItem.CreateOrUpdateFromNet(reader);
 		}
+
+		internal static void SyncPumpTimer(NetworkInstance net, Point16 location, int timer) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncPump);
+			WriteNetworkInstanceToPacket(packet, net);
+			packet.Write(location);
+			packet.Write((short)timer);
+			packet.Send();
+		}
+
+		private static void ReceivePumpTimerSync(BinaryReader reader) {
+			NetworkInstance net = ReadNetworkInstanceOnClient(reader);
+
+			Point16 location = reader.ReadPoint16();
+			int timer = reader.ReadInt16();
+
+			if (net is ItemNetwork itemNet)
+				itemNet.AddPumpTimer(location, timer);
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -444,6 +466,7 @@ namespace SerousEnergyLib.Systems {
 		RequestNetwork,
 		RemoveNetwork,
 		SyncNetworkInstanceEntryPlacement,
-		SyncPipedItem
+		SyncPipedItem,
+		SyncPump
 	}
 }

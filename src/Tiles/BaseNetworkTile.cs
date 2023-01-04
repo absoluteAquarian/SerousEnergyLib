@@ -205,7 +205,6 @@ namespace SerousEnergyLib.Tiles {
 			if (target.TileType < TileID.Count)
 				return false;
 
-			int chestNum;
 			if (modTarget is BaseNetworkTile and not NetworkJunction and not IItemPumpTile) {
 				bool mergeMatches = (networkType & target.Get<NetworkInfo>().Type) != 0;
 
@@ -221,7 +220,7 @@ namespace SerousEnergyLib.Tiles {
 					return true;
 				else if ((networkType & NetworkType.Power) == NetworkType.Power && modTarget is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
 					return true;
-			} else if ((chestNum = Chest.FindChestByGuessing(targetX, targetY)) > -1) {
+			} else if (Chest.FindChestByGuessing(targetX, targetY) > -1) {
 				// Merge if, and only if, this tile is part of an item network
 				if ((networkType & NetworkType.Items) == NetworkType.Items)
 					return true;

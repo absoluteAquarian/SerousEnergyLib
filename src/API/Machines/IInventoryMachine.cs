@@ -2,6 +2,7 @@
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,7 +47,6 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="import">The item to be imported</param>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
 		/// <param name="stackImported">How many items would be imported should the import be successful</param>
-		/// <returns>Whether <paramref name="import"/> can be imported into this machine</returns>
 		bool CanImportItemAtSlot(Item import, int slot, out int stackImported);
 
 		public bool CanImportItem(Item import, out int stackImported) {
@@ -105,7 +105,73 @@ namespace SerousEnergyLib.API.Machines {
 
 		public int[] GetExportSlotsOrDefault() => GetExportSlots() ?? Enumerable.Range(0, DefaultInventoryCapacity).ToArray();
 
-		// TODO: item pump methods for checking if an item can be exported
+		/// <summary>
+		/// Whether the given <paramref name="slot"/> in <see cref="Inventory"/> can be exported from
+		/// </summary>
+		/// <param name="slot">The slot in <see cref="Inventory"/></param>
+		bool CanExportItemAtSlot(int slot);
+
+		/// <summary>
+		/// Attempt to extract an item at the given <paramref name="slot"/> in <see cref="Inventory"/><br/>
+		/// By default, this method acts like extracting items from a chest
+		/// </summary>
+		/// <param name="network">The network to extract items to</param>
+		/// <param name="slot">The slot in <see cref="Inventory"/></param>
+		/// <param name="extractCount">The remaining count of items to extract from this machine</param>
+		/// <param name="simulation">Whether to actually remove items from this inventory or just simulate the removal.</param>
+		/// <param name="result">A valid extraction result if the extraction was successful, <see langword="default"/> otherwise.</param>
+		/// <returns>Whether the extraction was successful</returns>
+		public virtual bool ExportItemAtSlot(ItemNetwork network, int slot, ref int extractCount, bool simulation, out InventoryExtractionResult result) {
+			Item item = Inventory[slot];
+			Item import = Inventory[slot].Clone();
+
+			if (network.FindValidImportTarget(import, out Point16 target, out int stackImported)) {
+				// There was a valid target
+				import.stack = stackImported;
+				extractCount -= stackImported;
+
+				if (!simulation) {
+					item.stack -= stackImported;
+
+					if (item.stack <= 0)
+						item.TurnToAir();
+				}
+
+				result = new InventoryExtractionResult(target, import);
+				return true;
+			}
+
+			result = default;
+			return false;
+		}
+
+		public List<InventoryExtractionResult> ExtractItems(ItemNetwork network, ref int extractCount, bool simulation = true) {
+			// Attempt to extract items from the machine
+			List<InventoryExtractionResult> results = new();
+
+			var slots = GetExportSlotsOrDefault();
+
+			int capacity = slots.Length;
+
+			for (int i = 0; i < capacity; i++) {
+				int slot = slots[i];
+
+				if (CanExportItemAtSlot(slot)) {
+					int count = extractCount;
+					if (!ExportItemAtSlot(network, slot, ref extractCount, simulation, out InventoryExtractionResult result)) {
+						extractCount = count;  // Safeguard
+						continue;
+					}
+
+					results.Add(result);
+
+					if (extractCount <= 0)
+						break;
+				}
+			}
+
+			return results;
+		}
 
 		public void RemoveFromNearbyItemNetworks() {
 			foreach (var result in GetAdjacentNetworks(NetworkType.Items))

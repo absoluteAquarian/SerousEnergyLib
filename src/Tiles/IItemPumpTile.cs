@@ -4,5 +4,10 @@
 	/// </summary>
 	public interface IItemPumpTile : IPumpTile, IItemTransportTile {
 		double IItemTransportTile.TransportSpeed => 45d / 60d;
+
+		/// <summary>
+		/// How many items can be extracted from an inventory per pump cycle
+		/// </summary>
+		int StackPerExtraction { get; }
 	}
 }

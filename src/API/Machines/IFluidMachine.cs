@@ -28,6 +28,14 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machineY">The tile Y-coordinate for the machine sub-tile</param>
 		bool CanMergeWithFluidPipe(int pipeX, int pipeY, int machineX, int machineY);
 
+		/// <summary>
+		/// Select which fluid inventory can be exported from a given <paramref name="pump"/> location at the given <paramref name="subtile"/> location within this machine
+		/// </summary>
+		/// <param name="pump">The tile coordinates of the pump tile</param>
+		/// <param name="subtile">The tile coordinates of which sub-tile of this machine is being pumped from</param>
+		/// <returns>An instance from <see cref="FluidStorage"/> or <see langword="null"/> if no fluids can be extracted</returns>
+		FluidStorage SelectFluidExportSource(Point16 pump, Point16 subtile);
+
 		public void RemoveFromNearbyFluidNetworks() {
 			foreach (var result in GetAdjacentNetworks(NetworkType.Fluids))
 				(result.network as FluidNetwork)?.RemoveAdjacentFluidStorage(result.machineTileAdjacentToNetwork);

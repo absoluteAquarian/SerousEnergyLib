@@ -63,11 +63,14 @@ namespace SerousEnergyLib.Systems {
 			ref NetworkTaggedInfo tags = ref tile.Get<NetworkTaggedInfo>();
 			tags.Color = NetworkColor.None;
 
+			bool isPump;
+			int maxPumpTime = -1;
 			if (TileLoader.GetTile(tile.TileType) is IPumpTile pump) {
-				info.IsPump = true;
+				info.IsPump = isPump = true;
 				tags.PumpDirection = pump.GetDirection(x, y);
+				maxPumpTime = pump.GetMaxTimer(x, y);
 			} else {
-				info.IsPump = false;
+				info.IsPump = isPump = false;
 				tags.PumpDirection = PumpDirection.Left;
 			}
 
@@ -81,6 +84,18 @@ namespace SerousEnergyLib.Systems {
 
 			// Combine any adjacent networks
 			PlaceEntry_UpdateNetworkInstances(x, y, type);
+
+			if (isPump) {
+				Point16 location = new Point16(x, y);
+
+				if (GetItemNetworkAt(x, y) is ItemNetwork itemNet) {
+					itemNet.AddPumpTimer(location, maxPumpTime);
+					Netcode.SyncPumpTimer(itemNet, location, maxPumpTime);
+				} else if (GetFluidNetworkAt(x, y) is FluidNetwork fluidNet) {
+					fluidNet.AddPumpTimer(location, maxPumpTime);
+					Netcode.SyncPumpTimer(fluidNet, location, maxPumpTime);
+				}
+			}
 		}
 
 		private static void PlaceEntry_UpdateNetworkInstances(int x, int y, NetworkType type) {
@@ -182,6 +197,8 @@ namespace SerousEnergyLib.Systems {
 			ref NetworkInfo info = ref Main.tile[x, y].Get<NetworkInfo>();
 
 			info.Type &= ~type;
+			bool wasPump = info.IsPump;
+			info.IsPump = false;
 
 			if (info.Type == NetworkType.None)
 				info.Connections = ConnectionDirection.None;
@@ -194,6 +211,8 @@ namespace SerousEnergyLib.Systems {
 			UpdateEntryConnections(x, y + 1);
 
 			Netcode.SyncNetworkInfoDiamond(x, y);
+
+			// NOTE: pump timer does not need to be synced... The network will automatically remove it during its update code
 
 			// Split the network into separate networks
 			RemoveEntry_UpdateNetworkInstances(x, y, type);

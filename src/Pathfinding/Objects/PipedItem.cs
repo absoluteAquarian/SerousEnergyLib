@@ -48,16 +48,17 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 		public readonly int UniqueID;
 
-		internal PipedItem(ItemNetwork network, Point16 source, Point16 target, List<Point16> path, Item item, int id) {
+		internal PipedItem(ItemNetwork network, Point16 source, Point16 current, Point16 target, List<Point16> path, Item item, int id) {
 			this.network = network;
-			PreviousTile = CurrentTile = source;
+			PreviousTile = source;
+			CurrentTile = current;
 			this.Target = target;
 			this.path = path;
 			this.item = item;
 			UniqueID = id;
 		}
 
-		internal PipedItem(ItemNetwork network, Point16 source, Point16 target, List<Point16> path, Item item) : this(network, source, target, path, item, nextUniqueID++) { }
+		internal PipedItem(ItemNetwork network, Point16 source, Point16 current, Point16 target, List<Point16> path, Item item) : this(network, source, current, target, path, item, nextUniqueID++) { }
 
 		public void SaveData(TagCompound tag) {
 			if (Destroyed)
@@ -97,8 +98,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			if (!tag.TryGet("next", out Point16 next))
 				return null;
 
-			return new PipedItem(parent, previous, target, path, item) {
-				CurrentTile = current,
+			return new PipedItem(parent, previous, current, target, path, item) {
 				NextTile = next,
 				pathIndex = pathIndex,
 				travelFactor = travelFactor
@@ -170,7 +170,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				Item data = ItemIO.Receive(reader, readStack: true);
 
 				// Make a new instance
-				item = new PipedItem(net, previousTile, target, path, data, id) {
+				item = new PipedItem(net, previousTile, currentTile, target, path, data, id) {
 					Destroyed = destroyed,
 					NextTile = nextTile
 				};
@@ -307,12 +307,10 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			if (import.IsAir)
 				return;
 
-			int chestNum = Chest.FindChestByGuessing(entry.X, entry.Y);
-
-			if (chestNum > -1) {
+			if (NetworkHandler.locationToChest.TryGetValue(entry, out int chestNum)) {
 				Chest chest = Main.chest[chestNum];
 
-				chest.ImportItem(import);
+				chest.ImportItem(chestNum, import);
 			}
 
 			if (import.IsAir)
@@ -335,44 +333,11 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 		private void FindNewTarget() {
 			Item import = item.Clone();
 
-			path = null;
+			this.path = null;
 			pathIndex = -1;
 
-			if (network.FindValidImportTarget(import, out Point16 inventory, out _)) {
-				// Generate a path to the target
-				var left = network.GeneratePath(CurrentTile, inventory + new Point16(-1, 0), out double leftTime);
-				var up = network.GeneratePath(CurrentTile, inventory + new Point16(0, -1), out double upTime);
-				var right = network.GeneratePath(CurrentTile, inventory + new Point16(1, 0), out double rightTime);
-				var down = network.GeneratePath(CurrentTile, inventory + new Point16(0, 1), out double downTime);
-				
-				if (left is null && up is null && right is null && down is null) {
-					// No path found
-					return;
-				}
-
-				if (left is null)
-					leftTime = double.PositiveInfinity;
-				if (up is null)
-					upTime = double.PositiveInfinity;
-				if (right is null)
-					rightTime = double.PositiveInfinity;
-				if (down is null)
-					downTime = double.PositiveInfinity;
-
-				if (left is not null && leftTime <= upTime && leftTime <= rightTime && leftTime <= downTime) {
-					// Use the left path
-					UseTarget(inventory, left);
-				} else if (up is not null && upTime <= rightTime && upTime <= downTime) {
-					// Use the up path
-					UseTarget(inventory, up);
-				} else if (right is not null && rightTime <= downTime) {
-					// Use the right path
-					UseTarget(inventory, right);
-				} else if (down is not null) {
-					// Use the down path
-					UseTarget(inventory, down);
-				}
-			}
+			if (network.FindValidImportTarget(import, out Point16 inventory, out _) && network.AttemptToGeneratePathToInventoryTarget(CurrentTile, inventory) is List<Point16> path)
+				UseTarget(inventory, path);
 		}
 
 		private void UseTarget(Point16 target, List<Point16> pathToTarget) {

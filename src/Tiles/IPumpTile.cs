@@ -11,5 +11,13 @@ namespace SerousEnergyLib.Tiles {
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
 		PumpDirection GetDirection(int x, int y);
+
+		/// <summary>
+		/// Return the value this pump's timer should reset to here
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		/// <returns>The duration of the timer, measured in game ticks</returns>
+		int GetMaxTimer(int x, int y);
 	}
 }
