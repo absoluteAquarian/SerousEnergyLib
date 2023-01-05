@@ -262,6 +262,22 @@ namespace SerousEnergyLib.API.Machines {
 			}
 		}
 
+		/// <summary>
+		/// Removes the item at index <paramref name="slot"/> within <see cref="Inventory"/> and drops it in the world
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="slot">The index in <see cref="Inventory"/></param>
+		public static int DropItemInInventory(IInventoryMachine machine, int slot) {
+			Update(machine);
+
+			var inv = machine.Inventory;
+			if (slot < 0 || slot >= inv.Length)
+				throw new IndexOutOfRangeException("Inventory slot exceeded the bounds of the IInventoryMachine.Inventory array");
+
+			var item = inv[slot];
+			return Main.LocalPlayer.QuickSpawnClonedItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+		}
+
 		public void SaveInventory(TagCompound tag) {
 			tag["inventory"] = Inventory;
 		}
