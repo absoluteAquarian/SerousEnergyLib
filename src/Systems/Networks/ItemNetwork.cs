@@ -46,6 +46,16 @@ namespace SerousEnergyLib.Systems.Networks {
 			pumpTimers[location] = new Ref<int>(timer);
 		}
 
+		public bool TryGetPumpTimer(Point16 location, out int timer) {
+			if (pumpTimers.TryGetValue(location, out Ref<int> timerRef)) {
+				timer = timerRef.Value;
+				return true;
+			}
+
+			timer = -1;
+			return false;
+		}
+
 		private bool UpdatePump(Point16 location, Ref<int> timerRef) {
 			ref int timer = ref timerRef.Value;
 
