@@ -245,28 +245,28 @@ namespace SerousEnergyLib.API.Machines {
 
 			// Check left edge
 			for (y = 0; y < height; y++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
 					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X, entity.Position.Y + y));
 			}
 
 			// Check top edge
 			y = -1;
 			for (x = 0; x < width; x++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
 					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X + x, entity.Position.Y));
 			}
 
 			// Check right edge
 			x = (int)width;
 			for (y = 0; y < height; y++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
 					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X, entity.Position.Y + y));
 			}
 
 			// Check bottom edge
 			y = (int)height;
 			for (x = 0; x < width; x++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
 					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X + x, entity.Position.Y));
 			}
 		}

@@ -258,32 +258,46 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
+		/// <summary>
+		/// Attempts to find a network at the location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y=coordinate</param>
+		/// <param name="type">The filter to use when checking for networks.  Multiple network types can be searched through via OR-ing multiple <see cref="NetworkType"/> constants</param>
+		/// <returns>A valid <see cref="NetworkInstance"/> object, or <see langword="null"/> if one wasn't found at the provided location</returns>
+		public static NetworkInstance GetNetworkAt(int x, int y, NetworkType type) => GetNetworkAt(x, y, type, out _);
+		
 		internal static NetworkInstance GetNetworkAt(int x, int y, NetworkType type, out int networkIndex) {
-			List<NetworkInstance> source;
-			networkIndex = -1;
+			Point16 loc = new Point16(x, y);
 
-			switch (type) {
-				case NetworkType.Items:
-					source = itemNetworks;
-					break;
-				case NetworkType.Fluids:
-					source = fluidNetworks;
-					break;
-				case NetworkType.Power:
-					source = powerNetworks;
-					break;
-				default:
-					// Type was invalid
-					return null;
+			if ((type & NetworkType.Items) == NetworkType.Items) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in itemNetworks) {
+					if (net.HasEntry(loc))
+						return net;
+
+					networkIndex++;
+				}
 			}
 
-			Point16 loc = new Point16(x, y);
-			networkIndex = 0;
-			foreach (NetworkInstance net in source) {
-				if (net.HasEntry(loc))
-					return net;
+			if ((type & NetworkType.Fluids) == NetworkType.Fluids) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in fluidNetworks) {
+					if (net.HasEntry(loc))
+						return net;
 
-				networkIndex++;
+					networkIndex++;
+				}
+			}
+
+			if ((type & NetworkType.Power) == NetworkType.Power) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in powerNetworks) {
+					if (net.HasEntry(loc))
+						return net;
+
+					networkIndex++;
+				}
 			}
 
 			// No network found
