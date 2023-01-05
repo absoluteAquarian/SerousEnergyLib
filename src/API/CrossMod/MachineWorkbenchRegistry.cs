@@ -1,7 +1,7 @@
 ﻿using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
-using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.CrossMod {
@@ -15,9 +15,9 @@ namespace SerousEnergyLib.API.CrossMod {
 	/// </summary>
 	public sealed class MachineWorkbenchRegistry {
 		/// <summary>
-		/// The ID of the <see cref="IMachine"/> tile entity that this registry should retrieve its information from
+		/// The ID of the <see cref="IMachineTile"/> tile entity that this registry should retrieve its information from
 		/// </summary>
-		public readonly int MachineEntity;
+		public readonly int MachineTile;
 
 		#pragma warning disable CS1591
 		public readonly GetDisplayStateDelegate GetFirstDisplay;
@@ -26,36 +26,36 @@ namespace SerousEnergyLib.API.CrossMod {
 		public MachineWorkbenchRegistry(int id, GetDisplayStateDelegate getFirstDisplay, GetDisplayStateDelegate getSecondDisplay = null) {
 			ArgumentNullException.ThrowIfNull(getFirstDisplay);
 
-			if (!TileEntity.manager.TryGetTileEntity(id, out ModTileEntity entity) || entity is not IMachine)
-				throw new ArgumentException("Input ID either did not refer to a valid ModTileEntity instance or was not an IMachine");
+			if (TileLoader.GetTile(id) is not IMachineTile)
+				throw new ArgumentException("Input ID did not refer to an IMachineTile instance");
 
-			MachineEntity = id;
+			MachineTile = id;
 			GetFirstDisplay = getFirstDisplay;
 			GetSecondDisplay = getSecondDisplay;
 		}
 
 		/// <summary>
-		/// Returns a new instance of the tile entity indicated by <see cref="MachineEntity"/>
+		/// Returns a new instance of the tile indicated by <see cref="MachineTile"/>
 		/// </summary>
-		/// <remarks>This method will throw an exception if <see cref="MachineEntity"/> is invalid or does not refer to an <see cref="IMachine"/> entity</remarks>
+		/// <remarks>This method will throw an exception if <see cref="MachineTile"/> is invalid or does not refer to an <see cref="IMachineTile"/> tile</remarks>
 		/// <exception cref="InvalidOperationException"/>
-		public IMachine GetMachineEntity() {
-			var entity = ModTileEntity.ConstructFromType(MachineEntity) as IMachine;
+		public IMachineTile GetMachineTile() {
+			if (TileLoader.GetTile(MachineTile) is not IMachineTile entity)
+				throw new InvalidOperationException("Tile ID did not refer to an IMachineTile instance");
 
-			if (entity is null)
-				throw new InvalidOperationException("Entity ID either did not refer to a valid ModTileEntity instance or was not an IMachine");
-
-			if (entity is not IScienceWorkbenchViewableMachine)
-				throw new InvalidOperationException("Entity does not have support for the Machine Workbench");
+			if (entity is not IMachineWorkbenchViewableMachine)
+				throw new InvalidOperationException("Tile ID does not have support for the Machine Workbench");
 
 			return entity;
 		}
 
 		/// <summary>
-		/// Examines the machine returned by <see cref="GetMachineEntity"/> and returns an enumeration of descriptors for the entity
+		/// Examines the machine returned by <see cref="GetMachineTile"/> and returns an enumeration of descriptors for its entity
 		/// </summary>
 		public IEnumerable<string> GetDescriptorLines() {
-			var entity = GetMachineEntity();
+			var tile = GetMachineTile();
+
+			var entity = tile.GetMachineEntity();
 
 			bool isGeneric = true;
 
