@@ -16,7 +16,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// Return how much power in units represented by <see cref="IPoweredMachine.EnergyID"/> should be generated for a duration of <paramref name="ticks"/>
 		/// </summary>
 		/// <param name="ticks">The amount of game ticks to calculate</param>
-		protected double GetPowerGeneration(double ticks);
+		double GetPowerGeneration(double ticks);
 
 		/// <summary>
 		/// Applies <see cref="BaseUpgrade.GetPowerGenerationMultiplier"/> to the result of <see cref="GetPowerGeneration(double)"/>
