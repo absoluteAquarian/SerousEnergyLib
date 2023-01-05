@@ -11,7 +11,7 @@ namespace SerousEnergyLib.Tiles {
 		public override string Texture => "SerousEnergyLib/Assets/Tiles/NetworkJunction";
 		public override NetworkType NetworkTypeToPlace => NetworkType.Items | NetworkType.Fluids | NetworkType.Power;
 
-		public double TransportSpeed => 60d;
+		public double TransportSpeed => 1d;
 
 		double IFluidTransportTile.MaxCapacity => 1d;
 
