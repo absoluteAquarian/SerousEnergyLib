@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API.CrossMod;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Items;
 using Terraria;
@@ -9,7 +10,7 @@ namespace SerousEnergyLib.Tiles {
 	/// <summary>
 	/// The base implementation for a placeable machine's tiles
 	/// </summary>
-	public abstract class BaseMachineTile : ModTile, IMachineTile {
+	public abstract class BaseMachineTile : ModTile, IMachineTile, IMachineWorkbenchViewableMachine {
 		#pragma warning disable CS1591
 		public abstract int MachineItem { get; }
 
@@ -43,6 +44,8 @@ namespace SerousEnergyLib.Tiles {
 		public override void KillMultiTile(int i, int j, int frameX, int frameY) {
 			IMachineTile.DefaultKillMultitile(this, i, j);
 		}
+
+		public abstract MachineWorkbenchRegistry GetRegistry();
 	}
 
 	/// <inheritdoc cref="BaseMachineTile"/>
