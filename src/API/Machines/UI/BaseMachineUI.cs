@@ -106,7 +106,7 @@ namespace SerousEnergyLib.API.Machines.UI {
 		protected abstract IEnumerable<string> GetMenuOptions();
 
 		/// <summary>
-		/// Return an enumeration of localized text for each page's tab
+		/// Return an instance of localized text for a page, given its key from <see cref="GetMenuOptions"/>
 		/// </summary>
 		protected abstract LocalizedText GetMenuOptionLocalization(string key);
 
