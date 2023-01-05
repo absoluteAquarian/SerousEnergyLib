@@ -18,7 +18,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public Item[] Inventory { get; set; }
 
-		public int DefaultInventoryCapacity { get; }
+		public abstract int DefaultInventoryCapacity { get; }
 
 		public override void Update() {
 			IMachine.Update(this);
