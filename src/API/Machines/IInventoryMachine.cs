@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.Pathfinding.Objects;
+using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
@@ -133,6 +134,8 @@ namespace SerousEnergyLib.API.Machines {
 				import.stack -= existing.maxStack - existing.stack;
 				existing.stack = existing.maxStack;
 			}
+
+			Netcode.SyncMachineInventorySlot(this, slot);
 		}
 
 		public void ImportItem(Item import) {
@@ -148,8 +151,6 @@ namespace SerousEnergyLib.API.Machines {
 
 				if (CanImportItemAtSlot(import, slot, out _))
 					ImportItemAtSlot(import, slot);
-
-				// TODO: netcode message for syncing machine inventory slot?
 
 				if (import.stack <= 0)
 					return;
@@ -193,6 +194,8 @@ namespace SerousEnergyLib.API.Machines {
 
 					if (item.stack <= 0)
 						item.TurnToAir();
+
+					Netcode.SyncMachineInventorySlot(this, slot);
 				}
 
 				result = new InventoryExtractionResult(target, import);

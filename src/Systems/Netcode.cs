@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API;
+﻿using Microsoft.CodeAnalysis;
+using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
@@ -10,6 +11,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems {
 	/// <summary>
@@ -70,6 +72,9 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncMachineRemoval:
 					ReceiveMachineRemovalSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncMachineInventorySlot:
+					ReceiveMachineInventorySlotSync(reader, sender);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -585,6 +590,75 @@ namespace SerousEnergyLib.Systems {
 				packet.Send(ignoreClient: sender);
 			}
 		}
+
+		/// <summary>
+		/// Syncs the inventory <paramref name="slot"/> in <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process.  Must refer to a <see cref="ModTileEntity"/> instance or an error will be thrown</param>
+		/// <param name="slot">The slot in the machine's inventory</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachineInventorySlot(IInventoryMachine machine, int slot) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("Machine was not a ModTileEntity", nameof(machine));
+
+			var inv = machine.Inventory;
+			if (slot < 0 || slot >= inv.Length)
+				return;
+
+			inv[slot] ??= new();
+
+			SyncMachineInventorySlot_DoSync(entity.Position, slot, inv[slot]);
+		}
+
+		/// <summary>
+		/// Syncs the inventory <paramref name="slot"/> in the machine entity at the provided <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The tile coordinates of othe machine.  Must refer to a <see cref="ModTileEntity"/> and <see cref="IInventoryMachine"/> instance or an error will be thrown</param>
+		/// <param name="slot">The slot in the machine's inventory</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachineInventorySlot(Point16 location, int slot) {
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not ModTileEntity || entity is not IInventoryMachine machine)
+				throw new ArgumentException($"Tile entity at location (X: {location.X}, Y: {location.Y}) did not have a valid machine type", nameof(location));
+
+			var inv = machine.Inventory;
+			if (slot < 0 || slot >= inv.Length)
+				return;
+
+			inv[slot] ??= new();
+
+			SyncMachineInventorySlot_DoSync(location, slot, inv[slot]);
+		}
+
+		private static void SyncMachineInventorySlot_DoSync(Point16 location, int slot, Item item) {
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
+			packet.Write(location);
+			packet.Write((short)slot);
+			ItemIO.Send(item, packet, writeStack: true, writeFavorite: true);
+			packet.Send();
+		}
+
+		private static void ReceiveMachineInventorySlotSync(BinaryReader reader, int sender) {
+			Point16 location = reader.ReadPoint16();
+			short slot = reader.ReadInt16();
+			Item item = ItemIO.Receive(reader, readStack: true, readFavorite: true);
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not IInventoryMachine machine)
+				throw new IOException($"Tile entity at location (X: {location.X}, Y: {location.Y}) either did not exist or did not have a valid machine type");
+
+			machine.Inventory[slot] = item;
+
+			if (Main.netMode == NetmodeID.Server) {
+				// Forward to other clients
+				var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
+				packet.Write(location);
+				packet.Write((short)slot);
+				ItemIO.Send(item, packet, writeStack: true, writeFavorite: true);
+				packet.Send(ignoreClient: sender);
+			}
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -604,6 +678,7 @@ namespace SerousEnergyLib.Systems {
 		SyncPipedItem,
 		SyncPump,
 		SyncMachinePlacement,
-		SyncMachineRemoval
+		SyncMachineRemoval,
+		SyncMachineInventorySlot
 	}
 }
