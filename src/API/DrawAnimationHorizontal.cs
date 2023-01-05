@@ -4,6 +4,7 @@ using Terraria;
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.API {
+	#pragma warning disable CS1591
 	public class DrawAnimationHorizontal : DrawAnimation {
 		public bool PingPong;
 		public bool NotActuallyAnimating;

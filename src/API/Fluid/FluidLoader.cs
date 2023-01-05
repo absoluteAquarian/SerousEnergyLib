@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Fluid {
+	/// <summary>
+	/// The central class for loading <see cref="FluidTypeID"/> instances
+	/// </summary>
 	public static class FluidLoader {
+		#pragma warning disable CS1591
 		private class Loadable : ILoadable {
 			public void Load(Mod mod) {
 				mod.AddContent(new WaterFluidID());
 				mod.AddContent(new LavaFluidID());
-				mod.AddContent(new HoneyWaterFluidID());
+				mod.AddContent(new HoneyFluidID());
 			}
 
 			public void Unload() {

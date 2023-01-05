@@ -1,10 +1,15 @@
-﻿using System;
+﻿using SerousEnergyLib.Tiles;
+using System;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib {
+	/// <summary>
+	/// A helper class containing methods used by the merging logic for <see cref="BaseNetworkTile"/> tiles
+	/// </summary>
 	public static class NetworkHelper {
+		#pragma warning disable CS1591
 		public static bool AtLeastOneSurroundingTileIsSolid(int x, int y) {
 			return (x > 0 && Main.tile[x - 1, y].HasTile)
 				|| (y > 0 && Main.tile[x, y - 1].HasTile)

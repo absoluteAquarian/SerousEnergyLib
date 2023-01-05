@@ -1,16 +1,34 @@
-﻿using SerousEnergyLib.Pathfinding.Nodes;
+﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems;
 using System.IO;
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.API {
+	/// <summary>
+	/// A class containing a collection of extension methods
+	/// </summary>
 	public static partial class Extensions {
+		/// <summary>
+		/// Writes a <see cref="Point16"/> value to the current stream and advances the stream position by four bytes
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <param name="point">The <see cref="Point16"/> value to write</param>
 		public static void Write(this BinaryWriter writer, Point16 point) {
 			writer.Write(point.X);
 			writer.Write(point.Y);
 		}
 
-		public static void Write(this BinaryWriter writer, NetworkInstanceNode node) {
+		/// <summary>
+		/// Writes a <see cref="TerraFlux"/> value to the current stream and advances the stream position by eight bytes
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <param name="flux">The <see cref="TerraFlux"/> value to write</param>
+		public static void Write(this BinaryWriter writer, TerraFlux flux) {
+			writer.Write((double)flux);
+		}
+
+		internal static void Write(this BinaryWriter writer, NetworkInstanceNode node) {
 			writer.Write(node.location);
 			writer.Write((byte)node.adjacent.Length);
 
@@ -18,7 +36,7 @@ namespace SerousEnergyLib.API {
 				writer.Write(adj);
 		}
 
-		public static void Write(this BinaryWriter writer, CoarseNode coarse) {
+		internal static void Write(this BinaryWriter writer, CoarseNode coarse) {
 			writer.Write((byte)coarse.thresholds.Count);
 
 			foreach (var (edgePos, threshold) in coarse.thresholds) {
@@ -27,7 +45,7 @@ namespace SerousEnergyLib.API {
 			}
 		}
 
-		public static void Write(this BinaryWriter writer, CoarseNodeThresholdTile threshold) {
+		internal static void Write(this BinaryWriter writer, CoarseNodeThresholdTile threshold) {
 			writer.Write(threshold.location);
 			writer.Write((byte)threshold.edge);
 			writer.Write((byte)threshold.paths.Length);
@@ -36,7 +54,7 @@ namespace SerousEnergyLib.API {
 				writer.Write(heuristic);
 		}
 
-		public static void Write(this BinaryWriter writer, CoarseNodePathHeuristic heuristic) {
+		internal static void Write(this BinaryWriter writer, CoarseNodePathHeuristic heuristic) {
 			writer.Write(heuristic.travelTime);
 			writer.Write((byte)heuristic.path.Length);
 

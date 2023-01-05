@@ -1,22 +1,33 @@
-﻿using SerousEnergyLib.API.Fluid;
+﻿using SerousEnergyLib.API;
+using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems.Networks {
+	/// <summary>
+	/// An object representing a <see cref="NetworkInstance"/> for fluid tiles
+	/// </summary>
 	public sealed class FluidNetwork : NetworkInstance {
 		private HashSet<Point16> adjacentFluidStorageTiles = new();
 		private Dictionary<Point16, Ref<int>> pumpTimers = new();
+
+		/// <summary>
+		/// The fluid storage within this network
+		/// </summary>
 		public FluidStorage Storage = new FluidStorage(0);
 
 		internal FluidNetwork() : base(NetworkType.Fluids) { }
 
+		#pragma warning disable CS1591
 		public override void Update() {
 			HashSet<Point16> invalidPumps = new();
 			foreach (var (loc, timer) in pumpTimers) {
@@ -26,6 +37,20 @@ namespace SerousEnergyLib.Systems.Networks {
 
 			foreach (var pump in invalidPumps)
 				pumpTimers.Remove(pump);
+
+			// Export fluids from this network into adjacent machines
+			IEnumerable<IFluidMachine> machines = adjacentFluidStorageTiles.Select(a => IMachine.TryFindMachine(a, out IMachine machine) ? machine : null)
+				.OfType<ModTileEntity>()
+				.OfType<IFluidMachine>();
+
+			foreach (var machine in machines) {
+				if (!IFluidMachine.TryGetHighestExportRate(machine, this, out double rate, out Point16 pipeTile, out Point16 machineSubTile))
+					continue;
+
+				FluidStorage storage = machine.SelectFluidImportDestination(pipeTile, machineSubTile);
+
+				storage?.ImportFrom(Storage, rate);
+			}
 		}
 
 		internal void AddPumpTimer(Point16 location, int timer) {
@@ -98,11 +123,19 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentFluidStorageTiles.Add(down);
 		}
 
+		/// <summary>
+		/// Attempts to add an adjacent <see cref="IFluidMachine"/> machine entry location at <paramref name="storage"/>
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent machine to add</param>
 		public void AddAdjacentFluidStorage(Point16 storage) {
 			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IFluidMachine)
 				adjacentFluidStorageTiles.Add(storage);
 		}
 
+		/// <summary>
+		/// Removes an adjacent <see cref="IFluidMachine"/> machine entry location
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent machine to remove</param>
 		public void RemoveAdjacentFluidStorage(Point16 storage) {
 			adjacentFluidStorageTiles.Remove(storage);
 		}
@@ -127,6 +160,37 @@ namespace SerousEnergyLib.Systems.Networks {
 		protected override void LoadExtraData(TagCompound tag) {
 			if (tag.GetCompound("fluids") is TagCompound fluids)
 				Storage.LoadData(fluids);
+		}
+
+		public override void SendExtraData(BinaryWriter writer) {
+			Storage.Send(writer);
+
+			writer.Write(adjacentFluidStorageTiles.Count);
+			foreach (var adjacent in adjacentFluidStorageTiles)
+				writer.Write(adjacent);
+
+			writer.Write(pumpTimers.Count);
+			foreach (var (position, timer) in pumpTimers) {
+				writer.Write(position);
+				writer.Write(timer.Value);
+			}
+		}
+
+		public override void ReceiveExtraData(BinaryReader reader) {
+			Storage ??= new(0);
+			Storage.Receive(reader);
+
+			adjacentFluidStorageTiles.Clear();
+
+			int adjacentCount = reader.ReadInt32();
+			for (int i = 0; i < adjacentCount; i++)
+				adjacentFluidStorageTiles.Add(reader.ReadPoint16());
+
+			pumpTimers.Clear();
+
+			int pumpCount = reader.ReadInt32();
+			for (int i = 0; i < pumpCount; i++)
+				pumpTimers.Add(reader.ReadPoint16(), new Ref<int>(reader.ReadInt32()));
 		}
 	}
 }

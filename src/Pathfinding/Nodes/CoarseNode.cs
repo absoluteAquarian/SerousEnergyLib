@@ -11,6 +11,7 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 		/// </summary>
 		public const int Stride = 10;
 
+		#pragma warning disable CS1591
 		public static readonly Point16 Coarseness = new Point16(Stride);
 
 		internal readonly Dictionary<Point16, CoarseNodeThresholdTile> thresholds = new();

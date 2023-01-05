@@ -42,7 +42,8 @@ namespace SerousEnergyLib.Tiles {
 		/// Modifies <see cref="TileObjectData.newTile"/> and other properties in <paramref name="machine"/> to contain the default values for machines.<br/>
 		/// <see cref="TileObjectData.addTile(int)"/> is purosefully not called so that <see cref="TileObjectData.newTile"/> can be further modified.
 		/// </summary>
-		/// <param name="machine"></param>
+		/// <param name="machine">The machine to retrieve information from</param>
+		/// <param name="mapColor">The color of this machine's tiles on the minimap</param>
 		public static void MultitileDefaults(IMachineTile machine, Color mapColor) {
 			if (machine is not ModTile tile)
 				throw new ArgumentException("IMachineTile parameter was not a ModTile", nameof(machine));
@@ -73,8 +74,12 @@ namespace SerousEnergyLib.Tiles {
 		}
 
 		/// <summary>
-		/// This method executes the standard logic for placing this machine's tile entity in the world
+		/// This method executes the standard logic for placing a machine's tile entity in the world
 		/// </summary>
+		/// <param name="machine">The machine to retrieve information from</param>
+		/// <param name="i">The tile X-coordinate that the machine is being placed at</param>
+		/// <param name="j">The tile Y=coordinate that the machine is being placed at</param>
+		/// <param name="item">The item used to place the machine</param>
 		public static void DefaultPlaceInWorld(IMachineTile machine, int i, int j, Item item) {
 			if (machine is not ModTile)
 				throw new ArgumentException("IMachineTile parameter was not a ModTile", nameof(machine));
@@ -92,6 +97,15 @@ namespace SerousEnergyLib.Tiles {
 			Netcode.SyncMachinePlacement(entity.Type, entityLocation);
 		}
 
+		/// <summary>
+		/// This method executes the standard logic for destroying a machine multitile, which encompasses dropping its item and destroying its tile entity
+		/// </summary>
+		/// <param name="machine"></param>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="dropItem"></param>
+		/// <exception cref="ArgumentException"></exception>
+		/// <exception cref="InvalidOperationException"></exception>
 		public static void DefaultKillMultitile(IMachineTile machine, int x, int y, bool dropItem = true) {
 			if (machine is not ModTile)
 				throw new ArgumentException("IMachineTile parameter was not a ModTile", nameof(machine));

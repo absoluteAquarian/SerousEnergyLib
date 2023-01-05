@@ -6,7 +6,11 @@ using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Pathfinding.Nodes {
+	/// <summary>
+	/// A structure representing a path within a coarse node within the world
+	/// </summary>
 	public readonly struct CoarseNodePathHeuristic : IPriorityNode<CoarseNodePathHeuristic> {
+		#pragma warning disable CS1591
 		public readonly Point16[] path;
 		public readonly double travelTime;
 

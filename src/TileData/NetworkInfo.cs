@@ -1,6 +1,10 @@
-﻿using Terraria;
+﻿using SerousEnergyLib.Tiles;
+using Terraria;
 
 namespace SerousEnergyLib.TileData {
+	/// <summary>
+	/// A structure representing information for a <see cref="BaseNetworkTile"/> tile
+	/// </summary>
 	public struct NetworkInfo : ITileData {
 		/// <summary>
 		/// DDDD PTTT<para/>

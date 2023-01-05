@@ -10,5 +10,10 @@ namespace SerousEnergyLib.Tiles {
 		/// To convert from a custom power type to Terra Flux, use <see cref="EnergyConversions.ConvertToTerraFlux(double, int)"/> or <see cref="EnergyConversions.ConvertToTerraFlux{T}(double)"/>
 		/// </summary>
 		TerraFlux MaxCapacity { get; }
+
+		/// <summary>
+		/// How much Terra Flux (TF) can be imported into and exported from this tile's network at its location, per game tick
+		/// </summary>
+		TerraFlux TransferRate { get; }
 	}
 }

@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.Pathfinding.Objects;
+using SerousEnergyLib.Systems.Networks;
 using System;
 using System.Collections.Generic;
 using Terraria;
@@ -7,6 +8,13 @@ using Terraria.ID;
 
 namespace SerousEnergyLib.API {
 	partial class Extensions {
+		/// <summary>
+		/// Checks if <paramref name="chest"/> can have <paramref name="item"/> imported into it
+		/// </summary>
+		/// <param name="chest">The chest instance</param>
+		/// <param name="item">The item to import</param>
+		/// <param name="stackImported">The quantity of <paramref name="item"/> that was imported</param>
+		/// <returns>Whether the item could be imported</returns>
 		public static bool CanImportItem(this Chest chest, Item item, out int stackImported) {
 			stackImported = 0;
 
@@ -37,6 +45,15 @@ namespace SerousEnergyLib.API {
 			return stackImported > 0;
 		}
 
+		/// <summary>
+		/// Imports <paramref name="item"/> into <paramref name="chest"/>
+		/// </summary>
+		/// <param name="chest">The chest instance</param>
+		/// <param name="chestNum">
+		/// The index of <paramref name="chest"/> in <see cref="Main.chest"/><br/>
+		/// This parameter is required for netcode to properly send updates of the items in <paramref name="chest"/>
+		/// </param>
+		/// <param name="item">The item to import</param>
 		public static void ImportItem(this Chest chest, int chestNum, Item item) {
 			if (item.IsAir)
 				return;
@@ -70,6 +87,18 @@ namespace SerousEnergyLib.API {
 			}
 		}
 
+		/// <summary>
+		/// Extracts items from <paramref name="chest"/> into <paramref name="network"/>
+		/// </summary>
+		/// <param name="chest">The chest instance</param>
+		/// <param name="chestNum">
+		/// The index of <paramref name="chest"/> in <see cref="Main.chest"/><br/>
+		/// This parameter is required for netcode to properly send updates of the items in <paramref name="chest"/>
+		/// </param>
+		/// <param name="network">The item network to import the items into</param>
+		/// <param name="extractCount">A counter for how many more items can be extracted from <paramref name="chest"/></param>
+		/// <param name="simulation">If <see langword="true"/>, items will not be removed from <paramref name="chest"/></param>
+		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
 		public static List<InventoryExtractionResult> ExtractItems(this Chest chest, int chestNum, ItemNetwork network, ref int extractCount, bool simulation = true) {
 			var inv = chest.item;
 			

@@ -8,5 +8,10 @@
 		/// For <see cref="IFluidPumpTile"/>, this also dictates the max amount of fluid that can be pumped out per cycle
 		/// </summary>
 		double MaxCapacity { get; }
+
+		/// <summary>
+		/// How many Liters (L) can be exported from this tile's network at its location, per game tick
+		/// </summary>
+		double ExportRate { get; }
 	}
 }

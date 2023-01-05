@@ -5,6 +5,7 @@ using System.Linq;
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.Pathfinding {
+	#pragma warning disable CS1591
 	public delegate TEntry GenerateEntryDelegate<TEntry>(Point16 location, Point16 headingFrom) where TEntry : IAStarEntry;
 	public delegate bool DoesEntryExistDelegate(Point16 location);
 	public delegate bool IsInterEntryPathValidDelegate(Point16 from, Point16 to);
@@ -35,6 +36,13 @@ namespace SerousEnergyLib.Pathfinding {
 			GetWalkableDirections = getWalkableDirections;
 		}
 
+		/// <summary>
+		/// Attempts to generate a path from <paramref name="start"/> to <paramref name="end"/>
+		/// </summary>
+		/// <param name="start">The starting tile coordinate</param>
+		/// <param name="end">The final tile coordinate</param>
+		/// <returns>A list of tile positions to traverse, or <see langword="null"/> if no path could be found</returns>
+		/// <exception cref="ObjectDisposedException"/>
 		public List<Point16> GetPath(Point16 start, Point16 end) {
 			if (disposed)
 				throw new ObjectDisposedException("this");

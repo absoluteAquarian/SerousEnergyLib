@@ -11,7 +11,19 @@ using Terraria.ModLoader.IO;
 using Terraria.UI;
 
 namespace SerousEnergyLib {
+	/// <summary>
+	/// A helper class containing methods for manipulating and using <see cref="Item"/> instance
+	/// </summary>
 	public static class ItemFunctions {
+		/// <summary>
+		/// Spawns <paramref name="item"/> with the provided arguments
+		/// </summary>
+		/// <param name="source">The spawn source</param>
+		/// <param name="position">The position to spawn the item at</param>
+		/// <param name="item">The item instance</param>
+		/// <param name="stack">The stack of the spawned item</param>
+		/// <param name="prefix">The prefix of the spawned item</param>
+		/// <returns>The index of the spawned item in <see cref="Main.item"/></returns>
 		public static int NewClonedItem(IEntitySource source, Vector2 position, Item item, int stack = 1, int prefix = 0) {
 			int index = Item.NewItem(source, position, item.type, stack, true, prefix);
 			Item clone = Main.item[index] = item.Clone();
@@ -27,6 +39,13 @@ namespace SerousEnergyLib {
 		}
 
 		// Copied from Magic Storage
+		/// <summary>
+		/// Returns <see langword="true"/> if <paramref name="item1"/> and <paramref name="item2"/> are considered equal
+		/// </summary>
+		/// <param name="item1">The first item</param>
+		/// <param name="item2">The second item</param>
+		/// <param name="checkStack">Whether to check the stack of the items</param>
+		/// <param name="checkPrefix">Whehter to check thep prefixes of the items</param>
 		public static bool AreStrictlyEqual(Item item1, Item item2, bool checkStack = false, bool checkPrefix = true) {
 			int stack1 = item1.stack;
 			int stack2 = item2.stack;
@@ -81,6 +100,14 @@ ReturnFromMethod:
 		}
 
 		// Derived from https://github.com/Eternal-Team/BaseLibrary/blob/1.3/Utility/RenderingUtility.cs
+		/// <summary>
+		/// Draws an item in the world
+		/// </summary>
+		/// <param name="spriteBatch"></param>
+		/// <param name="item">The item to draw</param>
+		/// <param name="position">The position to draw the item at</param>
+		/// <param name="size">The maximum width of the square the item's sprite will be contained inside of</param>
+		/// <param name="rotation">The rotation of the item</param>
 		public static void DrawItemInWorld(this SpriteBatch spriteBatch, Item item, Vector2 position, float size, float rotation = 0f) {
 			if (!item.IsAir) {
 				Texture2D itemTexture = TextureAssets.Item[item.type].Value;

@@ -4,5 +4,7 @@
 	/// </summary>
 	public interface IFluidPumpTile : IPumpTile, IFluidTransportTile {
 		double IFluidTransportTile.MaxCapacity => 0.4d;
+
+		double IFluidTransportTile.ExportRate => 0.2 / 60d;
 	}
 }

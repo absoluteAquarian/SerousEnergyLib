@@ -5,8 +5,12 @@
 	public readonly struct TerraFlux {
 		private readonly double amount;
 
+		/// <summary>
+		/// An object reprsenting 0 Terra Flux
+		/// </summary>
 		public static readonly TerraFlux Zero = new TerraFlux(0f);
 
+		#pragma warning disable CS1591
 		public TerraFlux(double amount) {
 			this.amount = amount;
 		}

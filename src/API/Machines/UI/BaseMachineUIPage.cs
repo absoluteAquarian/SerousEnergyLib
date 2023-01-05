@@ -2,13 +2,28 @@
 using Terraria.UI;
 
 namespace SerousEnergyLib.API.Machines.UI {
+	/// <summary>
+	/// The base implementation of a page within a <see cref="BaseMachineUI"/> state
+	/// </summary>
 	public abstract class BaseMachineUIPage : UIElement {
 		internal BaseMachineUI parentUI;
 
+		/// <summary>
+		/// The name of this page
+		/// </summary>
 		public readonly string Name;
 
-		public event Action OnPageSelected, OnPageDeselected;
+		/// <summary>
+		/// The event that executes whenever this page is selected
+		/// </summary>
+		public event Action OnPageSelected;
 
+		/// <summary>
+		/// The event that executes whenever this page is deselected
+		/// </summary>
+		public event Action OnPageDeselected;
+
+		#pragma warning disable CS1591
 		public BaseMachineUIPage(BaseMachineUI parent, string name) {
 			parentUI = parent;
 			Name = name;

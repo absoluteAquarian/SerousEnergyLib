@@ -10,6 +10,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 	/// A base implementation of <see cref="IMachine"/> and <see cref="IPowerGeneratorMachine"/>
 	/// </summary>
 	public abstract class BasePowerGeneratorEntity : ModTileEntity, IMachine, IPowerGeneratorMachine {
+		#pragma warning disable CS1591
 		public abstract int MachineTile { get; }
 
 		public abstract BaseMachineUI MachineUI { get; }
@@ -25,9 +26,9 @@ namespace SerousEnergyLib.API.Machines.Default {
 			IPoweredMachine.Update(this);
 		}
 
-		public virtual bool CanMergeWithWire(int wireX, int wireY, int machineX, int machineY) => true;
+		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 
-		public abstract double GetPowerExportRate(double ticks);
+		public virtual bool CanMergeWithWire(int wireX, int wireY, int machineX, int machineY) => true;
 
 		public abstract double GetPowerGeneration(double ticks);
 	}

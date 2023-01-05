@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.Pathfinding.Nodes;
+﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.TileData;
 using System.IO;
@@ -6,11 +7,25 @@ using Terraria.DataStructures;
 
 namespace SerousEnergyLib.API {
 	partial class Extensions {
+		/// <summary>
+		/// Reads two <see langword="short"/> values from <paramref name="reader"/> and advances the current position of the stream by four bytes
+		/// </summary>
+		/// <param name="reader"></param>
+		/// <returns>A <see cref="Point16"/> value read from the stream</returns>
 		public static Point16 ReadPoint16(this BinaryReader reader) {
 			return new Point16(reader.ReadInt16(), reader.ReadInt16());
 		}
 
-		public static NetworkInstanceNode ReadNetworkInstanceNode(this BinaryReader reader) {
+		/// <summary>
+		/// Reads one <see langword="double"/> values from <paramref name="reader"/> and advances the current position of the stream by eight bytes
+		/// </summary>
+		/// <param name="reader"></param>
+		/// <returns>A <see cref="TerraFlux"/> value read from the stream</returns>
+		public static TerraFlux ReadFlux(this BinaryReader reader) {
+			return new TerraFlux(reader.ReadDouble());
+		}
+
+		internal static NetworkInstanceNode ReadNetworkInstanceNode(this BinaryReader reader) {
 			Point16 location = reader.ReadPoint16();
 
 			byte adjacentLength = reader.ReadByte();
@@ -22,7 +37,7 @@ namespace SerousEnergyLib.API {
 			return new NetworkInstanceNode(location, adjacent);
 		}
 
-		public static CoarseNode ReadCoarseNode(this BinaryReader reader) {
+		internal static CoarseNode ReadCoarseNode(this BinaryReader reader) {
 			byte thresholdCount = reader.ReadByte();
 
 			CoarseNode node = new CoarseNode();
@@ -37,7 +52,7 @@ namespace SerousEnergyLib.API {
 			return node;
 		}
 
-		public static CoarseNodeThresholdTile ReadeCoarseNodeThresholdTile(this BinaryReader reader) {
+		internal static CoarseNodeThresholdTile ReadeCoarseNodeThresholdTile(this BinaryReader reader) {
 			Point16 location = reader.ReadPoint16();
 			ConnectionDirection edge = (ConnectionDirection)reader.ReadByte();
 
@@ -53,7 +68,7 @@ namespace SerousEnergyLib.API {
 			return new CoarseNodeThresholdTile(location, edge) { paths = paths };
 		}
 
-		public static CoarseNodePathHeuristic ReadCoarseNodePathHeuristic(this BinaryReader reader) {
+		internal static CoarseNodePathHeuristic ReadCoarseNodePathHeuristic(this BinaryReader reader) {
 			double time = reader.ReadDouble();
 			byte pathLength = reader.ReadByte();
 

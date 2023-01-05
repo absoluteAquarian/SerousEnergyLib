@@ -3,6 +3,7 @@ using Terraria;
 
 namespace SerousEnergyLib {
 	// Copied from Magic Storage
+	#pragma warning disable CS1591
 	public readonly struct ItemData {
 		public readonly int Type;
 		public readonly int Prefix;

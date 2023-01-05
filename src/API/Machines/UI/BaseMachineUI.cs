@@ -15,14 +15,26 @@ namespace SerousEnergyLib.API.Machines.UI {
 	/// The base implementation of interfacing with an <see cref="IMachine"/>
 	/// </summary>
 	public abstract class BaseMachineUI : UIState {
+		/// <summary>
+		/// The UI element object containing the tabs and view area for this UI
+		/// </summary>
 		protected UIDragablePanel panel;
 
+		/// <summary>
+		/// The pages contained by <see cref="panel"/>
+		/// </summary>
 		protected Dictionary<string, BaseMachineUIPage> pages;
 
+		/// <summary>
+		/// The current tab selected by this UI
+		/// </summary>
 		public BaseMachineUIPage CurrentPage { get; private set; }
 
 		private bool needsRecalculate;
 
+		/// <summary>
+		/// The left edge of this UI's panel
+		/// </summary>
 		public float PanelLeft {
 			get => panel.Left.Pixels;
 			set {
@@ -33,6 +45,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			}
 		}
 		
+		/// <summary>
+		/// The top edge of this UI's panel
+		/// </summary>
 		public float PanelTop {
 			get => panel.Top.Pixels;
 			set {
@@ -43,6 +58,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			}
 		}
 		
+		/// <summary>
+		/// The width of this UI's panel
+		/// </summary>
 		public float PanelWidth {
 			get => panel.Width.Pixels;
 			protected set {
@@ -53,6 +71,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			}
 		}
 		
+		/// <summary>
+		/// The height of this UI's panel
+		/// </summary>
 		public float PanelHeight {
 			get => panel.Height.Pixels;
 			protected set {
@@ -63,38 +84,72 @@ namespace SerousEnergyLib.API.Machines.UI {
 			}
 		}
 
+		/// <summary>
+		/// The right edge of this UI's panel
+		/// </summary>
 		public float PanelRight {
 			get => PanelLeft + PanelWidth;
 			protected set => PanelLeft = value - PanelWidth;
 		}
 		
+		/// <summary>
+		/// The bottom edge of this UI's panel
+		/// </summary>
 		public float PanelBottom {
 			get => PanelTop + PanelHeight;
 			protected set => PanelTop = value - PanelHeight;
 		}
 
+		/// <summary>
+		/// Return an enumeration of identifiers to be used by <see cref="InitPage(string)"/>
+		/// </summary>
 		protected abstract IEnumerable<string> GetMenuOptions();
 
-		protected abstract LocalizedText GetMenuOptionLocalization(string menu);
+		/// <summary>
+		/// Return an enumeration of localized text for each page's tab
+		/// </summary>
+		protected abstract LocalizedText GetMenuOptionLocalization(string key);
 
+		/// <summary>
+		/// Initialize a page, given its identifier from <see cref="GetMenuOptions"/>
+		/// </summary>
 		protected abstract BaseMachineUIPage InitPage(string page);
 
+		/// <summary>
+		/// The default page to display when opening this UI
+		/// </summary>
 		public abstract string DefaultPage { get; }
 
+		/// <summary>
+		/// Gets a page from this UI's menu
+		/// </summary>
+		/// <remarks>This method throws an exception if the page does not exist</remarks>
 		public BaseMachineUIPage GetPage(string page) => pages[page];
 
+		/// <summary>
+		/// Gets a page from this UI's menu and attempts to cast it to <typeparamref name="T"/>
+		/// </summary>
+		/// <remarks>This method throws an exception if the page does not exist</remarks>
+		/// <exception cref="InvalidCastException"/>
 		public T GetPage<T>(string page) where T : BaseMachineUIPage
 			=> pages is null
 				? null
 				: (pages[page] as T ?? throw new InvalidCastException($"The underlying object for page \"{GetType().Name}:{page}\" cannot be converted to " + typeof(T).FullName));
 
+		/// <summary>
+		/// Assign the default values for this UI's panel width and height here
+		/// </summary>
 		public virtual void GetDefaultPanelDimensions(out int width, out int height) {
 			width = 500;
 			height = 600;
 		}
 
+		/// <summary>
+		/// Set this field to <see langword="true"/> if you want the panel to reset to its default location on the screen
+		/// </summary>
 		public bool pendingUIChange;
 
+		#pragma warning disable CS1591
 		public override void OnInitialize() {
 			panel = new(true, GetMenuOptions().Select(p => (p, GetMenuOptionLocalization(p))));
 
@@ -165,6 +220,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			return false;
 		}
 
+		/// <summary>
+		/// Opens this UI, calls the relevant events and then sets its page to <see cref="DefaultPage"/>
+		/// </summary>
 		public void Open() {
 			if (CurrentPage is not null)
 				return;
@@ -176,6 +234,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 
 		protected virtual void OnOpen() { }
 
+		/// <summary>
+		/// Closes this UI and calls the relevant events
+		/// </summary>
 		public void Close() {
 			if (CurrentPage is not null) {
 				OnClose();
@@ -217,6 +278,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			needsRecalculate = false;
 		}
 
+		/// <summary>
+		/// This method is executed whenever the UI recalculates itself in <see cref="Update(GameTime)"/>
+		/// </summary>
 		public virtual void Refresh() { }
 	}
 }

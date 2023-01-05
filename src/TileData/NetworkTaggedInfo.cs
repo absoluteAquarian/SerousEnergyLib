@@ -1,8 +1,12 @@
-﻿using System;
+﻿using SerousEnergyLib.Tiles;
+using System;
 using Terraria;
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.TileData {
+	/// <summary>
+	/// A structure representing information for a <see cref="BaseNetworkTile"/> tile
+	/// </summary>
 	public struct NetworkTaggedInfo : ITileData {
 		/// <summary>
 		/// --PP CCCC<para/>
@@ -27,10 +31,21 @@ namespace SerousEnergyLib.TileData {
 			set => tagData = (byte)TileDataPacking.Pack((byte)value, tagData, 0, 4);
 		}
 
+		/// <summary>
+		/// Whether two tiles can merge together based on their <see cref="NetworkColor"/> values
+		/// </summary>
+		/// <param name="from"></param>
+		/// <param name="to"></param>
 		public static bool CanMergeColors(NetworkTaggedInfo from, NetworkTaggedInfo to) {
 			return from.Color == NetworkColor.None || to.Color == NetworkColor.None || from.Color == to.Color;
 		}
 
+		/// <summary>
+		/// Whether <paramref name="offset"/> matches a pre-defined offset derived from <paramref name="direction"/>
+		/// </summary>
+		/// <param name="offset"></param>
+		/// <param name="direction"></param>
+		/// <exception cref="ArgumentOutOfRangeException"/>
 		public static bool DoesOrientationMatchPumpDirection(Point16 offset, PumpDirection direction) {
 			// Offset must match the orientation of the pump's "head"
 			return direction switch {

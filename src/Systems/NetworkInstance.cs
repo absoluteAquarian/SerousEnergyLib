@@ -14,6 +14,10 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems {
+	#pragma warning disable CS1591
+	/// <summary>
+	/// An object representing pathfinding trees in a network of <see cref="BaseNetworkTile"/> tiles
+	/// </summary>
 	public class NetworkInstance : IDisposable {
 		private class Loadable : ILoadable {
 			public void Load(Mod mod) { }
@@ -23,6 +27,9 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
+		/// <summary>
+		/// Which type of network tiles this network can detect when performing pathfinding
+		/// </summary>
 		public NetworkType Filter { get; private set; }
 
 		private Dictionary<Point16, CoarseNode> coarsePath = new();
@@ -116,13 +123,24 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
+		/// <summary>
+		/// Returns <see langword="true"/> if this network contains a node at <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The tile coordinate</param>
+		/// <exception cref="ObjectDisposedException"/>
 		public bool HasEntry(Point16 location) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
 			return nodes.ContainsKey(location);
 		}
-
+		
+		/// <summary>
+		/// Returns <see langword="true"/> if this network contains a node at location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		/// <exception cref="ObjectDisposedException"/>
 		public bool HasEntry(int x, int y) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -130,6 +148,13 @@ namespace SerousEnergyLib.Systems {
 			return nodes.ContainsKey(new Point16(x, y));
 		}
 
+		/// <summary>
+		/// Attempts to find a node within this network
+		/// </summary>
+		/// <param name="location">The tile location</param>
+		/// <param name="result">The node if it was found, <see langword="default"/> otherwise.</param>
+		/// <returns>Whether the node was found</returns>
+		/// <exception cref="ObjectDisposedException"/>
 		public bool TryGetEntry(Point16 location, out NetworkInstanceNode result) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -143,6 +168,11 @@ namespace SerousEnergyLib.Systems {
 			return false;
 		}
 
+		/// <summary>
+		/// Whether this network has an entry at <paramref name="location"/> and said entry is a <see cref="NetworkJunction"/> tile
+		/// </summary>
+		/// <param name="location">The tile location</param>
+		/// <exception cref="ObjectDisposedException"/>
 		public bool HasKnownJunction(Point16 location) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -150,6 +180,12 @@ namespace SerousEnergyLib.Systems {
 			return foundJunctions.Contains(location);
 		}
 
+		/// <summary>
+		/// Whether this network has an entry at location <paramref name="location"/> and said entry is an <see cref="IPumpTile"/> tile
+		/// </summary>
+		/// <param name="location">The tile location</param>
+		/// <param name="direction">The direction of the pump's head if one was found, <see cref="PumpDirection.Left"/> otherwise</param>
+		/// <exception cref="ObjectDisposedException"/>
 		public bool HasPump(Point16 location, out PumpDirection direction) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -484,6 +520,10 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="nodes">The collection of entries in the network, indexed by tile position</param>
 		public virtual void OnRecalculate(IReadOnlyDictionary<Point16, NetworkInstanceNode> nodes) { }
 
+		/// <summary>
+		/// Updates the paths within a coarse node at <paramref name="coarseLocation"/>
+		/// </summary>
+		/// <param name="coarseLocation">The "coarse location" for the node to update.  Nodes take up square areas of length <see cref="CoarseNode.Stride"/></param>
 		public void UpdateCoarseNode(Point16 coarseLocation) {
 			if (!coarsePath.TryGetValue(coarseLocation, out CoarseNode node))
 				return;
@@ -709,6 +749,14 @@ namespace SerousEnergyLib.Systems {
 		}
 		#endregion
 
+		/// <summary>
+		/// Attempts to generate a path from <paramref name="start"/> to <paramref name="end"/>
+		/// </summary>
+		/// <param name="start">The starting tile location</param>
+		/// <param name="end">The final tile location</param>
+		/// <param name="travelTime">The "travel time" for the path if one was found</param>
+		/// <returns>A list of tile coordinates for pathfinding, or <see langword="null"/> if no path was found</returns>
+		/// <exception cref="ObjectDisposedException"/>
 		public List<Point16> GeneratePath(Point16 start, Point16 end, out double travelTime) {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -939,6 +987,9 @@ namespace SerousEnergyLib.Systems {
 			tag["extra"] = extra;
 		}
 
+		/// <summary>
+		/// Save additional data to this network here
+		/// </summary>
 		protected virtual void SaveExtraData(TagCompound tag) { }
 
 		public void LoadData(TagCompound tag) {
@@ -959,17 +1010,20 @@ namespace SerousEnergyLib.Systems {
 				LoadExtraData(extra);
 		}
 
+		/// <summary>
+		/// Load additional data from <paramref name="tag"/> to this network here
+		/// </summary>
 		protected virtual void LoadExtraData(TagCompound tag) { }
 
 		internal void SendNetworkData(int toClient = -1) {
 			// Packet #1
 			var packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork0_ResetNetwork);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 			packet.Send(toClient);
 
 			// Packet #2
 			packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork1_Nodes);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 
 			using (var compression = new CompressionStream()) {
 				var writer = compression.writer;
@@ -988,7 +1042,7 @@ namespace SerousEnergyLib.Systems {
 
 			// Packet #3
 			packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork2_CoarsePath);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 
 			using (var compression = new CompressionStream()) {
 				var writer = compression.writer;
@@ -1007,7 +1061,7 @@ namespace SerousEnergyLib.Systems {
 
 			// Packet #4
 			packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork3_CoarseInfo);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 			packet.Write(totalCoarsePaths);
 			packet.Write((short)coarseLeft);
 			packet.Write((short)coarseTop);
@@ -1017,7 +1071,7 @@ namespace SerousEnergyLib.Systems {
 
 			// Packet #5
 			packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork4_Junctions);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 
 			using (var compression = new CompressionStream()) {
 				var writer = compression.writer;
@@ -1034,7 +1088,7 @@ namespace SerousEnergyLib.Systems {
 
 			// Packet #6
 			packet = Netcode.GetPacket(NetcodeMessage.SyncNetwork5_ExtraInfo);
-			Netcode.WriteNetworkInstanceToPacket(packet, this);
+			Netcode.WriteNetworkInstance(packet, this);
 
 			using (var compression = new CompressionStream()) {
 				var writer = compression.writer;
@@ -1154,6 +1208,9 @@ namespace SerousEnergyLib.Systems {
 		#endregion
 	}
 
+	/// <summary>
+	/// A structure representing an entry in a <see cref="NetworkInstance"/>
+	/// </summary>
 	public readonly struct NetworkInstanceNode {
 		public readonly Point16 location;
 		public readonly Point16[] adjacent;

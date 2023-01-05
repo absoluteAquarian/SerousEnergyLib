@@ -1,9 +1,8 @@
 ﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -13,11 +12,20 @@ namespace SerousEnergyLib.API.Machines {
 		// Generators should not consume power by default...
 		double IPoweredMachine.GetPowerConsumption(double ticks) => 0;
 
+		/// <summary>
+		/// Return how much power in units represented by <see cref="IPoweredMachine.EnergyID"/> should be generated for a duration of <paramref name="ticks"/>
+		/// </summary>
+		/// <param name="ticks">The amount of game ticks to calculate</param>
 		protected double GetPowerGeneration(double ticks);
 
-		public double GetPowerGenerationWithUpgrades(double ticks) => GetPowerGeneration(ticks) * CalculateFromUpgrades(1d, static (u, v) => u.GetPowerGenerationMultiplier() * v);
-
-		protected double GetPowerExportRate(double ticks);
+		/// <summary>
+		/// Applies <see cref="BaseUpgrade.GetPowerGenerationMultiplier"/> to the result of <see cref="GetPowerGeneration(double)"/>
+		/// </summary>
+		/// <param name="ticks"></param>
+		/// <returns></returns>
+		public double GetPowerGenerationWithUpgrades(double ticks)
+			=> CalculateFromUpgrades(StatModifier.Default, static (u, v) => u.GetPowerGenerationMultiplier().CombineWith(v))
+				.ApplyTo(GetPowerGeneration(ticks));
 
 		/// <summary>
 		/// Generates power and adds it to this machine's flux storage
@@ -33,17 +41,16 @@ namespace SerousEnergyLib.API.Machines {
 			ExportPowerToAdjacentNetworks();
 		}
 
+		/// <summary>
+		/// Exports power from this machine's storage to all adjacent <see cref="PowerNetwork"/> instances
+		/// </summary>
 		public void ExportPowerToAdjacentNetworks() {
-			List<PowerNetwork> adjacent = GetAdjacentPowerNetworks().ToList();
+			foreach (var network in GetAdjacentPowerNetworks()) {
+				if (!TryGetHighestTransferRate(this, network, out TerraFlux export))
+					continue;
 
-			if (adjacent.Count == 0)
-				return;  // No networks to export to
-
-			double export = GetPowerExportRate(1);
-			TerraFlux slicedExport = EnergyConversions.ConvertToTerraFlux(Math.Min(export, (double)PowerStorage.CurrentCapacity) / adjacent.Count, EnergyID);
-
-			foreach (var network in adjacent)
-				PowerStorage.ExportTo(network.Storage, slicedExport);
+				PowerStorage.ExportTo(network.Storage, export);
+			}
 		}
 	}
 }

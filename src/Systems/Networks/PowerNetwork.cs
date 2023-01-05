@@ -1,8 +1,10 @@
-﻿using SerousEnergyLib.API.Energy;
+﻿using SerousEnergyLib.API;
+using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
@@ -10,8 +12,15 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems.Networks {
+	/// <summary>
+	/// An object representing a <see cref="NetworkInstance"/> for power tiles
+	/// </summary>
 	public sealed class PowerNetwork : NetworkInstance {
 		private HashSet<Point16> adjacentFluxStorageTiles = new();
+
+		/// <summary>
+		/// The power storage within this network
+		/// </summary>
 		public FluxStorage Storage = new FluxStorage(TerraFlux.Zero);
 
 		private TerraFlux netPower;
@@ -26,17 +35,23 @@ namespace SerousEnergyLib.Systems.Networks {
 			netPower = TerraFlux.Zero;
 		}
 
+		#pragma warning disable CS1591
 		public override void Update() {
 			// Called separately from when item/fluid networks are updated due to TileEntity update order
 			TerraFlux previousPower = Storage.CurrentCapacity;
 
 			// Generators have already been processed.  Only send power to machines that store/consume it
 			IEnumerable<IPoweredMachine> machines = adjacentFluxStorageTiles.Select(a => IMachine.TryFindMachine(a, out IMachine machine) ? machine : null)
+				.OfType<ModTileEntity>()
 				.OfType<IPoweredMachine>()
 				.Where(p => p is not IPowerGeneratorMachine);
 
-			foreach (var machine in machines)
-				machine.ImportPower(Storage);
+			foreach (var machine in machines) {
+				if (!IPoweredMachine.TryGetHighestTransferRate(machine, this, out TerraFlux rate))
+					continue;
+
+				Storage.ExportTo(machine.PowerStorage, rate);
+			}
 
 			netPower = Storage.CurrentCapacity - previousPower;
 		}
@@ -63,11 +78,19 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentFluxStorageTiles.Add(down);
 		}
 
+		/// <summary>
+		/// Attempts to add an adjacent <see cref="IPoweredMachine"/> machine entry location at <paramref name="storage"/>
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent machine to add</param>
 		public void AddAdjacentFluxStorage(Point16 storage) {
 			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IPoweredMachine)
 				adjacentFluxStorageTiles.Add(storage);
 		}
 
+		/// <summary>
+		/// Removes an adjacent <see cref="IPoweredMachine"/> machine entry location
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent machine to remove</param>
 		public void RemoveAdjacentFluxStorage(Point16 storage) {
 			adjacentFluxStorageTiles.Remove(storage);
 		}
@@ -92,6 +115,24 @@ namespace SerousEnergyLib.Systems.Networks {
 		protected override void LoadExtraData(TagCompound tag) {
 			if (tag.GetCompound("flux") is TagCompound flux)
 				Storage.LoadData(flux);
+		}
+
+		public override void SendExtraData(BinaryWriter writer) {
+			Storage.Send(writer);
+
+			writer.Write(adjacentFluxStorageTiles.Count);
+			foreach (var adjacent in adjacentFluxStorageTiles)
+				writer.Write(adjacent);
+		}
+
+		public override void ReceiveExtraData(BinaryReader reader) {
+			Storage ??= new(TerraFlux.Zero);
+
+			adjacentFluxStorageTiles.Clear();
+
+			int adjacentCount = reader.ReadInt32();
+			for (int i = 0; i < adjacentCount; i++)
+				adjacentFluxStorageTiles.Add(reader.ReadPoint16());
 		}
 	}
 }

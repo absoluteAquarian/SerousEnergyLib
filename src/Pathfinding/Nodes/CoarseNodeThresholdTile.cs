@@ -2,7 +2,11 @@
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.Pathfinding.Nodes {
+	/// <summary>
+	/// A structure representing a tile at the edge of a coarse node within the world
+	/// </summary>
 	public struct CoarseNodeThresholdTile {
+		#pragma warning disable CS1591
 		public readonly Point16 location;
 		public readonly ConnectionDirection edge;
 		public CoarseNodePathHeuristic[] paths;

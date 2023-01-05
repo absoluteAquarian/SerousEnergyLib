@@ -8,6 +8,9 @@ namespace SerousEnergyLib.API.Upgrades {
 	/// The base type for an upgrade that can be placed in a machine
 	/// </summary>
 	public abstract class BaseUpgrade : ModType {
+		/// <summary>
+		/// The unique ID for this upgrade type
+		/// </summary>
 		public int Type { get; protected private set; }
 
 		/// <summary>
@@ -20,6 +23,7 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		public ModTranslation Tooltip { get; private set; }
 
+		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<BaseUpgrade>.Register(this);
 
@@ -51,10 +55,25 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		public abstract bool CanApplyTo(IMachine machine);
 
-		public virtual double GetPowerConsumptionMultiplier() => 1d;
+		/// <summary>
+		/// Return a modifier for power conumption in an <see cref="IPoweredMachine"/> here
+		/// </summary>
+		public virtual StatModifier GetPowerConsumptionMultiplier() => StatModifier.Default;
 
-		public virtual double GetPowerGenerationMultiplier() => 1d;
+		/// <summary>
+		/// Return a modifier for power generation in an <see cref="IPowerGeneratorMachine"/> here
+		/// </summary>
+		public virtual StatModifier GetPowerGenerationMultiplier() => StatModifier.Default;
 
-		public virtual double GetPowerCapacityMultiplier() => 1d;
+		/// <summary>
+		/// Return a modifier for the maximum power capacity in an <see cref="IPoweredMachine"/> here
+		/// </summary>
+		public virtual StatModifier GetPowerCapacityMultiplier() => StatModifier.Default;
+
+		/// <summary>
+		/// Return a modifier for the maximum fluid storage capacity for a fluid storage in an <see cref="IFluidMachine"/> here
+		/// </summary>
+		/// <returns></returns>
+		public virtual StatModifier GetFluidCapacityMultiplier() => StatModifier.Default;
 	}
 }

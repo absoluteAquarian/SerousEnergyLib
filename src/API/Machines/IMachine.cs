@@ -18,6 +18,7 @@ namespace SerousEnergyLib.API.Machines {
 	/// The base interface used by all machine tile entities
 	/// </summary>
 	public interface IMachine {
+		#pragma warning disable CS1591
 		/// <summary>
 		/// The ID of the tile that this machine should be bound to.
 		/// </summary>
@@ -28,9 +29,15 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		BaseMachineUI MachineUI { get; }
 
-		public bool IsTileValid(int x, int y) {
+		/// <summary>
+		/// This method returns true if the tile at location (<paramref name="x"/>, <paramref name="y"/>) is active, its type is equal to <see cref="MachineTile"/> and its sprite frame is at position (0, 0)
+		/// </summary>
+		/// <param name="machine">The machine to retrieve the tile type from</param>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		public static bool IsTileValid(IMachine machine, int x, int y) {
 			Tile tile = Main.tile[x, y];
-			return tile.HasTile && tile.TileType == MachineTile && tile.TileFrameX == 0 && tile.TileFrameY == 0;
+			return tile.HasTile && tile.TileType == machine.MachineTile && tile.TileFrameX == 0 && tile.TileFrameY == 0;
 		}
 
 		/// <summary>
@@ -38,11 +45,21 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		List<BaseUpgrade> Upgrades { get; set; }
 
+		/// <summary>
+		/// This method ensures that <see cref="Upgrades"/> is not <see langword="null"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		public static void Update(IMachine machine) {
 			// Ensure that the upgrades collection isn't null
 			machine.Upgrades ??= new();
 		}
 
+		/// <summary>
+		/// Attempts to find a machine bound to a multitile at <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The tile coordinates to look for a machine's entity at</param>
+		/// <param name="machine">The machine instance if one was found</param>
+		/// <returns>Whether a machine entity could be found</returns>
 		public static bool TryFindMachine(Point16 location, out IMachine machine) {
 			Point16 topleft = TileFunctions.GetTopLeftTileInMultitile(location.X, location.Y);
 
@@ -55,7 +72,7 @@ namespace SerousEnergyLib.API.Machines {
 			return false;
 		}
 
-		public static ModTileEntity PlaceInWorld(IMachine machine, Point16 location) {
+		internal static ModTileEntity PlaceInWorld(IMachine machine, Point16 location) {
 			if (machine is not ModTileEntity entity)
 				throw new ArgumentException("IMachine parameter was not a ModTileEntity", nameof(machine));
 
@@ -80,7 +97,7 @@ namespace SerousEnergyLib.API.Machines {
 			return null;
 		}
 
-		public static TagCompound RemoveFromWorld(Point16 location) {
+		internal static TagCompound RemoveFromWorld(Point16 location) {
 			if (!TryFindMachine(location, out IMachine machine))
 				return null;
 
@@ -148,6 +165,12 @@ namespace SerousEnergyLib.API.Machines {
 			}
 		}
 
+		/// <summary>
+		/// Iterates over <see cref="Upgrades"/> and applies <paramref name="mutator"/> to each of them
+		/// </summary>
+		/// <param name="base">The default value for the calculated result</param>
+		/// <param name="mutator">A function which modifies the calculated result</param>
+		/// <returns>The final calculated result</returns>
 		protected T CalculateFromUpgrades<T>(T @base, Func<BaseUpgrade, T, T> mutator) {
 			T calculated = @base;
 
@@ -160,22 +183,59 @@ namespace SerousEnergyLib.API.Machines {
 			return calculated;
 		}
 
+		/// <summary>
+		/// Iterates over <paramref name="upgrades"/> and applies <paramref name="mutator"/> to each of them
+		/// </summary>
+		/// <param name="upgrades">An enumeration of upgrades</param>
+		/// <inheritdoc cref="CalculateFromUpgrades{T}(T, Func{BaseUpgrade, T, T})"/>
+		/// <param name="base"></param>
+		/// <param name="mutator"></param>
+		protected T CalculateFromUpgrades<T>(T @base, IEnumerable<BaseUpgrade> upgrades, Func<BaseUpgrade, T, T> mutator) {
+			T calculated = @base;
+
+			foreach (var upgrade in upgrades) {
+				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
+				if (upgrade.CanApplyTo(this))
+					calculated = mutator(upgrade, calculated);
+			}
+
+			return calculated;
+		}
+
+		/// <summary>
+		/// A struct representing a search result for an adjacent network
+		/// </summary>
 		public readonly struct NetworkSearchResult {
+			/// <summary>
+			/// The adjacent network instance
+			/// </summary>
 			public readonly NetworkInstance network;
+
+			/// <summary>
+			/// The tile in the network that was adjacent to <see cref="machineTileAdjacentToNetwork"/>
+			/// </summary>
+			public readonly Point16 tileInNetwork;
+
+			/// <summary>
+			/// The tile within this machine that is adjacent to the network
+			/// </summary>
 			public readonly Point16 machineTileAdjacentToNetwork;
 
-			internal NetworkSearchResult(NetworkInstance instance, Point16 adjacentLocation) {
+			internal NetworkSearchResult(NetworkInstance instance, Point16 location, Point16 adjacentLocation) {
 				network = instance;
+				tileInNetwork = location;
 				machineTileAdjacentToNetwork = adjacentLocation;
 			}
 		}
 
-		public IEnumerable<NetworkSearchResult> GetAdjacentNetworks(NetworkType type) {
+		public IEnumerable<NetworkSearchResult> GetAdjacentNetworks(NetworkType type, bool allowDuplicates = false) {
 			if (this is not ModTileEntity entity)
 				yield break;
 
 			if (TileLoader.GetTile(MachineTile) is not IMachineTile machineTile)
 				yield break;
+
+			HashSet<int> returnedIds = new();
 
 			// Check all adjacent tiles in the cardinal directions
 			machineTile.GetMachineDimensions(out uint width, out uint height);
@@ -185,29 +245,29 @@ namespace SerousEnergyLib.API.Machines {
 
 			// Check left edge
 			for (y = 0; y < height; y++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
-					yield return new NetworkSearchResult(net, new Point16(entity.Position.X, entity.Position.Y + y));
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X, entity.Position.Y + y));
 			}
 
 			// Check top edge
 			y = -1;
 			for (x = 0; x < width; x++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
-					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y));
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X + x, entity.Position.Y));
 			}
 
 			// Check right edge
 			x = (int)width;
 			for (y = 0; y < height; y++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
-					yield return new NetworkSearchResult(net, new Point16(entity.Position.X, entity.Position.Y + y));
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X, entity.Position.Y + y));
 			}
 
 			// Check bottom edge
 			y = (int)height;
 			for (x = 0; x < width; x++) {
-				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net)
-					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y));
+				if (Network.GetNetworkAt(entity.Position.X + x, entity.Position.Y + y, type, out _) is NetworkInstance net && (allowDuplicates || returnedIds.Add(net.ID)))
+					yield return new NetworkSearchResult(net, new Point16(entity.Position.X + x, entity.Position.Y + y), new Point16(entity.Position.X + x, entity.Position.Y));
 			}
 		}
 

@@ -18,6 +18,7 @@ namespace SerousEnergyLib.Tiles {
 	/// <b>NOTE:</b> The <see cref="Main.tileSolid"/> index for this type will be modified during runtime!
 	/// </summary>
 	public abstract class BaseNetworkTile : ModTile {
+		#pragma warning disable CS1591
 		/// <summary>
 		/// The network state to apply to the <see cref="NetworkInfo"/> data when this tile is placed
 		/// </summary>

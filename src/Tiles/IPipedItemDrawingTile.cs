@@ -1,4 +1,7 @@
 ﻿namespace SerousEnergyLib.Tiles {
+	/// <summary>
+	/// An interface representing an item pathfinding entry that can draw the item located in it
+	/// </summary>
 	public interface IPipedItemDrawingTile {
 		/// <summary>
 		/// Return the max width for an item being drawn in this transport tile here.<br/>

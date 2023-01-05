@@ -5,6 +5,7 @@ using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
@@ -12,6 +13,9 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems.Networks {
+	/// <summary>
+	/// An object representing a <see cref="NetworkInstance"/> for item tiles
+	/// </summary>
 	public sealed class ItemNetwork : NetworkInstance {
 		private HashSet<Point16> adjacentInventoryTiles = new();
 		private Dictionary<Point16, Ref<int>> pumpTimers = new();
@@ -19,6 +23,7 @@ namespace SerousEnergyLib.Systems.Networks {
 
 		internal ItemNetwork() : base(NetworkType.Items) { }
 
+		#pragma warning disable CS1591
 		public override void Update() {
 			HashSet<Point16> invalidPumps = new();
 			foreach (var (loc, timer) in pumpTimers) {
@@ -105,6 +110,11 @@ namespace SerousEnergyLib.Systems.Networks {
 			return true;
 		}
 
+		/// <summary>
+		/// Attempts to find the first index of a destoyed or null <see cref="PipedItem"/> instance in this network's collection, then overwrites it with <paramref name="item"/>
+		/// </summary>
+		/// <param name="item">The item to add</param>
+		/// <returns>The index of <paramref name="item"/> in this network's collection</returns>
 		public int AddPipedItem(PipedItem item) {
 			if (item is null || item.Destroyed)
 				return -1;
@@ -184,11 +194,19 @@ namespace SerousEnergyLib.Systems.Networks {
 			return -1;
 		}
 
+		/// <summary>
+		/// Attempts to add an adjacent <see cref="IInventoryMachine"/> machine or <see cref="Chest"/> entry location at <paramref name="inventory"/>
+		/// </summary>
+		/// <param name="inventory">The tile location of the adjacent machine or chest to add</param>
 		public void AddAdjacentInventory(Point16 inventory) {
 			if (IMachine.TryFindMachine(inventory, out IMachine machine) && machine is IInventoryMachine)
 				adjacentInventoryTiles.Add(inventory);
 		}
 
+		/// <summary>
+		/// Removes an adjacent <see cref="IInventoryMachine"/> machine or <see cref="Chest"/> entry location
+		/// </summary>
+		/// <param name="inventory">The tile location of the adjacent machine or chest to remove</param>
 		public void RemoveAdjacentInventory(Point16 inventory) {
 			if (adjacentInventoryTiles.Remove(inventory)) {
 				// Update any items whose target was this location
@@ -196,25 +214,6 @@ namespace SerousEnergyLib.Systems.Networks {
 					if (item.Target == inventory)
 						item.OnTargetLost();
 				}
-			}
-		}
-
-		protected override void SaveExtraData(TagCompound tag) {
-			static TagCompound SaveItem(PipedItem item) {
-				TagCompound itemTag = new TagCompound();
-				item.SaveData(itemTag);
-				return itemTag;
-			}
-
-			tag["items"] = items.Select(SaveItem).ToList();
-		}
-
-		protected override void LoadExtraData(TagCompound tag) {
-			items.Clear();
-
-			if (tag.GetList<TagCompound>("items") is List<TagCompound> itemTags) {
-				foreach (var item in itemTags)
-					items.Add(PipedItem.LoadData(this, item));
 			}
 		}
 
@@ -230,6 +229,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		/// <param name="import">The item to attempt to insert.</param>
 		/// <param name="inventory">The location of the inventory's tile if one was found</param>
+		/// <param name="stackImported">The quantity of <paramref name="import"/> that can be inserted in the found target, or zero if no target was found</param>
 		/// <returns>Whether a valid inventory was found</returns>
 		public bool FindValidImportTarget(Item import, out Point16 inventory, out int stackImported) {
 			stackImported = 0;
@@ -274,6 +274,12 @@ namespace SerousEnergyLib.Systems.Networks {
 			return false;
 		}
 
+		/// <summary>
+		/// Attempts to generate a path from <paramref name="current"/> to <paramref name="inventory"/>
+		/// </summary>
+		/// <param name="current">The tile coordinate to start the pathfinding at</param>
+		/// <param name="inventory">The tile coordinate to end the pathfinding at</param>
+		/// <returns>A list of tile coordinates for pathfinding, or <see langword="null"/> if no path was found</returns>
 		public List<Point16> AttemptToGeneratePathToInventoryTarget(Point16 current, Point16 inventory) {
 			// Generate a path to the target
 			var left = GeneratePath(current, inventory + new Point16(-1, 0), out double leftTime);
@@ -310,6 +316,82 @@ namespace SerousEnergyLib.Systems.Networks {
 			}
 
 			return null;
+		}
+
+		protected override void SaveExtraData(TagCompound tag) {
+			static TagCompound SaveItem(PipedItem item) {
+				TagCompound itemTag = new TagCompound();
+				item.SaveData(itemTag);
+				return itemTag;
+			}
+
+			tag["items"] = items.Select(SaveItem).ToList();
+		}
+
+		protected override void LoadExtraData(TagCompound tag) {
+			items.Clear();
+
+			if (tag.GetList<TagCompound>("items") is List<TagCompound> itemTags) {
+				foreach (var item in itemTags)
+					items.Add(PipedItem.LoadData(this, item));
+			}
+		}
+
+		public override void SendExtraData(BinaryWriter writer) {
+			writer.Write(adjacentInventoryTiles.Count);
+			foreach (var adjacent in adjacentInventoryTiles)
+				writer.Write(adjacent);
+
+			writer.Write(pumpTimers.Count);
+			foreach (var (position, timer) in pumpTimers) {
+				writer.Write(position);
+				writer.Write(timer.Value);
+			}
+
+			writer.Write(items.Count);
+			foreach (var item in items) {
+				if (item is null || item.Destroyed)
+					writer.Write(true);
+				else {
+					writer.Write(false);
+					item.WriteTo(writer, full: true);
+				}
+			}
+		}
+
+		public override void ReceiveExtraData(BinaryReader reader) {
+			adjacentInventoryTiles.Clear();
+
+			int adjacentCount = reader.ReadInt32();
+			for (int i = 0; i < adjacentCount; i++)
+				adjacentInventoryTiles.Add(reader.ReadPoint16());
+
+			pumpTimers.Clear();
+
+			int pumpCount = reader.ReadInt32();
+			for (int i = 0; i < pumpCount; i++)
+				pumpTimers.Add(reader.ReadPoint16(), new Ref<int>(reader.ReadInt32()));
+
+			items.Clear();
+
+			int itemCount = reader.ReadInt32();
+			for (int i = 0; i < itemCount; i++) {
+				if (reader.ReadBoolean())
+					items.Add(null);
+				else {
+					// Read ahead to get the ID so that the receive logic overwrites the data in this instance instead of trying to find an index to replace
+					long pos = reader.BaseStream.Position;
+					
+					reader.ReadBoolean();  // bool fullSync
+					int id = reader.ReadInt32();
+
+					items.Add(new PipedItem(this, Point16.Zero, Point16.Zero, Point16.Zero, null, null, id));
+
+					reader.BaseStream.Position = pos;
+
+					PipedItem.CreateOrUpdateFromNet(reader);
+				}
+			}
 		}
 	}
 }

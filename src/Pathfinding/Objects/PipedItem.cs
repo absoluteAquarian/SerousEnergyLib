@@ -27,6 +27,9 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 		private static int nextUniqueID;
 
+		/// <summary>
+		/// The tile coordinates where this item is heading toward
+		/// </summary>
 		public Point16 Target { get; private set; }
 
 		private List<Point16> path;
@@ -36,16 +39,29 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 		private double travelFactor;  // How far along in the current tile the item has moved
 
+		/// <summary>
+		/// The tile that this item was previously located at
+		/// </summary>
 		public Point16 PreviousTile { get; private set; }
 
+		/// <summary>
+		/// The tile that this item is currently located at
+		/// </summary>
 		public Point16 CurrentTile { get; private set; }
 
+		/// <summary>
+		/// The next tile that this item will be located at
+		/// </summary>
 		public Point16 NextTile { get; private set; }
 
 		private int aliveTime = -1;
 
+		/// <summary>
+		/// The network that this item is assigned to
+		/// </summary>
 		public readonly ItemNetwork network;
 
+		#pragma warning disable CS1591
 		public readonly int UniqueID;
 
 		internal PipedItem(ItemNetwork network, Point16 source, Point16 current, Point16 target, List<Point16> path, Item item, int id) {
@@ -105,28 +121,28 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			};
 		}
 
-		internal void WriteToPacket(ModPacket packet, bool full) {
-			Netcode.WriteNetworkInstanceToPacket(packet, network);
+		internal void WriteTo(BinaryWriter writer, bool full) {
+			Netcode.WriteNetworkInstance(writer, network);
 
-			packet.Write(full);
+			writer.Write(full);
 
-			packet.Write(UniqueID);
-			packet.Write(Target);
-			packet.Write(pathIndex);
-			packet.Write(travelFactor);
-			packet.Write(PreviousTile);
-			packet.Write(CurrentTile);
-			packet.Write(NextTile);
-			packet.Write(aliveTime);
-			packet.Write(Destroyed);
+			writer.Write(UniqueID);
+			writer.Write(Target);
+			writer.Write(pathIndex);
+			writer.Write(travelFactor);
+			writer.Write(PreviousTile);
+			writer.Write(CurrentTile);
+			writer.Write(NextTile);
+			writer.Write(aliveTime);
+			writer.Write(Destroyed);
 
 			if (full) {
-				packet.Write(path.Count);
+				writer.Write(path.Count);
 
 				foreach (var node in path)
-					packet.Write(node);
+					writer.Write(node);
 
-				ItemIO.Send(item, packet, writeStack: true);
+				ItemIO.Send(item, writer, writeStack: true);
 			}
 		}
 

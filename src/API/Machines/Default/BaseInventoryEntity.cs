@@ -9,6 +9,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 	/// A default implementation of <see cref="IMachine"/> and <see cref="IInventoryMachine"/>
 	/// </summary>
 	public abstract class BaseInventoryEntity : ModTileEntity, IMachine, IInventoryMachine {
+		#pragma warning disable CS1591
 		public abstract int MachineTile { get; }
 
 		public abstract BaseMachineUI MachineUI { get; }
@@ -23,6 +24,8 @@ namespace SerousEnergyLib.API.Machines.Default {
 			IMachine.Update(this);
 			IInventoryMachine.Update(this);
 		}
+
+		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 
 		public virtual bool CanExportItemAtSlot(int slot) => true;
 

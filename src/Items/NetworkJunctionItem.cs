@@ -8,6 +8,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Items {
+	#pragma warning disable CS1591
 	public sealed class NetworkJunctionItem : ModItem {
 		public override string Texture => "SerousEnergyLib/Assets/Tiles/NetworkJunction";
 

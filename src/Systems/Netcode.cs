@@ -12,6 +12,9 @@ using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Systems {
+	/// <summary>
+	/// The central class for all netcode logic in this mod
+	/// </summary>
 	public static class Netcode {
 		internal static void HandlePacket(BinaryReader reader, int sender) {
 			NetcodeMessage msg = (NetcodeMessage)reader.ReadByte();
@@ -79,6 +82,11 @@ namespace SerousEnergyLib.Systems {
 			return packet;
 		}
 
+		/// <summary>
+		/// Syncs the <see cref="NetworkInfo"/> and <see cref="NetworkTaggedInfo"/> at a tile location
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
 		public static void SyncNetworkInfo(int x, int y) {
 			if (Main.netMode != NetmodeID.Server)
 				return;
@@ -106,6 +114,12 @@ namespace SerousEnergyLib.Systems {
 			tile.Get<NetworkTaggedInfo>().tagData = tagData;
 		}
 
+		/// <summary>
+		/// Sends a request to the server for placing a tile that can be be assigned to networks for items, fluids and/or power
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="type"></param>
 		public static void RequestNetworkEntryPlacement(int x, int y, NetworkType type) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
@@ -128,6 +142,12 @@ namespace SerousEnergyLib.Systems {
 			Network.PlaceEntry(x, y, type);
 		}
 
+		/// <summary>
+		/// Sends a request to the server for removing a tile that can be assigned to networks for items, fluids and/or power
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <param name="type"></param>
 		public static void RequestNetworkEntryRemoval(int x, int y, NetworkType type) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
@@ -150,6 +170,11 @@ namespace SerousEnergyLib.Systems {
 			Network.RemoveEntry(x, y, type);
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
 		public static void SyncNetworkInfoDiamond(int x, int y) {
 			if (Main.netMode != NetmodeID.Server)
 				return;
@@ -160,16 +185,30 @@ namespace SerousEnergyLib.Systems {
 			var packet = GetPacket(NetcodeMessage.SyncNetworkDataDiamond);
 			packet.Write((short)x);
 			packet.Write((short)y);
-			packet.Write(Main.tile[x, y].Get<NetworkInfo>().netData);
+			Tile center = Main.tile[x, y];
+			packet.Write(center.Get<NetworkInfo>().netData);
+			packet.Write(center.Get<NetworkTaggedInfo>().tagData);
 			packet.Write(hasTile);
-			if (leftExists)
-				packet.Write(Main.tile[x - 1, y].Get<NetworkInfo>().netData);
-			if (upExists)
-				packet.Write(Main.tile[x, y - 1].Get<NetworkInfo>().netData);
-			if (rightExists)
-				packet.Write(Main.tile[x + 1, y].Get<NetworkInfo>().netData);
-			if (downExists)
-				packet.Write(Main.tile[x, y + 1].Get<NetworkInfo>().netData);
+			if (leftExists) {
+				Tile left = Main.tile[x - 1, y];
+				packet.Write(left.Get<NetworkInfo>().netData);
+				packet.Write(left.Get<NetworkTaggedInfo>().tagData);
+			}
+			if (upExists) {
+				Tile up = Main.tile[x, y - 1];
+				packet.Write(up.Get<NetworkInfo>().netData);
+				packet.Write(up.Get<NetworkTaggedInfo>().tagData);
+			}
+			if (rightExists) {
+				Tile right = Main.tile[x + 1, y];
+				packet.Write(right.Get<NetworkInfo>().netData);
+				packet.Write(right.Get<NetworkTaggedInfo>().tagData);
+			}
+			if (downExists) {
+				Tile down = Main.tile[x, y + 1];
+				packet.Write(down.Get<NetworkInfo>().netData);
+				packet.Write(down.Get<NetworkTaggedInfo>().tagData);
+			}
 			packet.Send();
 		}
 
@@ -181,32 +220,58 @@ namespace SerousEnergyLib.Systems {
 			bool leftExists = false, upExists = false, rightExists = false, downExists = false;
 			hasTile.Retrieve(ref leftExists, ref upExists, ref rightExists, ref downExists);
 
-			byte left = 0, up = 0, right = 0, down = 0;
+			byte leftInfo = 0, upInfo = 0, rightInfo = 0, downInfo = 0;
+			byte leftTags = 0, upTags = 0, rightTags = 0, downTags = 0;
 
-			if (leftExists)
-				left = reader.ReadByte();
-			if (upExists)
-				up = reader.ReadByte();
-			if (rightExists)
-				right = reader.ReadByte();
-			if (downExists)
-				down = reader.ReadByte();
+			if (leftExists) {
+				leftInfo = reader.ReadByte();
+				leftTags = reader.ReadByte();
+			}
+			if (upExists) {
+				upInfo = reader.ReadByte();
+				upTags = reader.ReadByte();
+			}
+			if (rightExists) {
+				rightInfo = reader.ReadByte();
+				rightTags = reader.ReadByte();
+			}
+			if (downExists) {
+				downInfo = reader.ReadByte();
+				downTags = reader.ReadByte();
+			}
 
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
 
-			Main.tile[x, y].Get<NetworkInfo>().netData = data;
+			Tile center = Main.tile[x, y];
+			center.Get<NetworkInfo>().netData = data;
 
-			if (leftExists)
-				Main.tile[x - 1, y].Get<NetworkInfo>().netData = left;
-			if (upExists)
-				Main.tile[x, y - 1].Get<NetworkInfo>().netData = up;
-			if (rightExists)
-				Main.tile[x + 1, y].Get<NetworkInfo>().netData = right;
-			if (downExists)
-				Main.tile[x, y + 1].Get<NetworkInfo>().netData = down;
+			if (leftExists) {
+				Tile left = Main.tile[x - 1, y];
+				left.Get<NetworkInfo>().netData = leftInfo;
+				left.Get<NetworkTaggedInfo>().tagData = leftTags;
+			}
+			if (upExists) {
+				Tile up = Main.tile[x, y - 1];
+				up.Get<NetworkInfo>().netData = upInfo;
+				up.Get<NetworkTaggedInfo>().tagData = upTags;
+			}
+			if (rightExists) {
+				Tile right = Main.tile[x + 1, y];
+				right.Get<NetworkInfo>().netData = rightInfo;
+				right.Get<NetworkTaggedInfo>().tagData = rightTags;
+			}
+			if (downExists) {
+				Tile down = Main.tile[x, y + 1];
+				down.Get<NetworkInfo>().netData = downInfo;
+				down.Get<NetworkTaggedInfo>().tagData = downTags;
+			}
 		}
 
+		/// <summary>
+		/// Syncs a <see cref="NetworkInstance"/> instance's data to all clients
+		/// </summary>
+		/// <param name="id">The <see cref="NetworkInstance.ID"/> of the network to sync</param>
 		public static void SyncFullNetworkData(int id) => SyncFullNetworkDataToClient(id);
 
 		private static void SyncFullNetworkDataToClient(int id, int sender = -1) {
@@ -286,9 +351,9 @@ namespace SerousEnergyLib.Systems {
 			instance?.ReceiveNetworkData_5_ExtraInfo(reader);
 		}
 
-		internal static void WriteNetworkInstanceToPacket(ModPacket packet, NetworkInstance instance) {
-			packet.Write(instance.ID);
-			packet.Write((byte)instance.Filter);
+		internal static void WriteNetworkInstance(BinaryWriter writer, NetworkInstance instance) {
+			writer.Write(instance.ID);
+			writer.Write((byte)instance.Filter);
 		}
 
 		internal static NetworkInstance ReadNetworkInstanceOnClient(BinaryReader reader) {
@@ -308,6 +373,10 @@ namespace SerousEnergyLib.Systems {
 			return instance;
 		}
 
+		/// <summary>
+		/// Sends a requst to the server for the data of a <see cref="NetworkInstance"/> instance
+		/// </summary>
+		/// <param name="id">The <see cref="NetworkInstance.ID"/> of the network to sync</param>
 		public static void RequestFullNetworkData(int id) {
 			if (Main.netMode != NetmodeID.MultiplayerClient)
 				return;
@@ -414,7 +483,7 @@ namespace SerousEnergyLib.Systems {
 				return;
 
 			var packet = GetPacket(NetcodeMessage.SyncNetworkInstanceEntryPlacement);
-			WriteNetworkInstanceToPacket(packet, instance);
+			WriteNetworkInstance(packet, instance);
 			packet.Write(location);
 			packet.Send();
 		}
@@ -432,7 +501,7 @@ namespace SerousEnergyLib.Systems {
 				return;
 
 			var packet = GetPacket(NetcodeMessage.SyncPipedItem);
-			item.WriteToPacket(packet, fullSync);
+			item.WriteTo(packet, fullSync);
 			packet.Send();
 		}
 
@@ -445,7 +514,7 @@ namespace SerousEnergyLib.Systems {
 				return;
 
 			var packet = GetPacket(NetcodeMessage.SyncPump);
-			WriteNetworkInstanceToPacket(packet, net);
+			WriteNetworkInstance(packet, net);
 			packet.Write(location);
 			packet.Write((short)timer);
 			packet.Send();

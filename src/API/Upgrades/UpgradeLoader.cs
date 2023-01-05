@@ -2,6 +2,9 @@
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Upgrades {
+	/// <summary>
+	/// The centeral class for loading <see cref="BaseUpgrade"/> instnaces
+	/// </summary>
 	public static class UpgradeLoader {
 		private class Loadable : ILoadable {
 			public void Load(Mod mod) { }
@@ -11,6 +14,7 @@ namespace SerousEnergyLib.API.Upgrades {
 			}
 		}
 
+		#pragma warning disable CS1591
 		private static readonly List<BaseUpgrade> upgrades = new();
 
 		public static int Count => upgrades.Count;

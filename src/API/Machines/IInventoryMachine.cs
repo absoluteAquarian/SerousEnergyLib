@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.Systems.Networks;
+﻿using SerousEnergyLib.Pathfinding.Objects;
+using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
@@ -13,6 +14,7 @@ namespace SerousEnergyLib.API.Machines {
 	/// An interface containing methods used by machines that can store items
 	/// </summary>
 	public interface IInventoryMachine : IMachine, IPipedItemDrawingTile {
+		#pragma warning disable CS1591
 		float IPipedItemDrawingTile.GetItemSize(int x, int y) => 3.85f * 2;
 
 		/// <summary>
@@ -20,6 +22,10 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		Item[] Inventory { get; set; }
 
+		/// <summary>
+		/// The default capacity of <see cref="Inventory"/><br/>
+		/// In <see cref="Update(IInventoryMachine)"/>, if <see cref="Inventory"/> is <see langword="null"/>, it is initialzed to an array of empty items whose length is this property's value
+		/// </summary>
 		int DefaultInventoryCapacity { get; }
 
 		/// <summary>
@@ -72,6 +78,11 @@ namespace SerousEnergyLib.API.Machines {
 			return stackImported > 0;
 		}
 
+		/// <summary>
+		/// Whether <paramref name="import"/> can be imported into this machine's inventory
+		/// </summary>
+		/// <param name="import">The item to be imported</param>
+		/// <param name="stackImported">How many items would be imported should the import be successful</param>
 		public bool CanImportItem(Item import, out int stackImported) {
 			stackImported = 0;
 
@@ -102,7 +113,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// If any part of <paramref name="import"/>'s stack is to be sent back to the network, indicate as such by making its stack positive.
 		/// </summary>
 		/// <param name="import">The item to import</param>
-		/// <param name="slot">The slot in <see cref="Inventory"/></param
+		/// <param name="slot">The slot in <see cref="Inventory"/></param>
 		public virtual void ImportItemAtSlot(Item import, int slot) {
 			var inv = Inventory;
 
@@ -192,6 +203,13 @@ namespace SerousEnergyLib.API.Machines {
 			return false;
 		}
 
+		/// <summary>
+		/// Extracts items from this machine into <paramref name="network"/>
+		/// </summary>
+		/// <param name="network">The item network to import the items into</param>
+		/// <param name="extractCount">A counter for how many more items can be extracted from this machine</param>
+		/// <param name="simulation">If <see langword="true"/>, items will not be removed from this machine</param>
+		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
 		public List<InventoryExtractionResult> ExtractItems(ItemNetwork network, ref int extractCount, bool simulation = true) {
 			// Attempt to extract items from the machine
 			List<InventoryExtractionResult> results = new();
@@ -220,12 +238,20 @@ namespace SerousEnergyLib.API.Machines {
 			return results;
 		}
 
+		/// <summary>
+		/// Returns an enumeration of <see cref="ItemNetwork"/> instances that are adjacent to this machine
+		/// </summary>
 		public IEnumerable<ItemNetwork> GetAdjacentItemNetworks() {
 			return GetAdjacentNetworks(NetworkType.Items)
 				.Select(r => r.network as ItemNetwork)
 				.OfType<ItemNetwork>();
 		}
 
+		/// <summary>
+		/// This method ensures that <see cref="Inventory"/> is not <see langword="null"/>.
+		/// If it is <see langword="null"/>, then it is initialized to an array of empty items whose length is <see cref="DefaultInventoryCapacity"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		public static void Update(IInventoryMachine machine) {
 			if (machine.Inventory is null) {
 				int capacity = machine.DefaultInventoryCapacity;

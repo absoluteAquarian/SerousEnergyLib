@@ -8,6 +8,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 	/// A default implementation of <see cref="IMachine"/>
 	/// </summary>
 	public abstract class BaseMachineEntity : ModTileEntity, IMachine {
+		#pragma warning disable CS1591
 		public abstract int MachineTile { get; }
 
 		public abstract BaseMachineUI MachineUI { get; }
@@ -17,5 +18,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public override void Update() {
 			IMachine.Update(this);
 		}
+
+		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 	}
 }

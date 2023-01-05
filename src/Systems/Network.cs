@@ -188,6 +188,7 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
+		/// <param name="type">The network types to clear from the tile</param>
 		public static void RemoveEntry(int x, int y, NetworkType type) {
 			if (Main.netMode == NetmodeID.MultiplayerClient) {
 				Netcode.RequestNetworkEntryRemoval(x, y, type);
@@ -197,7 +198,6 @@ namespace SerousEnergyLib.Systems {
 			ref NetworkInfo info = ref Main.tile[x, y].Get<NetworkInfo>();
 
 			info.Type &= ~type;
-			bool wasPump = info.IsPump;
 			info.IsPump = false;
 
 			if (info.Type == NetworkType.None)
@@ -314,12 +314,6 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="y">The tile Y-coordinate</param>
 		/// <returns>An <see cref="PowerNetwork"/> instance if one was found, <see langword="null"/> otherwise.</returns>
 		public static PowerNetwork GetPowerNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Power, out _) as PowerNetwork;
-
-		public static bool IsItemPipe(int x, int y) => (Main.tile[x, y].Get<NetworkInfo>().Type & NetworkType.Items) == NetworkType.Items;
-
-		public static bool IsFluidPipe(int x, int y) => (Main.tile[x, y].Get<NetworkInfo>().Type & NetworkType.Fluids) == NetworkType.Fluids;
-
-		public static bool IsWire(int x, int y) => (Main.tile[x, y].Get<NetworkInfo>().Type & NetworkType.Power) == NetworkType.Power;
 
 		internal static void UpdateEntryConnections(int x, int y) {
 			ref NetworkInfo center = ref Main.tile[x, y].Get<NetworkInfo>();

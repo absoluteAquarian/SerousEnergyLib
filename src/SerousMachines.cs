@@ -5,6 +5,7 @@ using System.IO;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib {
+	#pragma warning disable CS1591
 	public class SerousMachines : Mod {
 		public static SerousMachines Instance => ModContent.GetInstance<SerousMachines>();
 

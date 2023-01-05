@@ -2,6 +2,9 @@
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Energy {
+	/// <summary>
+	/// A classification of power that can be stored in machines
+	/// </summary>
 	public abstract class EnergyTypeID : ModType {
 		/// <summary>
 		/// The ID of this energy type
@@ -25,6 +28,7 @@ namespace SerousEnergyLib.API.Energy {
 		/// </summary>
 		public abstract string ShortName { get; }
 
+		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<EnergyTypeID>.Register(this);
 
@@ -33,6 +37,7 @@ namespace SerousEnergyLib.API.Energy {
 			Type = EnergyConversions.Register(this);
 		}
 
+		/// <inheritdoc cref="ModType.SetupContent"/>
 		public sealed override void SetupContent() {
 			AutoStaticDefaults();
 			SetStaticDefaults();

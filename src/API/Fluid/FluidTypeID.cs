@@ -9,8 +9,14 @@ namespace SerousEnergyLib.API.Fluid {
 	/// An ID representing a fluid (liquid/gas) that can be stored within machines and pipe networks
 	/// </summary>
 	public abstract class FluidTypeID : ModType {
+		/// <summary>
+		/// An invalid ID representing "no fluid"
+		/// </summary>
 		public const int None = -1;
 
+		/// <summary>
+		/// The ID assigned to this fluid type
+		/// </summary>
 		public int Type { get; protected private set; } = None;
 
 		/// <summary>
@@ -28,6 +34,7 @@ namespace SerousEnergyLib.API.Fluid {
 		/// </summary>
 		public abstract Color FluidColor { get; }
 
+		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<FluidTypeID>.Register(this);
 
@@ -49,6 +56,9 @@ namespace SerousEnergyLib.API.Fluid {
 				DisplayName.SetDefault(Regex.Replace(Name, "([A-Z])", " $1").Trim());
 		}
 
+		/// <summary>
+		/// Gets the display name for this fluid ID
+		/// </summary>
 		public virtual string GetPrintedDisplayName() => DisplayName.GetTranslation(Language.ActiveCulture);
 	}
 }

@@ -1,4 +1,7 @@
 ﻿namespace SerousEnergyLib.Pathfinding {
+	/// <summary>
+	/// An interface representing an entry in a <see cref="PriorityQueue{T}"/>
+	/// </summary>
 	public interface IPriorityNode<T> {
 		/// <summary>
 		/// Called when a <see cref="PriorityQueue{T}"/> updates an existing node entry.

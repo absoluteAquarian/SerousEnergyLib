@@ -10,6 +10,7 @@ namespace SerousEnergyLib.Tiles {
 	/// The base implementation for a placeable machine's tiles
 	/// </summary>
 	public abstract class BaseMachineTile : ModTile, IMachineTile {
+		#pragma warning disable CS1591
 		public abstract int MachineItem { get; }
 
 		public virtual Color MapEntryColor => new Color(0xd1, 0x89, 0x32);

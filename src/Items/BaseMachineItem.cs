@@ -47,6 +47,7 @@ namespace SerousEnergyLib.Items {
 		/// </summary>
 		public virtual bool MachineGeneratesEnergyPerTick => true;
 
+		#pragma warning disable CS1591
 		public sealed override void SetDefaults() {
 			SafeSetDefaults();
 			Item.DamageType = DamageClass.Default;
