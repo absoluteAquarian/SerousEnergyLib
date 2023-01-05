@@ -45,6 +45,9 @@ namespace SerousEnergyLib.API.CrossMod {
 			if (entity is null)
 				throw new InvalidOperationException("Entity ID either did not refer to a valid ModTileEntity instance or was not an IMachine");
 
+			if (entity is not IScienceWorkbenchViewableMachine)
+				throw new InvalidOperationException("Entity does not have support for the Machine Workbench");
+
 			return entity;
 		}
 
