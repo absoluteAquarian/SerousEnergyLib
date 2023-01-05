@@ -60,6 +60,11 @@ namespace SerousEnergyLib.Tiles {
 			Network.PlaceEntry(i, j, NetworkTypeToPlace);
 		}
 
+		public override void KillTile(int i, int j, ref bool fail, ref bool effectOnly, ref bool noItem) {
+			if (!fail && !effectOnly)
+				Network.RemoveEntry(i, j, NetworkTypeToPlace);
+		}
+
 		public override bool TileFrame(int i, int j, ref bool resetFrame, ref bool noBreak) {
 			Tile tile = Main.tile[i, j];
 
