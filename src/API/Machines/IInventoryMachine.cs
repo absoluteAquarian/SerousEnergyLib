@@ -277,8 +277,17 @@ namespace SerousEnergyLib.API.Machines {
 			if (slot < 0 || slot >= inv.Length)
 				throw new IndexOutOfRangeException("Inventory slot exceeded the bounds of the IInventoryMachine.Inventory array");
 
-			var item = inv[slot];
-			return Main.LocalPlayer.QuickSpawnClonedItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+			ref var item = ref inv[slot];
+
+			// Drop the item
+			int drop = Main.LocalPlayer.QuickSpawnClonedItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+
+			// Destroy the slot
+			item = new();
+
+			Netcode.SyncMachineInventorySlot(machine, slot);
+
+			return drop;
 		}
 
 		public void SaveInventory(TagCompound tag) {
