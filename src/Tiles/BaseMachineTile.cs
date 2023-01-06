@@ -20,7 +20,7 @@ namespace SerousEnergyLib.Tiles {
 
 		public abstract IMachine GetMachineEntity();
 
-		public abstract string GetMachineMapEntryName();
+		public virtual string GetMachineMapEntryName() => null;
 
 		public sealed override void SetStaticDefaults() {
 			SafeSetStaticDefaults();
