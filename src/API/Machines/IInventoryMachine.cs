@@ -280,7 +280,7 @@ namespace SerousEnergyLib.API.Machines {
 			ref var item = ref inv[slot];
 
 			// Drop the item
-			int drop = Main.LocalPlayer.QuickSpawnClonedItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+			int drop = Main.LocalPlayer.QuickSpawnItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
 
 			// Destroy the slot
 			item = new();

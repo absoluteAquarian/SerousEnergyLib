@@ -8,10 +8,14 @@ namespace SerousEnergyLib.Items {
 	/// <summary>
 	/// A base implementation of a <see cref="BaseMachineItem"/> that destroys its data and has a max stack of 999
 	/// </summary>
-	public abstract class DatalessMachineItem<T> : BaseMachineItem<T> where T : ModTile, IMachineTile {
-		#pragma warning disable CS1591
+	/// <typeparam name="TItem">The corresponding item type which contains the texture and defaults for this item</typeparam>
+	/// <typeparam name="TTile">The tile that this item should place</typeparam>
+	public abstract class DatalessMachineItem<TItem, TTile> : BaseMachineItem<TTile> where TItem : BaseMachineItem<TTile> where TTile : ModTile, IMachineTile {
+#pragma warning disable CS1591
+		public override string Texture => ModContent.GetInstance<TItem>().Texture;
+
 		public override void SafeSetDefaults() {
-			base.SafeSetDefaults();
+			Item.CloneDefaults(ModContent.ItemType<TItem>());
 
 			Item.maxStack = 999;
 		}
