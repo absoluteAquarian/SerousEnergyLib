@@ -29,12 +29,12 @@ namespace SerousEnergyLib.API.CrossMod {
 			this.frame = frame;
 		}
 
-		public MachineRegistryDisplayAnimationState(string asset, int columnCount = 1, int rowCount = 1, int frameX = 0, int frameY = 0, int sizeOffsetX = 0, int sizeOffsetY = 0) {
+		public MachineRegistryDisplayAnimationState(string asset, int columnCount, int rowCount, int frameX, int frameY, int sizeOffsetX = 0, int sizeOffsetY = 0) {
 			this.asset = ModContent.Request<Texture2D>(asset, AssetRequestMode.ImmediateLoad);
 			frame = this.asset.Frame(columnCount, rowCount, frameX, frameY, sizeOffsetX, sizeOffsetY);
 		}
 
-		public MachineRegistryDisplayAnimationState(string asset, int columnCount = 1, int rowCount = 1, uint frameX = 0, uint frameY = 0, int sizeOffsetX = 0, int sizeOffsetY = 0) {
+		public MachineRegistryDisplayAnimationState(string asset, int columnCount, int rowCount, uint frameX, uint frameY, int sizeOffsetX = 0, int sizeOffsetY = 0) {
 			this.asset = ModContent.Request<Texture2D>(asset, AssetRequestMode.ImmediateLoad);
 			frame = this.asset.Frame(columnCount, rowCount, (int)frameX, (int)frameY, sizeOffsetX, sizeOffsetY);
 		}
