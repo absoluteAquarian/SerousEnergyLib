@@ -44,6 +44,8 @@ namespace SerousEnergyLib.Systems {
 				CloseUI();
 
 			uiInterface.SetState(machine.MachineUI);
+
+			ActiveMachine = machine;
 		}
 
 		/// <summary>
@@ -55,6 +57,8 @@ namespace SerousEnergyLib.Systems {
 
 			uiInterface.SetState(null);
 			pendingUIChangeForAnyReason = false;
+
+			ActiveMachine = null;
 		}
 
 		private static float lastKnownUIScale = -1;

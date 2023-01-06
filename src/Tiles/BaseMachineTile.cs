@@ -44,6 +44,11 @@ namespace SerousEnergyLib.Tiles {
 		public override void KillMultiTile(int i, int j, int frameX, int frameY) {
 			IMachineTile.DefaultKillMultitile(this, i, j);
 		}
+		public virtual bool PreRightClick(IMachine machine, int x, int y) => false;
+
+		public sealed override bool RightClick(int i, int j) {
+			return IMachineTile.HandleRightClick(this, i, j);
+		}
 
 		public abstract MachineWorkbenchRegistry GetRegistry();
 	}

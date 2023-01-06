@@ -39,6 +39,15 @@ namespace SerousEnergyLib.Tiles {
 		int MachineItem { get; }
 
 		/// <summary>
+		/// This method runs before the standard right click logic for this machine is processed in <see cref="HandleRightClick(IMachineTile, int, int)"/>
+		/// </summary>
+		/// <param name="machine">The entity located on this machine.  It is guaranteed to be a <see cref="ModTileEntity"/> instance</param>
+		/// <param name="x">The tile X-coordinate that the player clicked</param>
+		/// <param name="y">The tile Y=coordinate that the player clicked</param>
+		/// <returns><see langword="true"/> if the logic for opening this machine's UI should be blocked, <see langword="false"/> otherwise.</returns>
+		bool PreRightClick(IMachine machine, int x, int y);
+
+		/// <summary>
 		/// Modifies <see cref="TileObjectData.newTile"/> and other properties in <paramref name="machine"/> to contain the default values for machines.<br/>
 		/// <see cref="TileObjectData.addTile(int)"/> is purosefully not called so that <see cref="TileObjectData.newTile"/> can be further modified.
 		/// </summary>
@@ -100,12 +109,12 @@ namespace SerousEnergyLib.Tiles {
 		/// <summary>
 		/// This method executes the standard logic for destroying a machine multitile, which encompasses dropping its item and destroying its tile entity
 		/// </summary>
-		/// <param name="machine"></param>
-		/// <param name="x"></param>
-		/// <param name="y"></param>
-		/// <param name="dropItem"></param>
-		/// <exception cref="ArgumentException"></exception>
-		/// <exception cref="InvalidOperationException"></exception>
+		/// <param name="machine">The machine to retrieve information from</param>
+		/// <param name="x">The tile X-coordinate of the top-left corner for the multitile</param>
+		/// <param name="y">The tile Y-coorindate of the top-left corner for the multitile</param>
+		/// <param name="dropItem">Whether to drop this machine's item</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="InvalidOperationException"/>
 		public static void DefaultKillMultitile(IMachineTile machine, int x, int y, bool dropItem = true) {
 			if (machine is not ModTile)
 				throw new ArgumentException("IMachineTile parameter was not a ModTile", nameof(machine));
@@ -114,20 +123,49 @@ namespace SerousEnergyLib.Tiles {
 
 			TagCompound machineData = IMachine.RemoveFromWorld(location);
 
+			if (!dropItem)
+				return;
+
 			machine.GetMachineDimensions(out uint width, out uint height);
 
 			int drop = Item.NewItem(new EntitySource_TileBreak(x, y), x * 16, y * 16, (int)(width * 16), (int)(height * 16), machine.MachineItem, noBroadcast: true);
 			if (drop < Main.maxItems) {
-				// Save data onto the item
-				BaseMachineItem machineItem = Main.item[drop].ModItem as BaseMachineItem
-					?? throw new InvalidOperationException("IMachineTile.MachineItem did not refer to a valid BaseMachineItem item ID");
+				try {
+					// Save data onto the item
+					BaseMachineItem machineItem = Main.item[drop].ModItem as BaseMachineItem
+						?? throw new InvalidOperationException("IMachineTile.MachineItem did not refer to a valid BaseMachineItem item ID");
 
-				machineItem.MachineData = machineData;
+					machineItem.MachineData = machineData;
+				} catch {
+					// Destroy the dropped item
+					Main.item[drop] = new Item();
+					throw;
+				}
 
 				// Sync the item for mp
 				if (Main.netMode != NetmodeID.SinglePlayer)
 					NetMessage.SendData(MessageID.SyncItem, ignoreClient: Main.netMode == NetmodeID.MultiplayerClient ? Main.myPlayer : -1, number: drop, number2: 1);
 			}
+		}
+
+		/// <summary>
+		/// This method executes the standard logic for right clicking a machine, which encompasses opening its UI
+		/// </summary>
+		/// <param name="machine">The machine being clicked</param>
+		/// <param name="x">The tile X-coordinate that the player clicked</param>
+		/// <param name="y">The tile Y=coordinate that the player clicked</param>
+		/// <returns><see langword="true"/> to indicate that a tile interaction occurred, which blocks further right click logic in the player</returns>
+		public static bool HandleRightClick(IMachineTile machine, int x, int y) {
+			if (!IMachine.TryFindMachine(new Point16(x, y), out IMachine entity) || entity is not ModTileEntity)
+				return false;
+
+			if (!machine.PreRightClick(entity, x, y))
+				return true;
+
+			if (!object.ReferenceEquals(UIHandler.ActiveMachine, entity))
+				UIHandler.OpenUI(entity);
+
+			return true;
 		}
 	}
 }
