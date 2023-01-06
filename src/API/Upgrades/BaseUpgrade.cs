@@ -23,6 +23,11 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		public ModTranslation Tooltip { get; private set; }
 
+		/// <summary>
+		/// How many instances of this upgrade are permitted on any machine
+		/// </summary>
+		public abstract int MaxUpgradesPerMachine { get; }
+
 		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<BaseUpgrade>.Register(this);

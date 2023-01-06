@@ -9,6 +9,9 @@ namespace SerousEnergyLib.API.Upgrades {
 
 		private readonly TagCompound unloadedData;
 
+		// Purposefully large amount for future-proofing
+		public override int MaxUpgradesPerMachine => 10000;
+
 		public UnloadedUpgrade() {
 			Type = -1;
 		}
