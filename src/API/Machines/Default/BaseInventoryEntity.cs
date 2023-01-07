@@ -1,5 +1,5 @@
 ﻿using SerousEnergyLib.API.Machines.UI;
-using SerousEnergyLib.API.Upgrades;
+using SerousEnergyLib.Items;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
@@ -15,7 +15,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract BaseMachineUI MachineUI { get; }
 		
-		public List<StackedUpgrade> Upgrades { get; set; }
+		public List<BaseUpgradeItem> Upgrades { get; set; }
 
 		public Item[] Inventory { get; set; }
 

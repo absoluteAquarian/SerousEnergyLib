@@ -1,10 +1,10 @@
 ﻿using SerousEnergyLib.API.Energy.Default;
 using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.API.Machines.UI;
-using SerousEnergyLib.API.Upgrades;
 using System.Collections.Generic;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using SerousEnergyLib.Items;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
@@ -16,7 +16,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract BaseMachineUI MachineUI { get; }
 		
-		public List<StackedUpgrade> Upgrades { get; set; }
+		public List<BaseUpgradeItem> Upgrades { get; set; }
 
 		public abstract FluxStorage PowerStorage { get; }
 

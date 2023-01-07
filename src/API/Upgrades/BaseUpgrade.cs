@@ -1,9 +1,6 @@
 ﻿using SerousEnergyLib.API.Machines;
-using SerousEnergyLib.Items;
-using System;
 using System.Text.RegularExpressions;
 using Terraria.ModLoader;
-using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Upgrades {
 	/// <summary>

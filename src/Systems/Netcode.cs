@@ -1,7 +1,5 @@
-﻿using Microsoft.CodeAnalysis;
-using SerousEnergyLib.API;
+﻿using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
-using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
