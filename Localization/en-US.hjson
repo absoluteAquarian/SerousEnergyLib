@@ -43,5 +43,7 @@
 			PerGameTick: "Power Generation: {0:0.###} {1}/gt ({2:0.###} {1}/s)"
 			PerOperation: "Power Generation: {0:0.###} {1}/operation"
 		}
+
+		RecipeChanceOutput: "{0}% chance"
 	}
 }
