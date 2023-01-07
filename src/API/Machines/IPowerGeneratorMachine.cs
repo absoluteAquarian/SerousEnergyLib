@@ -24,7 +24,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="ticks"></param>
 		/// <returns></returns>
 		public double GetPowerGenerationWithUpgrades(double ticks)
-			=> CalculateFromUpgrades(StatModifier.Default, static (u, v) => u.Upgrade.GetPowerGenerationMultiplier(u.Stack).CombineWith(v))
+			=> CalculateFromUpgrades(StatModifier.Default, static (u, s, v) => u.GetPowerGenerationMultiplier(s).CombineWith(v))
 				.ApplyTo(GetPowerGeneration(ticks));
 
 		/// <summary>

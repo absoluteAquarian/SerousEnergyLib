@@ -17,7 +17,7 @@ namespace SerousEnergyLib.API.Machines {
 		public double CalculateFluidProduct(double originalProduct, int slot)
 			=> CalculateFromUpgrades(StatModifier.Default,
 				Upgrades.Where(u => CanUpgradeApplyTo(u.Upgrade, slot)),
-				static (u, v) => u.Upgrade.GetFluidOutputGeneratorProductMultiplier(u.Stack).CombineWith(v))
+				static (u, s, v) => u.GetFluidOutputGeneratorProductMultiplier(s).CombineWith(v))
 				.ApplyTo(originalProduct);
 	}
 }

@@ -112,7 +112,7 @@ namespace SerousEnergyLib.API.Machines {
 
 				storage.MaxCapacity = machine.CalculateFromUpgrades(StatModifier.Default,
 					machine.Upgrades.Where(u => machine.CanUpgradeApplyTo(u.Upgrade, slot)),
-					static (u, v) => u.Upgrade.GetFluidCapacityMultiplier(u.Stack).CombineWith(v))
+					static (u, s, v) => u.GetFluidCapacityMultiplier(s).CombineWith(v))
 					.ApplyTo(storage.BaseMaxCapacity);
 
 				if (storage.CurrentCapacity > storage.MaxCapacity)

@@ -30,9 +30,18 @@ namespace SerousEnergyLib.API.Upgrades {
 		public static BaseUpgrade Get(int index) => index < 0 || index >= Count ? null : upgrades[index];
 
 		public static TagCompound SaveUpgrade(BaseUpgradeItem item) {
+			string mod, name;
+			if (item is UnloadedUpgradeItem unloaded) {
+				mod = unloaded.unloadedMod;
+				name = unloaded.unloadedName;
+			} else {
+				mod = item.Mod.Name;
+				name = item.Name;
+			}
+
 			return new TagCompound() {
-				["mod"] = item.Mod.Name,
-				["name"] = item.Name,
+				["mod"] = mod,
+				["name"] = name,
 				["stack"] = item.Stack
 			};
 		}
@@ -44,8 +53,12 @@ namespace SerousEnergyLib.API.Upgrades {
 			if (string.IsNullOrWhiteSpace(mod) || string.IsNullOrWhiteSpace(name))
 				return null;
 
-			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgradeItem item))
-				item = new Item(ModContent.ItemType<UnloadedUpgradeItem>()).ModItem as BaseUpgradeItem;
+			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgradeItem item)) {
+				var unloaded = new Item(ModContent.ItemType<UnloadedUpgradeItem>()).ModItem as UnloadedUpgradeItem;
+				unloaded.unloadedMod = mod;
+				unloaded.unloadedName = name;
+				item = unloaded;
+			}
 
 			int stack = tag.GetInt("stack");
 

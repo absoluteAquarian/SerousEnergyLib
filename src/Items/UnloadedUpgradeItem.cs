@@ -12,13 +12,16 @@ namespace SerousEnergyLib.Items {
 
 		public override string Texture => ModContent.GetInstance<UnloadedItem>().Texture;
 
+		internal string unloadedMod;
+		internal string unloadedName;
+
 		public override void SetDefaults() {
 			Item.CloneDefaults(ModContent.ItemType<UnloadedItem>());
 		}
 
 		public override void ModifyTooltips(List<TooltipLine> tooltips) {
-			TooltipHelper.FindAndModify(tooltips, "<MOD_NAME>", upgrade.unloadedMod);
-			TooltipHelper.FindAndModify(tooltips, "<UPGRADE_NAME>", upgrade.unloadedName);
+			TooltipHelper.FindAndModify(tooltips, "<MOD_NAME>", unloadedMod);
+			TooltipHelper.FindAndModify(tooltips, "<UPGRADE_NAME>", unloadedName);
 		}
 	}
 }

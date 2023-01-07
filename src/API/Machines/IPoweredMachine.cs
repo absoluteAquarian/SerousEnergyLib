@@ -37,7 +37,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="ticks"></param>
 		/// <returns></returns>
 		public double GetPowerConsumptionWithUpgrades(double ticks)
-			=> CalculateFromUpgrades(StatModifier.Default, static (u, v) => u.Upgrade.GetPowerConsumptionMultiplier(u.Stack).CombineWith(v))
+			=> CalculateFromUpgrades(StatModifier.Default, static (u, s, v) => u.GetPowerConsumptionMultiplier(s).CombineWith(v))
 				.ApplyTo(GetPowerConsumption(ticks));
 
 		/// <summary>
@@ -112,7 +112,7 @@ namespace SerousEnergyLib.API.Machines {
 		public static void Update(IPoweredMachine machine) {
 			var storage = machine.PowerStorage;
 			storage.MaxCapacity = new TerraFlux(machine.CalculateFromUpgrades(StatModifier.Default,
-				static (u, v) => u.Upgrade.GetPowerCapacityMultiplier(u.Stack).CombineWith(v))
+				static (u, s, v) => u.GetPowerCapacityMultiplier(s).CombineWith(v))
 				.ApplyTo((double)storage.BaseMaxCapacity));
 
 			// Prevent overflow when removing upgrades
