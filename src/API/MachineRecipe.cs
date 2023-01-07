@@ -1,6 +1,7 @@
 ﻿using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -110,6 +111,23 @@ namespace SerousEnergyLib.API {
 
 			return this;
 		}
+
+		/// <summary>
+		/// Checks if the sequence of items indicated by <paramref name="inventoryItems"/> is valid for any of this instance's recipes
+		/// </summary>
+		/// <param name="inventoryItems">A sequence of item instance to compare against</param>
+		/// <returns>Whether any recipes created by this instance can be satisfied by the item sequence</returns>
+		public bool IngredientSetMatches(Item[] inventoryItems) {
+			if (inventoryItems is not { Length: > 0 })
+				return false;
+
+			// Clone the items since they'll be clobbered later
+			Item[] cloned = new Item[inventoryItems.Length];
+			for (int i = 0; i < cloned.Length; i++)
+				cloned[i] = inventoryItems[i].Clone();
+
+			return ingredients.All(i => i.IsIngredientRequirementMet(cloned));
+		}
 	}
 
 	/// <inheritdoc cref="MachineRecipe"/>
@@ -121,6 +139,8 @@ namespace SerousEnergyLib.API {
 
 	public interface IMachineRecipeIngredient {
 		void AddToRecipe(Recipe recipe);
+
+		bool IsIngredientRequirementMet(Item[] items);
 	}
 
 	/// <summary>
@@ -136,6 +156,27 @@ namespace SerousEnergyLib.API {
 		}
 
 		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient(type, stack);
+
+		public bool IsIngredientRequirementMet(Item[] items) {
+			int remaining = stack;
+
+			foreach (Item item in items) {
+				if (item.IsAir)
+					continue;
+
+				if (item.type == type) {
+					int toRemove = Math.Min(remaining, item.stack);
+
+					remaining -= toRemove;
+					item.stack -= toRemove;
+
+					if (remaining <= 0)
+						return true;
+				}
+			}
+
+			return false;
+		}
 	}
 
 	/// <summary>
@@ -162,6 +203,30 @@ namespace SerousEnergyLib.API {
 		}
 
 		public void AddToRecipe(Recipe recipe) => recipe.AddRecipeGroup(group, stack);
+
+		public bool IsIngredientRequirementMet(Item[] items) {
+			int remaining = stack;
+
+			if (!RecipeGroup.recipeGroups.TryGetValue(group, out RecipeGroup recipeGroup))
+				return false;
+
+			foreach (Item item in items) {
+				if (item.IsAir)
+					continue;
+
+				if (recipeGroup.ValidItems.Contains(item.type)) {
+					int toRemove = Math.Min(remaining, item.stack);
+
+					remaining -= toRemove;
+					item.stack -= toRemove;
+
+					if (remaining <= 0)
+						return true;
+				}
+			}
+
+			return false;
+		}
 	}
 
 	/// <summary>
