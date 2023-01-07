@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API.Energy;
+﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems;
 using System.IO;
@@ -15,6 +16,16 @@ namespace SerousEnergyLib.API {
 		/// <param name="writer"></param>
 		/// <param name="point">The <see cref="Point16"/> value to write</param>
 		public static void Write(this BinaryWriter writer, Point16 point) {
+			writer.Write(point.X);
+			writer.Write(point.Y);
+		}
+
+		/// <summary>
+		/// Writes a <see cref="Vector2"/> value to the current stream and advances the stream position by eight bytes
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <param name="point">The <see cref="Vector2"/> value to write</param>
+		public static void Write(this BinaryWriter writer, Vector2 point) {
 			writer.Write(point.X);
 			writer.Write(point.Y);
 		}

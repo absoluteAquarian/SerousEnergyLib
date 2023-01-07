@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API.Energy;
+﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.TileData;
@@ -14,6 +15,15 @@ namespace SerousEnergyLib.API {
 		/// <returns>A <see cref="Point16"/> value read from the stream</returns>
 		public static Point16 ReadPoint16(this BinaryReader reader) {
 			return new Point16(reader.ReadInt16(), reader.ReadInt16());
+		}
+
+		/// <summary>
+		/// Reads two <see langword="float"/> values from <paramref name="reader"/> and advances the current position of the stream by eight bytes
+		/// </summary>
+		/// <param name="reader"></param>
+		/// <returns>A <see cref="Vector2"/> value read from the stream</returns>
+		public static Vector2 ReadVector2(this BinaryReader reader) {
+			return new Vector2(reader.ReadSingle(), reader.ReadSingle());
 		}
 
 		/// <summary>
