@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -75,6 +76,12 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncMachineInventorySlot:
 					ReceiveMachineInventorySlotSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncMachineUpgrades:
+					RecieveMachineUpgradesSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncFullTileEntityData:
+					ReceiveTileEntitySync(reader, sender);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -659,6 +666,115 @@ namespace SerousEnergyLib.Systems {
 				packet.Send(ignoreClient: sender);
 			}
 		}
+
+		/// <summary>
+		/// Syncs the upgrades within <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachineUpgrades(IMachine machine) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("IMachine instance was not a ModTileEntity", nameof(machine));
+
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+
+			SyncMachineUpgrades_SendPacket(machine, entity.Position, Main.netMode == NetmodeID.MultiplayerClient ? Main.myPlayer : -1);
+		}
+
+		private static void SyncMachineUpgrades_SendPacket(IMachine machine, Point16 location, int sender = -1) {
+			var packet = GetPacket(NetcodeMessage.SyncMachineUpgrades);
+			packet.Write(location);
+
+			packet.Write((short)machine.Upgrades.Count);
+			foreach (var upgrade in machine.Upgrades) {
+				packet.Write((short)upgrade.Stack);
+				
+				if (upgrade.Upgrade is UnloadedUpgrade unloaded) {
+					packet.Write(true);
+					packet.Write(unloaded.unloadedMod);
+					packet.Write(unloaded.unloadedName);
+				} else {
+					packet.Write(false);
+					packet.Write((short)upgrade.Upgrade.Type);
+				}
+			}
+
+			packet.Send(ignoreClient: sender);
+		}
+
+		private static void RecieveMachineUpgradesSync(BinaryReader reader, int sender) {
+			Point16 position = reader.ReadPoint16();
+
+			if (!TileEntity.ByPosition.TryGetValue(position, out TileEntity te) || te is not ModTileEntity || te is not IMachine machine)
+				throw new IOException("Position was either invalid or did not refer to a valid IMachine instance");
+
+			short upgradeCount = reader.ReadInt16();
+
+			if (machine.Upgrades is null)
+				machine.Upgrades = new();
+			else
+				machine.Upgrades.Clear();
+
+			for (int i = 0; i < upgradeCount; i++) {
+				short stack = reader.ReadInt16();
+
+				BaseUpgrade upgrade;
+				if (reader.ReadBoolean()) {
+					string unloadedMod = reader.ReadString();
+					string unloadedName = reader.ReadString();
+
+					upgrade = new UnloadedUpgrade(unloadedMod, unloadedName);
+				} else
+					upgrade = UpgradeLoader.Get(reader.ReadInt16());
+
+				machine.Upgrades.Add(new StackedUpgrade() {
+					Stack = stack,
+					Upgrade = upgrade
+				});
+			}
+
+			if (Main.netMode == NetmodeID.Server)
+				SyncMachineUpgrades_SendPacket(machine, position, sender);
+		}
+
+		/// <summary>
+		/// Syncs a tile entity from a client to the server via <see cref="TileEntity.Write(BinaryWriter, TileEntity, bool, bool)"/>
+		/// </summary>
+		/// <param name="location">The tile coordinates of the tile entity</param>
+		public static void SyncTileEntity(Point16 location) {
+			if (Main.netMode != NetmodeID.MultiplayerClient || !TileEntity.ByPosition.TryGetValue(location, out TileEntity te))
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncFullTileEntityData);
+			packet.Write(location);
+			
+			using (CompressionStream compression = new CompressionStream()) {
+				TileEntity.Write(compression.writer, te, networkSend: true);
+
+				compression.WriteToStream(packet);
+			}
+
+			packet.Send();
+		}
+
+		private static void ReceiveTileEntitySync(BinaryReader reader, int sender) {
+			Point16 location = reader.ReadPoint16();
+
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			using (DecompressionStream decompression = new DecompressionStream(reader)) {
+				TileEntity te = TileEntity.Read(decompression.reader, networkSend: true);
+
+				te.Position = location;
+
+				TileEntity.ByID[te.ID] = te;
+				TileEntity.ByPosition[te.Position] = te;
+
+				NetMessage.SendData(MessageID.TileEntitySharing, -1, sender, null, te.ID, te.Position.X, te.Position.Y);
+			}
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -679,6 +795,8 @@ namespace SerousEnergyLib.Systems {
 		SyncPump,
 		SyncMachinePlacement,
 		SyncMachineRemoval,
-		SyncMachineInventorySlot
+		SyncMachineInventorySlot,
+		SyncMachineUpgrades,
+		SyncFullTileEntityData
 	}
 }

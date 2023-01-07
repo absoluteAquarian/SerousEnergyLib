@@ -3,6 +3,7 @@ using SerousEnergyLib.API.Upgrades;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
@@ -14,7 +15,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract BaseMachineUI MachineUI { get; }
 		
-		public List<BaseUpgrade> Upgrades { get; set; }
+		public List<StackedUpgrade> Upgrades { get; set; }
 
 		public Item[] Inventory { get; set; }
 
@@ -34,5 +35,15 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public abstract int[] GetExportSlots();
 
 		public abstract int[] GetInputSlots();
+
+		public override void SaveData(TagCompound tag) {
+			IMachine.SaveUpgrades(this, tag);
+			IInventoryMachine.SaveInventory(this, tag);
+		}
+
+		public override void LoadData(TagCompound tag) {
+			IMachine.LoadUpgrades(this, tag);
+			IInventoryMachine.LoadInventory(this, tag);
+		}
 	}
 }

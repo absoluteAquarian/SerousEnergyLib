@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Upgrades {
 	/// <summary>
@@ -25,5 +27,35 @@ namespace SerousEnergyLib.API.Upgrades {
 		}
 
 		public static BaseUpgrade Get(int index) => index < 0 || index >= Count ? null : upgrades[index];
+
+		public static TagCompound SaveUpgrade(BaseUpgrade upgrade) {
+			TagCompound tag = new TagCompound();
+
+			if (upgrade is UnloadedUpgrade unloaded) {
+				tag["mod"] = unloaded.unloadedMod;
+				tag["name"] = unloaded.unloadedName;
+			} else {
+				tag["mod"] = upgrade.Mod.Name;
+				tag["name"] = upgrade.Name;
+			}
+
+			return tag;
+		}
+
+		public static BaseUpgrade LoadUpgrade(TagCompound tag) {
+			string mod = tag.GetString("mod");
+			string name = tag.GetString("name");
+
+			// If anything is invalid / can't be "loaded" as an UnloadedUpgrade, trash it
+			if (string.IsNullOrWhiteSpace(mod) || string.IsNullOrWhiteSpace(name))
+				return null;
+
+			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgrade upgrade)) {
+				// Upgrade no longer exists
+				return new UnloadedUpgrade(mod, name);
+			}
+
+			return upgrade;
+		}
 	}
 }

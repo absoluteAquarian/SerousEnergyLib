@@ -8,9 +8,9 @@ using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
-	/// A base implementaiton of <see cref="IMachine"/> and <see cref="IPoweredMachine"/>
+	/// A base implementaiton of <see cref="IMachine"/> and <see cref="IPowerStorageMachine"/>
 	/// </summary>
-	public abstract class BasePoweredEntity : ModTileEntity, IMachine, IPoweredMachine {
+	public abstract class BasePowerStorageEntity : ModTileEntity, IMachine, IPowerStorageMachine {
 		#pragma warning disable CS1591
 		public abstract int MachineTile { get; }
 
@@ -30,8 +30,6 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 
 		public virtual bool CanMergeWithWire(int wireX, int wireY, int machineX, int machineY) => true;
-
-		public abstract double GetPowerConsumption(double ticks);
 
 		public override void SaveData(TagCompound tag) {
 			IMachine.SaveUpgrades(this, tag);

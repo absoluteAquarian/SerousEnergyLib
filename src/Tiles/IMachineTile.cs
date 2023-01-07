@@ -39,13 +39,34 @@ namespace SerousEnergyLib.Tiles {
 		int MachineItem { get; }
 
 		/// <summary>
-		/// This method runs before the standard right click logic for this machine is processed in <see cref="HandleRightClick(IMachineTile, int, int)"/>
+		/// This method runs before the standard right click logic for this machine is processed in <see cref="HandleRightClick(IMachineTile, int, int)"/><br/>
+		/// By default, this method handles right clicking machines with <see cref="BaseUpgradeItem"/> items
 		/// </summary>
 		/// <param name="machine">The entity located on this machine.  It is guaranteed to be a <see cref="ModTileEntity"/> instance</param>
 		/// <param name="x">The tile X-coordinate that the player clicked</param>
 		/// <param name="y">The tile Y=coordinate that the player clicked</param>
 		/// <returns><see langword="true"/> if the logic for opening this machine's UI should be blocked, <see langword="false"/> otherwise.</returns>
-		bool PreRightClick(IMachine machine, int x, int y);
+		public virtual bool PreRightClick(IMachine machine, int x, int y) {
+			var item = Main.LocalPlayer.HeldItem;
+			
+			if (item.ModItem is not BaseUpgradeItem upgradeItem)
+				return false;
+
+			if (IMachine.AddUpgrade(machine, upgradeItem.Upgrade)) {
+				// An upgrade was consumed
+				item.stack--;
+				
+				if (item.stack <= 0) {
+					item.TurnToAir();
+					Main.mouseItem = new Item();
+				}
+
+				return true;
+			}
+
+			// Nothing special happened
+			return false;
+		}
 
 		/// <summary>
 		/// Modifies <see cref="TileObjectData.newTile"/> and other properties in <paramref name="machine"/> to contain the default values for machines.<br/>

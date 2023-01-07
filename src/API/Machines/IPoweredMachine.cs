@@ -37,7 +37,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="ticks"></param>
 		/// <returns></returns>
 		public double GetPowerConsumptionWithUpgrades(double ticks)
-			=> CalculateFromUpgrades(StatModifier.Default, static (u, v) => u.GetPowerConsumptionMultiplier().CombineWith(v))
+			=> CalculateFromUpgrades(StatModifier.Default, static (u, v) => u.Upgrade.GetPowerConsumptionMultiplier(u.Stack).CombineWith(v))
 				.ApplyTo(GetPowerConsumption(ticks));
 
 		/// <summary>
@@ -112,7 +112,7 @@ namespace SerousEnergyLib.API.Machines {
 		public static void Update(IPoweredMachine machine) {
 			var storage = machine.PowerStorage;
 			storage.MaxCapacity = new TerraFlux(machine.CalculateFromUpgrades(StatModifier.Default,
-				static (u, v) => u.GetPowerCapacityMultiplier().CombineWith(v))
+				static (u, v) => u.Upgrade.GetPowerCapacityMultiplier(u.Stack).CombineWith(v))
 				.ApplyTo((double)storage.BaseMaxCapacity));
 
 			// Prevent overflow when removing upgrades
@@ -121,15 +121,15 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		#pragma warning disable CS1591
-		public void SavePower(TagCompound tag) {
+		public static void SavePower(IPoweredMachine machine, TagCompound tag) {
 			TagCompound flux;
 			tag["flux"] = flux = new TagCompound();
-			PowerStorage.SaveData(flux);
+			machine.PowerStorage.SaveData(flux);
 		}
 
-		public void LoadPower(TagCompound tag) {
+		public static void LoadPower(IPoweredMachine machine, TagCompound tag) {
 			if (tag.GetCompound("flux") is TagCompound flux)
-				PowerStorage.LoadData(flux);
+				machine.PowerStorage.LoadData(flux);
 		}
 	}
 }

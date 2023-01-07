@@ -290,16 +290,19 @@ namespace SerousEnergyLib.API.Machines {
 			return drop;
 		}
 
-		public void SaveInventory(TagCompound tag) {
-			tag["inventory"] = Inventory;
+		public static void SaveInventory(IInventoryMachine machine, TagCompound tag) {
+			tag["inventory"] = machine.Inventory.Select(ItemIO.Save).ToList();
 		}
 
-		public void LoadInventory(TagCompound tag) {
-			Inventory = null;
-			Update(this);
+		public static void LoadInventory(IInventoryMachine machine, TagCompound tag) {
+			machine.Inventory = null;
+			Update(machine);
 
-			if (tag.Get<Item[]>("inventory") is Item[] items && Inventory.Length == items.Length)
-				Array.Copy(items, Inventory, items.Length);
+			var inv = machine.Inventory;
+			if (tag.GetList<Item>("inventory") is List<Item> items && inv.Length == items.Count) {
+				for (int i = 0; i < items.Count; i++)
+					inv[i] = items[i];
+			}
 		}
 	}
 }

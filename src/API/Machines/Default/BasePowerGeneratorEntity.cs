@@ -15,7 +15,7 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract BaseMachineUI MachineUI { get; }
 		
-		public List<BaseUpgrade> Upgrades { get; set; }
+		public List<StackedUpgrade> Upgrades { get; set; }
 
 		public abstract FluxStorage PowerStorage { get; }
 

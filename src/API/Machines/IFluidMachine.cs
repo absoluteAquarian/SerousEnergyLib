@@ -111,8 +111,8 @@ namespace SerousEnergyLib.API.Machines {
 				int slot = i;
 
 				storage.MaxCapacity = machine.CalculateFromUpgrades(StatModifier.Default,
-					machine.Upgrades.Where(u => machine.CanUpgradeApplyTo(u, slot)),
-					static (u, v) => u.GetFluidCapacityMultiplier().CombineWith(v))
+					machine.Upgrades.Where(u => machine.CanUpgradeApplyTo(u.Upgrade, slot)),
+					static (u, v) => u.Upgrade.GetFluidCapacityMultiplier(u.Stack).CombineWith(v))
 					.ApplyTo(storage.BaseMaxCapacity);
 
 				if (storage.CurrentCapacity > storage.MaxCapacity)
@@ -121,20 +121,21 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		#pragma warning disable CS1591
-		public void SaveFluids(TagCompound tag) {
+		public static void SaveFluids(IFluidMachine machine, TagCompound tag) {
 			static TagCompound SaveFluid(FluidStorage storage) {
 				TagCompound fluidTag = new TagCompound();
 				storage.SaveData(fluidTag);
 				return fluidTag;
 			}
 
-			tag["fluids"] = FluidStorage.Select(SaveFluid).ToList();
+			tag["fluids"] = machine.FluidStorage.Select(SaveFluid).ToList();
 		}
 
-		public void LoadFluids(TagCompound tag) {
-			if (tag.GetList<TagCompound>("fluids") is List<TagCompound> fluids && fluids.Count == FluidStorage.Length) {
-				for (int i = 0; i < FluidStorage.Length; i++)
-					FluidStorage[i].LoadData(fluids[i]);
+		public static void LoadFluids(IFluidMachine machine, TagCompound tag) {
+			var storage = machine.FluidStorage;
+			if (tag.GetList<TagCompound>("fluids") is List<TagCompound> fluids && fluids.Count == storage.Length) {
+				for (int i = 0; i < storage.Length; i++)
+					storage[i].LoadData(fluids[i]);
 			}
 		}
 	}

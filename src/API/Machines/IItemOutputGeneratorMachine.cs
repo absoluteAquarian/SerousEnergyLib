@@ -11,6 +11,6 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="originalStack">The original stack</param>
 		/// <returns>The modified item stack</returns>
-		public int CalculateItemStack(int originalStack) => CalculateFromUpgrades(originalStack, static (u, v) => v + u.GetItemOutputGeneratorExtraStack(v));
+		public int CalculateItemStack(int originalStack) => CalculateFromUpgrades(originalStack, static (u, v) => v + u.Upgrade.GetItemOutputGeneratorExtraStack(u.Stack, v));
 	}
 }
