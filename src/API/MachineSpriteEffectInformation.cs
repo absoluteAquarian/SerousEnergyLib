@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 
-namespace SerousEnergyLib.API.CrossMod {
+namespace SerousEnergyLib.API {
 	/// <summary>
 	/// A structure representing data used to draw an overlay behind or in front of a machine
 	/// </summary>

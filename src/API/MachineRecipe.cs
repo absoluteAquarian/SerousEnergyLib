@@ -39,19 +39,34 @@ namespace SerousEnergyLib.API {
 		}
 
 		/// <inheritdoc cref="Recipe.AddIngredient(int, int)"/>
-		public void AddIngredient(int type, int stack = 1) => ingredients.Add(new MachineRecipeInputItem(type, stack));
+		public MachineRecipe AddIngredient(int type, int stack = 1) {
+			ingredients.Add(new MachineRecipeInputItem(type, stack));
+			return this;
+		}
 
 		/// <inheritdoc cref="Recipe.AddIngredient{T}(int)"/>
-		public void AddIngredient<T>(int stack = 1) where T : ModItem => ingredients.Add(new MachineRecipeInputItem(ModContent.ItemType<T>(), stack));
+		public MachineRecipe AddIngredient<T>(int stack = 1) where T : ModItem {
+			ingredients.Add(new MachineRecipeInputItem(ModContent.ItemType<T>(), stack));
+			return this;
+		}
 
 		/// <inheritdoc cref="Recipe.AddRecipeGroup(string, int)"/>
-		public void AddRecipeGroup(string group, int stack = 1) => ingredients.Add(new MachineRecipeInputRecipeGroup(group, stack));
+		public MachineRecipe AddRecipeGroup(string group, int stack = 1) {
+			ingredients.Add(new MachineRecipeInputRecipeGroup(group, stack));
+			return this;
+		}
 
 		/// <inheritdoc cref="Recipe.AddRecipeGroup(int, int)"/>
-		public void AddRecipeGroup(int group, int stack = 1) => ingredients.Add(new MachineRecipeInputRecipeGroup(group, stack));
+		public MachineRecipe AddRecipeGroup(int group, int stack = 1) {
+			ingredients.Add(new MachineRecipeInputRecipeGroup(group, stack));
+			return this;
+		}
 
 		/// <inheritdoc cref="Recipe.AddRecipeGroup(RecipeGroup, int)"/>
-		public void AddRecipeGroup(RecipeGroup group, int stack = 1) => ingredients.Add(new MachineRecipeInputRecipeGroup(group.ID, stack));
+		public MachineRecipe AddRecipeGroup(RecipeGroup group, int stack = 1) {
+			ingredients.Add(new MachineRecipeInputRecipeGroup(group.ID, stack));
+			return this;
+		}
 
 		/// <summary>
 		/// Adds a possible output to this recipe with the given item type, stack size and probability. Ex: <c>recipe.AddPossibleOutput(ItemID.IronAxe, 0.25)</c>
@@ -59,19 +74,25 @@ namespace SerousEnergyLib.API {
 		/// <param name="type">The item identifier.</param>
 		/// <param name="stack">The stack.</param>
 		/// <param name="chance">The chance displayed when viewing this recipe</param>
-		public void AddPossibleOutput(int type, int stack = 1, double chance = 1.0) => possibleOutputs.Add(new MachineRecipeOutput(type, stack, chance));
+		public MachineRecipe AddPossibleOutput(int type, int stack = 1, double chance = 1.0) {
+			possibleOutputs.Add(new MachineRecipeOutput(type, stack, chance));
+			return this;
+		}
 
 		/// <summary>
 		/// Adds a possible output to this recipe with the given item type, stack size and probability.
 		/// </summary>
 		/// <param name="stack">The stack.</param>
 		/// <param name="chance">The chance displayed when viewing this recipe</param>
-		public void AddPossibleOutput<T>(int stack = 1, double chance = 1.0) where T : ModItem => possibleOutputs.Add(new MachineRecipeOutput(ModContent.ItemType<T>(), stack, chance));
+		public MachineRecipe AddPossibleOutput<T>(int stack = 1, double chance = 1.0) where T : ModItem {
+			possibleOutputs.Add(new MachineRecipeOutput(ModContent.ItemType<T>(), stack, chance));
+			return this;
+		}
 
 		/// <summary>
 		/// Creates all possible recipes based on this instance's ingredients and possible outputs
 		/// </summary>
-		public void CreateAndRegisterAllPossibleRecipes() {
+		public MachineRecipe CreateAndRegisterAllPossibleRecipes() {
 			foreach (var output in possibleOutputs) {
 				Recipe recipe = Recipe.Create(output.type, output.stack);
 
@@ -86,6 +107,8 @@ namespace SerousEnergyLib.API {
 
 				recipe.Register();
 			}
+
+			return this;
 		}
 	}
 

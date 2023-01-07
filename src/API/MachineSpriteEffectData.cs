@@ -5,7 +5,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 
-namespace SerousEnergyLib.API.CrossMod {
+namespace SerousEnergyLib.API {
 	#pragma warning disable CS1591
 	public struct MachineSpriteEffectData {
 		public Asset<Texture2D> asset;
