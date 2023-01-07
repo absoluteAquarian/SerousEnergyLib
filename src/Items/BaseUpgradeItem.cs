@@ -11,6 +11,14 @@ namespace SerousEnergyLib.Items {
 		/// </summary>
 		public abstract BaseUpgrade Upgrade { get; }
 
+		/// <summary>
+		/// Shorthand for Item.stack
+		/// </summary>
+		public int Stack {
+			get => Item.stack;
+			set => Item.stack = value;
+		}
+
 		#pragma warning disable CS1591
 		public override void SetDefaults() {
 			Item.maxStack = 99;

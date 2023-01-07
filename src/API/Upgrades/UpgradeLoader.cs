@@ -1,5 +1,6 @@
-﻿using System;
+﻿using SerousEnergyLib.Items;
 using System.Collections.Generic;
+using Terraria;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -28,34 +29,32 @@ namespace SerousEnergyLib.API.Upgrades {
 
 		public static BaseUpgrade Get(int index) => index < 0 || index >= Count ? null : upgrades[index];
 
-		public static TagCompound SaveUpgrade(BaseUpgrade upgrade) {
-			TagCompound tag = new TagCompound();
-
-			if (upgrade is UnloadedUpgrade unloaded) {
-				tag["mod"] = unloaded.unloadedMod;
-				tag["name"] = unloaded.unloadedName;
-			} else {
-				tag["mod"] = upgrade.Mod.Name;
-				tag["name"] = upgrade.Name;
-			}
-
-			return tag;
+		public static TagCompound SaveUpgrade(BaseUpgradeItem item) {
+			return new TagCompound() {
+				["mod"] = item.Mod.Name,
+				["name"] = item.Name,
+				["stack"] = item.Stack
+			};
 		}
 
-		public static BaseUpgrade LoadUpgrade(TagCompound tag) {
+		public static BaseUpgradeItem LoadUpgrade(TagCompound tag) {
 			string mod = tag.GetString("mod");
 			string name = tag.GetString("name");
 
-			// If anything is invalid / can't be "loaded" as an UnloadedUpgrade, trash it
 			if (string.IsNullOrWhiteSpace(mod) || string.IsNullOrWhiteSpace(name))
 				return null;
 
-			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgrade upgrade)) {
-				// Upgrade no longer exists
-				return new UnloadedUpgrade(mod, name);
-			}
+			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgradeItem item))
+				item = new Item(ModContent.ItemType<UnloadedUpgradeItem>()).ModItem as BaseUpgradeItem;
 
-			return upgrade;
+			int stack = tag.GetInt("stack");
+
+			if (stack <= 0)
+				return null;
+
+			item.Stack = stack;
+
+			return item;
 		}
 	}
 }

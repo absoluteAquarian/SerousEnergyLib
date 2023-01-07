@@ -44,7 +44,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// The collection of upgrades contained within this machine
 		/// </summary>
-		List<StackedUpgrade> Upgrades { get; set; }
+		List<BaseUpgradeItem> Upgrades { get; set; }
 
 		/// <summary>
 		/// This method ensures that <see cref="Upgrades"/> is not <see langword="null"/>
@@ -172,13 +172,13 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="base">The default value for the calculated result</param>
 		/// <param name="mutator">A function which modifies the calculated result</param>
 		/// <returns>The final calculated result</returns>
-		protected T CalculateFromUpgrades<T>(T @base, Func<StackedUpgrade, T, T> mutator) {
+		protected T CalculateFromUpgrades<T>(T @base, Func<BaseUpgrade, int, T, T> mutator) {
 			T calculated = @base;
 
 			foreach (var upgrade in Upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
 				if (upgrade.Upgrade.CanApplyTo(this))
-					calculated = mutator(upgrade, calculated);
+					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
 			return calculated;
@@ -188,16 +188,16 @@ namespace SerousEnergyLib.API.Machines {
 		/// Iterates over <paramref name="upgrades"/> and applies <paramref name="mutator"/> to each of them
 		/// </summary>
 		/// <param name="upgrades">An enumeration of upgrades</param>
-		/// <inheritdoc cref="CalculateFromUpgrades{T}(T, Func{StackedUpgrade, T, T})"/>
+		/// <inheritdoc cref="CalculateFromUpgrades{T}(T, Func{BaseUpgrade, int, T, T})"/>
 		/// <param name="base"></param>
 		/// <param name="mutator"></param>
-		protected T CalculateFromUpgrades<T>(T @base, IEnumerable<StackedUpgrade> upgrades, Func<StackedUpgrade, T, T> mutator) {
+		protected T CalculateFromUpgrades<T>(T @base, IEnumerable<BaseUpgradeItem> upgrades, Func<BaseUpgrade, int, T, T> mutator) {
 			T calculated = @base;
 
 			foreach (var upgrade in upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
 				if (upgrade.Upgrade.CanApplyTo(this))
-					calculated = mutator(upgrade, calculated);
+					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
 			return calculated;
@@ -209,78 +209,24 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		/// <param name="upgrade">The upgrade to add</param>
 		/// <returns>Whether <paramref name="upgrade"/> could be added to <paramref name="machine"/></returns>
-		public static bool AddUpgrade(IMachine machine, BaseUpgrade upgrade) {
-			if (!upgrade.CanApplyTo(machine))
+		public static bool AddUpgrade(IMachine machine, BaseUpgradeItem upgrade) {
+			if (!upgrade.Upgrade.CanApplyTo(machine))
 				return false;
 
 			int type = upgrade.Type;
 			var existing = machine.Upgrades.Where(u => u.Upgrade.Type == type).FirstOrDefault();
 
 			if (existing is null) {
-				machine.Upgrades.Add(new StackedUpgrade() { Stack = 1, Upgrade = upgrade });
+				machine.Upgrades.Add(upgrade);
 
 				Netcode.SyncMachineUpgrades(machine);
 				return true;
 			}
 
-			if (existing.Stack + 1 >= upgrade.MaxUpgradesPerMachine)
+			if (existing.Stack + 1 >= upgrade.Upgrade.MaxUpgradesPerMachine)
 				return false;
 
 			existing.Stack++;
-			Netcode.SyncMachineUpgrades(machine);
-			return true;
-		}
-
-		/// <summary>
-		/// Removes upgrades from <paramref name="machine"/> whose type equals <paramref name="type"/>
-		/// </summary>
-		/// <param name="machine">The machine to process</param>
-		/// <param name="type">The ID of the <see cref="BaseUpgrade"/> to remove</param>
-		/// <param name="stackToRemove">How many upgrades to remove.  To remove all of them, pass <see cref="int.MaxValue"/> to this parameter</param>
-		/// <param name="removedUpgradeItems">A collection of <see cref="BaseUpgradeItem"/> items corresponding to the removed items, if any</param>
-		/// <returns>Whether any upgrades were removed</returns>
-		public static bool RemoveUpgrade(IMachine machine, int type, int stackToRemove, out List<Item> removedUpgradeItems) {
-			var instance = UpgradeLoader.Get(type);
-
-			if (instance is null)
-				throw new ArgumentException("Requested ID does not correspond to a valid BaseUpgrade instance ID");
-
-			removedUpgradeItems = new();
-
-			var existing = machine.Upgrades.Where(u => u.Upgrade.Type == type);
-
-			if (!existing.Any())
-				return false;
-
-			var toRemove = existing.ToList();
-
-			static Item CreateUpgradeItem(StackedUpgrade obj, int stack) {
-				int itemType = obj.Upgrade.ItemType;
-				Item item = new Item(itemType, stack);
-
-				if (item.ModItem is not BaseUpgradeItem)
-					throw new InvalidOperationException($"ItemType property for upgrade type \"{obj.Upgrade.Mod.Name}:{obj.Upgrade.Name}\" did not correspond to a BaseUpgradeItem instance");
-
-				return item;
-			}
-
-			foreach (var obj in toRemove) {
-				if (obj.Stack >= stackToRemove) {
-					removedUpgradeItems.Add(CreateUpgradeItem(obj, stackToRemove));
-
-					obj.Stack -= stackToRemove;
-					Netcode.SyncMachineUpgrades(machine);
-					return true;
-				}
-
-				removedUpgradeItems.Add(CreateUpgradeItem(obj, obj.Stack));
-				
-				stackToRemove -= obj.Stack;
-				obj.Stack = 0;
-
-				machine.Upgrades.Remove(obj);
-			}
-
 			Netcode.SyncMachineUpgrades(machine);
 			return true;
 		}
@@ -355,12 +301,12 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		public static void SaveUpgrades(IMachine machine, TagCompound tag) {
-			tag["upgrades"] = machine.Upgrades.Select(static s => s.Save()).ToList();
+			tag["upgrades"] = machine.Upgrades.Select(UpgradeLoader.SaveUpgrade).ToList();
 		}
 
 		public static void LoadUpgrades(IMachine machine, TagCompound tag) {
 			machine.Upgrades = tag.GetList<TagCompound>("upgrades") is List<TagCompound> list
-				? list.Select(StackedUpgrade.Load).Where(static s => s.Upgrade is not null).ToList()
+				? list.Select(UpgradeLoader.LoadUpgrade).OfType<BaseUpgradeItem>().Where(static s => s.Upgrade is not null).ToList()
 				: new();
 		}
 	}

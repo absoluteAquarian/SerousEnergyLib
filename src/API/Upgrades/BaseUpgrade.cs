@@ -30,11 +30,6 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		public abstract int MaxUpgradesPerMachine { get; }
 
-		/// <summary>
-		/// The item ID for the <see cref="BaseUpgradeItem"/> that uses this upgrade
-		/// </summary>
-		public abstract int ItemType { get; }
-
 		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<BaseUpgrade>.Register(this);
@@ -99,9 +94,5 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
 		public virtual StatModifier GetFluidOutputGeneratorProductMultiplier(int upgradeStack) => StatModifier.Default;
-	}
-
-	public abstract class BaseUpgrade<T> : BaseUpgrade where T : BaseUpgradeItem {
-		public sealed override int ItemType => ModContent.ItemType<T>();
 	}
 }

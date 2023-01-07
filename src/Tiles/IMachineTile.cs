@@ -52,7 +52,7 @@ namespace SerousEnergyLib.Tiles {
 			if (item.ModItem is not BaseUpgradeItem upgradeItem)
 				return false;
 
-			if (IMachine.AddUpgrade(machine, upgradeItem.Upgrade)) {
+			if (IMachine.AddUpgrade(machine, upgradeItem)) {
 				// An upgrade was consumed
 				item.stack--;
 				

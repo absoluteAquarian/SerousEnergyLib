@@ -2,6 +2,7 @@
 using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.API.Upgrades;
+using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -688,16 +689,8 @@ namespace SerousEnergyLib.Systems {
 
 			packet.Write((short)machine.Upgrades.Count);
 			foreach (var upgrade in machine.Upgrades) {
+				packet.Write(upgrade.Type);
 				packet.Write((short)upgrade.Stack);
-				
-				if (upgrade.Upgrade is UnloadedUpgrade unloaded) {
-					packet.Write(true);
-					packet.Write(unloaded.unloadedMod);
-					packet.Write(unloaded.unloadedName);
-				} else {
-					packet.Write(false);
-					packet.Write((short)upgrade.Upgrade.Type);
-				}
 			}
 
 			packet.Send(ignoreClient: sender);
@@ -717,21 +710,13 @@ namespace SerousEnergyLib.Systems {
 				machine.Upgrades.Clear();
 
 			for (int i = 0; i < upgradeCount; i++) {
+				BaseUpgradeItem upgradeItem = new Item(reader.ReadInt32()).ModItem as BaseUpgradeItem
+					?? throw new IOException("Item ID did not refer to a BaseUpgradeItem instance");
 				short stack = reader.ReadInt16();
 
-				BaseUpgrade upgrade;
-				if (reader.ReadBoolean()) {
-					string unloadedMod = reader.ReadString();
-					string unloadedName = reader.ReadString();
+				upgradeItem.Stack = stack;
 
-					upgrade = new UnloadedUpgrade(unloadedMod, unloadedName);
-				} else
-					upgrade = UpgradeLoader.Get(reader.ReadInt16());
-
-				machine.Upgrades.Add(new StackedUpgrade() {
-					Stack = stack,
-					Upgrade = upgrade
-				});
+				machine.Upgrades.Add(upgradeItem);
 			}
 
 			if (Main.netMode == NetmodeID.Server)
