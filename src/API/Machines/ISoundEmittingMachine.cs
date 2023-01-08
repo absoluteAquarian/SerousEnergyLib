@@ -46,20 +46,20 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="clientSoundSlot">The variable used to store the played sound on clients</param>
 		/// <param name="serverPlayingFlag">The variable used to track if the sound is playing on the server</param>
 		/// <param name="location">The location to play the sound at.  Defaults to <see langword="null"/>, which indicates a "directionless" sound</param>
-		/// <param name="extraInformation">Extra information to send to clients</param>
+		/// <param name="extraInformation">Extra information to sent to clients</param>
 		public static void EmitSound<T>(T emitter, SoundStyle style, NetcodeSoundMode mode, ref SlotId clientSoundSlot, ref bool serverPlayingFlag, Vector2? location = null, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
-			if (Main.dedServ) {
-				if (!serverPlayingFlag) {
-					serverPlayingFlag = true;
-
-					Netcode.SendSoundToClients(emitter, style, mode, location);
-				} else
-					Netcode.SendSoundUpdateToClients(emitter, style, mode, location);
-			} else {
+			if (!Main.dedServ) {
 				if (!clientSoundSlot.IsValid)
 					clientSoundSlot = SoundEngine.PlaySound(style, location);
 				else if (SoundEngine.TryGetActiveSound(clientSoundSlot, out var activeSound))
 					activeSound.Position = location;
+			} else {
+				if (!serverPlayingFlag) {
+					serverPlayingFlag = true;
+
+					Netcode.SendSoundToClients(emitter, style, mode, location, extraInformation);
+				} else
+					Netcode.SendSoundUpdateToClients(emitter, style, mode, location, extraInformation);
 			}
 		}
 
@@ -70,15 +70,14 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="soundID">The registered sound ID created by <see cref="MachineSounds.RegisterSound(in SoundStyle)"/></param>
 		/// <param name="clientSoundSlot">The variable used to store the played sound on clients</param>
 		/// <param name="serverPlayingFlag">The variable used to track if the sound is playing on the server</param>
-		public static void StopSound<T>(T emitter, int soundID, ref SlotId clientSoundSlot, ref bool serverPlayingFlag) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+		/// <param name="extraInformation">Extra information to sent to clients</param>
+		public static void StopSound<T>(T emitter, int soundID, ref SlotId clientSoundSlot, ref bool serverPlayingFlag, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
 			if (!Main.dedServ && SoundEngine.TryGetActiveSound(clientSoundSlot, out var activeSound)) {
 				activeSound.Stop();
 				clientSoundSlot = SlotId.Invalid;
 			} else {
-				if (serverPlayingFlag) {
-					Netcode.SendSoundStopToClients(emitter, soundID);
-					serverPlayingFlag = false;
-				}
+				Netcode.SendSoundStopToClients(emitter, soundID, extraInformation);
+				serverPlayingFlag = false;
 			}
 		}
 	}
