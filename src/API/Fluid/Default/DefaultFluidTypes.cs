@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.Items.Materials.Default;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -12,6 +13,8 @@ namespace SerousEnergyLib.API.Fluid.Default {
 		public override bool IsLiquid => true;
 
 		public override Color FluidColor => new Color() { PackedValue = 0xfff96b33 };
+
+		public override int RecipeItemType => ModContent.ItemType<WaterRecipeItem>();
 	}
 
 	/// <summary>
@@ -22,6 +25,8 @@ namespace SerousEnergyLib.API.Fluid.Default {
 		public override bool IsLiquid => true;
 
 		public override Color FluidColor => new Color() { PackedValue = 0xff0320fd };
+
+		public override int RecipeItemType => ModContent.ItemType<LavaRecipeItem>();
 	}
 
 	/// <summary>
@@ -32,6 +37,8 @@ namespace SerousEnergyLib.API.Fluid.Default {
 		public override bool IsLiquid => true;
 
 		public override Color FluidColor => new Color() { PackedValue = 0xff14c2fe };
+
+		public override int RecipeItemType => ModContent.ItemType<HoneyRecipeItem>();
 	}
 
 	/// <summary>
@@ -49,6 +56,9 @@ namespace SerousEnergyLib.API.Fluid.Default {
 		public override bool IsLiquid => false;
 
 		public override Color FluidColor => Color.HotPink;
+
+		// Should not be displayed in recipes, so this property is useless
+		public override int RecipeItemType => -1;
 
 		internal UnloadedFluidID Clone(string mod, string name)
 			=> new UnloadedFluidID(mod, name) {
