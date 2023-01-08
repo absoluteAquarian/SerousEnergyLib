@@ -86,11 +86,14 @@ namespace SerousEnergyLib.Systems {
 				case NetcodeMessage.SyncFullTileEntityData:
 					ReceiveTileEntitySync(reader, sender);
 					break;
-				case NetcodeMessage.SendSoundToClient:
-					ReceiveSoundPacket(reader, out _);
+				case NetcodeMessage.SendSoundPlay:
+					ReceiveSoundPlayingPacket(reader, out _);
 					break;
-				case NetcodeMessage.SendSoundWithEmitterToClient:
-					ReceiveSoundPacketWithEmitter(reader);
+				case NetcodeMessage.SendSoundPlayWithEmitter:
+					ReceiveSoundPlayingPacketWithEmitter(reader);
+					break;
+				case NetcodeMessage.SendSoundStop:
+					RecieveSoundStopPacket(reader);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -787,7 +790,7 @@ namespace SerousEnergyLib.Systems {
 			if (id < 0)
 				throw new ArgumentException("Data instance did not have a registered ID", nameof(data));
 
-			var packet = GetPacket(NetcodeMessage.SendSoundToClient);
+			var packet = GetPacket(NetcodeMessage.SendSoundPlay);
 			
 			SendSoundInformationToPacket(packet, id, data, mode, source);
 
@@ -810,13 +813,13 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
-		private static SlotId ReceiveSoundPacket(BinaryReader reader, out int id) {
+		private static SlotId ReceiveSoundPlayingPacket(BinaryReader reader, out int id) {
 			id = reader.ReadInt16();
 			NetcodeSoundMode mode = (NetcodeSoundMode)reader.ReadByte();
 
 			Vector2? location = null;
 			if ((mode & NetcodeSoundMode.SendPosition) == NetcodeSoundMode.SendPosition) {
-				Vector2 loc = SerousEnergyLib.API.Extensions.ReadVector2(reader);
+				Vector2 loc = API.Extensions.ReadVector2(reader);
 
 				location = loc == -Vector2.One ? null : loc;
 			}
@@ -869,7 +872,7 @@ namespace SerousEnergyLib.Systems {
 			if (id < 0)
 				throw new ArgumentException("Data instance did not have a registered ID", nameof(data));
 
-			var packet = GetPacket(NetcodeMessage.SendSoundWithEmitterToClient);
+			var packet = GetPacket(NetcodeMessage.SendSoundPlayWithEmitter);
 			
 			packet.Write(emitter.Position);
 			SendSoundInformationToPacket(packet, id, data, mode, source);
@@ -877,10 +880,10 @@ namespace SerousEnergyLib.Systems {
 			packet.Send();
 		}
 
-		private static void ReceiveSoundPacketWithEmitter(BinaryReader reader) {
+		private static void ReceiveSoundPlayingPacketWithEmitter(BinaryReader reader) {
 			Point16 location = reader.ReadPoint16();
 
-			SlotId slot = ReceiveSoundPacket(reader, out int id);
+			SlotId slot = ReceiveSoundPlayingPacket(reader, out int id);
 
 			if (!slot.IsValid)
 				return;
@@ -889,7 +892,43 @@ namespace SerousEnergyLib.Systems {
 				return;
 
 			// Inform the machine instance that it's playing a sound
-			machine.OnSoundPacketRecieved(slot, id);
+			machine.OnSoundPlayingPacketRecieved(slot, id);
+		}
+
+		/// <summary>
+		/// Sends a packet from the server to all clients telling them to stop playing a sound
+		/// </summary>
+		/// <param name="emitter">The machine that emitted the sound</param>
+		/// <param name="id">The registered ID for the sound</param>
+		/// <param name="extraInformation">An optional argument for specifying any additional information that should be conveyed to client</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SendSoundStopToClients<T>(T emitter, int id, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			if (id < 0 || id >= MachineSounds.Count)
+				throw new ArgumentException("Sound ID did not correspond to a valid registered ID");
+
+			var packet = GetPacket(NetcodeMessage.SendSoundStop);
+			packet.Write(emitter.Position);
+			packet.Write((short)id);
+			packet.Write(extraInformation);
+			packet.Send();
+		}
+
+		private static void RecieveSoundStopPacket(BinaryReader reader) {
+			Point16 location = reader.ReadPoint16();
+			short id = reader.ReadInt16();
+			int extraInformation = reader.ReadInt32();
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity te) || te is not ModTileEntity || te is not ISoundEmittingMachine machine)
+				return;
+
+			// Inform the machine instance that it needs to stop playing a sound
+			machine.OnSoundStopPacketReceived(id, extraInformation);
 		}
 	}
 
@@ -914,7 +953,8 @@ namespace SerousEnergyLib.Systems {
 		SyncMachineInventorySlot,
 		SyncMachineUpgrades,
 		SyncFullTileEntityData,
-		SendSoundToClient,
-		SendSoundWithEmitterToClient
+		SendSoundPlay,
+		SendSoundPlayWithEmitter,
+		SendSoundStop
 	}
 }

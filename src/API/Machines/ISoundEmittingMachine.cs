@@ -9,10 +9,17 @@ namespace SerousEnergyLib.API.Machines {
 	/// </summary>
 	public interface ISoundEmittingMachine : IMachine {
 		/// <summary>
-		/// This method runs when this machine receives a sound packet on a multiplayer client
+		/// This method runs when this machine receives a sound packet on a multiplayer client which orders it to play a sound
 		/// </summary>
 		/// <param name="soundSlot">The return value from calling <see cref="SoundEngine.PlaySound(in SoundStyle, Vector2?)"/></param>
 		/// <param name="id">The identifier for the sound in <see cref="MachineSounds"/></param>
-		void OnSoundPacketRecieved(in SlotId soundSlot, int id);
+		void OnSoundPlayingPacketRecieved(in SlotId soundSlot, int id);
+
+		/// <summary>
+		/// This method runs when this machine receives a sound packet on a multiplayer client which orders it to stop playing a sound
+		/// </summary>
+		/// <param name="id">The registered sound ID for the sound to stop</param>
+		/// <param name="extraInformation">Extra information sent by the sound packet</param>
+		void OnSoundStopPacketReceived(int id, int extraInformation);
 	}
 }

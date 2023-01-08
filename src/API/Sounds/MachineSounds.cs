@@ -12,6 +12,8 @@ namespace SerousEnergyLib.API.Sounds {
 		private static int nextSound;
 
 		#pragma warning disable CS1591
+		public static int Count => soundMap.Count;
+
 		public override void Unload() {
 			soundMap.Clear();
 			nextSound = 0;
