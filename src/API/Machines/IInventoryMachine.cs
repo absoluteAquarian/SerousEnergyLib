@@ -271,6 +271,33 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
+		/// Scans the possible outputs of <paramref name="recipe"/> and attempts to add them to the export slots of <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="recipe">The recipe containing possible output items</param>
+		protected static void AddRecipeOutputsToExportInventory(IInventoryMachine machine, MachineRecipe recipe) {
+			if (recipe is null || recipe.PossibleOutputs.Count == 0)
+				return;
+
+			Func<IItemOutputGeneratorMachine, int, int> stackModificationFunc = machine is IItemOutputGeneratorMachine ? IItemOutputGeneratorMachine.CalculateItemStack : null;
+			IItemOutputGeneratorMachine generator = machine as IItemOutputGeneratorMachine;
+
+			foreach (var output in recipe.PossibleOutputs) {
+				double chance = GetLuckThreshold(machine, output.chance);
+
+				// Roll the dice
+				if (Main.rand.NextDouble() < chance) {
+					// Generate the item and add it to this machine's export slots
+					int stack = stackModificationFunc?.Invoke(generator, output.stack) ?? output.stack;
+
+					Item item = new Item(output.type, stack);
+
+					AddItemToExportInventory(machine, item);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Returns an enumeration of <see cref="ItemNetwork"/> instances that are adjacent to this machine
 		/// </summary>
 		/// <param name="machine">The machine to process</param>

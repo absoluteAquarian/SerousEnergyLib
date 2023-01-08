@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Items.Materials;
 using System.Text.RegularExpressions;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -33,6 +34,11 @@ namespace SerousEnergyLib.API.Fluid {
 		/// The colour used to render the fluid in pipes and <see cref="IFluidMachine"/> UIs
 		/// </summary>
 		public abstract Color FluidColor { get; }
+
+		/// <summary>
+		/// The item ID to use when displaying this fluid type in a recipe
+		/// </summary>
+		public abstract int RecipeItemType { get; }
 
 		#pragma warning disable CS1591
 		protected sealed override void Register() {

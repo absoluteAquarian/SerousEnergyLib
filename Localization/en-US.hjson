@@ -14,6 +14,10 @@
 		ItemName: {
 			NetworkJunctionItem: "Junction"
 			UnloadedUpgradeItem: "Unloaded Upgrade"
+			TerraFluxRecipeItem: "{$Mods.SerousEnergyLib.EnergyTypeName.TerraFluxTypeID}"
+			WaterRecipeItem: "{$Mods.SerousEnergyLib.FluidName.WaterFluidID}"
+			LavaRecipeItem: "{$Mods.SerousEnergyLib.FluidName.LavaFluidID}"
+			HoneyRecipeItem: "{$Mods.SerousEnergyLib.FluidName.HoneyFluidID}"
 		}
 
 		ItemTooltip: {
@@ -26,6 +30,10 @@
 			'''
 			Upgrade: <MOD_NAME>/<UPGRADE_NAME>
 			'''
+			TerraFluxRecipeItem: "The default energy type for all powered machines"
+			WaterRecipeItem: "Found sporatically throughout the world"
+			LavaRecipeItem: "Found deep in the Caverns layer and in the Underworld"
+			HoneyRecipeItem: "Found within bee hives in the Jungle"
 		}
 
 		ItemHasMachineData: "This item contains metadata from a machine"

@@ -28,6 +28,11 @@ namespace SerousEnergyLib.API.Energy {
 		/// </summary>
 		public abstract string ShortName { get; }
 
+		/// <summary>
+		/// The item ID to use when displaying this energy type in a recipe
+		/// </summary>
+		public abstract int RecipeItemType { get; }
+
 		#pragma warning disable CS1591
 		protected sealed override void Register() {
 			ModTypeLookup<EnergyTypeID>.Register(this);
