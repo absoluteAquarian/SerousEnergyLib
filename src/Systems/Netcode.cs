@@ -1,5 +1,8 @@
-﻿using SerousEnergyLib.API;
+﻿using Microsoft.Xna.Framework;
+using ReLogic.Utilities;
+using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.API.Sounds;
 using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
@@ -8,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Terraria;
+using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -81,6 +85,12 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncFullTileEntityData:
 					ReceiveTileEntitySync(reader, sender);
+					break;
+				case NetcodeMessage.SendSoundToClient:
+					ReceiveSoundPacket(reader, out _);
+					break;
+				case NetcodeMessage.SendSoundWithEmitterToClient:
+					ReceiveSoundPacketWithEmitter(reader);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -758,6 +768,129 @@ namespace SerousEnergyLib.Systems {
 				NetMessage.SendData(MessageID.TileEntitySharing, -1, sender, null, te.ID, te.Position.X, te.Position.Y);
 			}
 		}
+
+		/// <summary>
+		/// Sends a packet from the server to all clients telling them to play a sound
+		/// </summary>
+		/// <param name="data">The base instance to retrieve data from</param>
+		/// <param name="mode">A set of flags used to specify what data from <paramref name="data"/> is sent</param>
+		/// <param name="source">
+		/// The location of the sound in the world.<br/>
+		/// This argument is only used when <paramref name="mode"/> has <see cref="NetcodeSoundMode.SendPosition"/> set.<br/>
+		/// If that is not the case, this argument is ignored and the sound is treated as a "directionless" sound
+		/// </param>
+		public static void SendSoundToClients(in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			int id = MachineSounds.GetID(data);
+			if (id < 0)
+				throw new ArgumentException("Data instance did not have a registered ID", nameof(data));
+
+			var packet = GetPacket(NetcodeMessage.SendSoundToClient);
+			
+			SendSoundInformationToPacket(packet, id, data, mode, source);
+
+			packet.Send();
+		}
+
+		private static void SendSoundInformationToPacket(ModPacket packet, int id, in SoundStyle data, NetcodeSoundMode mode, Vector2? source) {
+			packet.Write((short)id);
+			packet.Write((byte)mode);
+
+			if ((mode & NetcodeSoundMode.SendPosition) == NetcodeSoundMode.SendPosition)
+				packet.Write(source ?? -Vector2.One);
+
+			if ((mode & NetcodeSoundMode.SendVolume) == NetcodeSoundMode.SendVolume)
+				packet.Write(data.Volume);
+
+			if ((mode & NetcodeSoundMode.SendPitch) == NetcodeSoundMode.SendPitch) {
+				packet.Write(data.Pitch);
+				packet.Write(data.PitchVariance);
+			}
+		}
+
+		private static SlotId ReceiveSoundPacket(BinaryReader reader, out int id) {
+			id = reader.ReadInt16();
+			NetcodeSoundMode mode = (NetcodeSoundMode)reader.ReadByte();
+
+			Vector2? location = null;
+			if ((mode & NetcodeSoundMode.SendPosition) == NetcodeSoundMode.SendPosition) {
+				Vector2 loc = SerousEnergyLib.API.Extensions.ReadVector2(reader);
+
+				location = loc == -Vector2.One ? null : loc;
+			}
+
+			float volume = -1;
+			if ((mode & NetcodeSoundMode.SendVolume) == NetcodeSoundMode.SendVolume)
+				volume = reader.ReadSingle();
+
+			float pitch = -2, pitchVariance = -1;
+			if ((mode & NetcodeSoundMode.SendPitch) == NetcodeSoundMode.SendPitch) {
+				pitch = reader.ReadSingle();
+				pitchVariance = reader.ReadSingle();
+			}
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return SlotId.Invalid;
+
+			SoundStyle style = MachineSounds.GetSound(id);
+			if (style.SoundPath is null)
+				return SlotId.Invalid;
+
+			if (volume > -1)
+				style.Volume = volume;
+
+			if (pitch > -2)
+				style.Pitch = pitch;
+
+			if (pitchVariance > -1)
+				style.PitchVariance = pitchVariance;
+
+			return SoundEngine.PlaySound(style, location);
+		}
+
+		/// <summary>
+		/// Sends a packet from the server to all clients telling them to play a sound
+		/// </summary>
+		/// <param name="emitter">The machine that emitted the sound.  This information is used to allow the client to track the played sound</param>
+		/// <param name="data">The base instance to retrieve data from</param>
+		/// <param name="mode">A set of flags used to specify what data from <paramref name="data"/> is sent</param>
+		/// <param name="source">
+		/// The location of the sound in the world.<br/>
+		/// This argument is only used when <paramref name="mode"/> has <see cref="NetcodeSoundMode.SendPosition"/> set.<br/>
+		/// If that is not the case, this argument is ignored and the sound is treated as a "directionless" sound
+		/// </param>
+		public static void SendSoundToClients<T>(T emitter, in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			int id = MachineSounds.GetID(data);
+			if (id < 0)
+				throw new ArgumentException("Data instance did not have a registered ID", nameof(data));
+
+			var packet = GetPacket(NetcodeMessage.SendSoundWithEmitterToClient);
+			
+			packet.Write(emitter.Position);
+			SendSoundInformationToPacket(packet, id, data, mode, source);
+
+			packet.Send();
+		}
+
+		private static void ReceiveSoundPacketWithEmitter(BinaryReader reader) {
+			Point16 location = reader.ReadPoint16();
+
+			SlotId slot = ReceiveSoundPacket(reader, out int id);
+
+			if (!slot.IsValid)
+				return;
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity te) || te is not ModTileEntity || te is not ISoundEmittingMachine machine)
+				return;
+
+			// Inform the machine instance that it's playing a sound
+			machine.OnSoundPacketRecieved(slot, id);
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -780,6 +913,8 @@ namespace SerousEnergyLib.Systems {
 		SyncMachineRemoval,
 		SyncMachineInventorySlot,
 		SyncMachineUpgrades,
-		SyncFullTileEntityData
+		SyncFullTileEntityData,
+		SendSoundToClient,
+		SendSoundWithEmitterToClient
 	}
 }
