@@ -21,35 +21,37 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Applies <see cref="BaseUpgrade.GetPowerGenerationMultiplier"/> to the result of <see cref="GetPowerGeneration(double)"/>
 		/// </summary>
-		/// <param name="ticks"></param>
-		/// <returns></returns>
-		public double GetPowerGenerationWithUpgrades(double ticks)
-			=> CalculateFromUpgrades(StatModifier.Default, static (u, s, v) => u.GetPowerGenerationMultiplier(s).CombineWith(v))
-				.ApplyTo(GetPowerGeneration(ticks));
+		/// <param name="machine">The machine to process</param>
+		/// <param name="ticks">The amount of game ticks to calculate</param>
+		public static double GetPowerGenerationWithUpgrades(IPowerGeneratorMachine machine, double ticks)
+			=> CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetPowerGenerationMultiplier(s).CombineWith(v))
+				.ApplyTo(machine.GetPowerGeneration(ticks));
 
 		/// <summary>
-		/// Generates power and adds it to this machine's flux storage
+		/// Generates power and adds it to the flux storage in <paramref name="machine"/>
 		/// </summary>
-		public void GeneratePower() {
+		/// <param name="machine">The machine to process</param>
+		public static void GeneratePower(IPowerGeneratorMachine machine) {
 			if (!Network.UpdatingPowerGenerators)
 				return;
 
-			double generate = GetPowerGenerationWithUpgrades(1);
-			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(generate, EnergyID);
-			PowerStorage.Import(ref flux);
+			double generate = GetPowerGenerationWithUpgrades(machine, 1);
+			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(generate, machine.EnergyID);
+			machine.PowerStorage.Import(ref flux);
 
-			ExportPowerToAdjacentNetworks();
+			ExportPowerToAdjacentNetworks(machine);
 		}
 
 		/// <summary>
-		/// Exports power from this machine's storage to all adjacent <see cref="PowerNetwork"/> instances
+		/// Exports power from the flux storage in <paramref name="machine"/> to all adjacent <see cref="PowerNetwork"/> instances
 		/// </summary>
-		public void ExportPowerToAdjacentNetworks() {
-			foreach (var network in GetAdjacentPowerNetworks()) {
-				if (!TryGetHighestTransferRate(this, network, out TerraFlux export))
+		/// <param name="machine">The machine to process</param>
+		public static void ExportPowerToAdjacentNetworks(IPowerGeneratorMachine machine) {
+			foreach (var network in GetAdjacentPowerNetworks(machine)) {
+				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export))
 					continue;
 
-				PowerStorage.ExportTo(network.Storage, export);
+				machine.PowerStorage.ExportTo(network.Storage, export);
 			}
 		}
 	}

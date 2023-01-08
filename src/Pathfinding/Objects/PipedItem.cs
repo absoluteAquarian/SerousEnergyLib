@@ -340,7 +340,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			if (!IMachine.TryFindMachine(entry, out IMachine machine) || machine is not IInventoryMachine inventory)
 				return;
 
-			inventory.ImportItem(import);
+			IInventoryMachine.ImportItem(inventory, import);
 
 			if (import.IsAir)
 				Destroy(dropItem: false);

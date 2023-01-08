@@ -35,7 +35,7 @@ namespace SerousEnergyLib.Systems {
 			UpdatingPowerGenerators = true;
 
 			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>())
-				machine.GeneratePower();
+				IPowerGeneratorMachine.GeneratePower(machine);
 			
 			UpdatingPowerGenerators = false;
 

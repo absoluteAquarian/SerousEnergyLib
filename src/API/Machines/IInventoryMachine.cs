@@ -81,14 +81,15 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
-		/// Whether <paramref name="import"/> can be imported into this machine's inventory
+		/// Whether <paramref name="import"/> can be imported into the inventory in <paramref name="machine"/>
 		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		/// <param name="import">The item to be imported</param>
 		/// <param name="stackImported">How many items would be imported should the import be successful</param>
-		public bool CanImportItem(Item import, out int stackImported) {
+		public static bool CanImportItem(IInventoryMachine machine, Item import, out int stackImported) {
 			stackImported = 0;
 
-			var slots = GetInputSlotsOrDefault();
+			var slots = machine.GetInputSlotsOrDefault();
 
 			int capacity = slots.Length;
 			int itemStack = import.stack;
@@ -96,7 +97,7 @@ namespace SerousEnergyLib.API.Machines {
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				if (CanImportItemAtSlot(import, slot, out int stack)) {
+				if (machine.CanImportItemAtSlot(import, slot, out int stack)) {
 					stackImported += stack;
 					import.stack -= stack;
 
@@ -139,19 +140,24 @@ namespace SerousEnergyLib.API.Machines {
 			Netcode.SyncMachineInventorySlot(this, slot);
 		}
 
-		public void ImportItem(Item import) {
+		/// <summary>
+		/// Attempts to add <paramref name="import"/> to the inventory in <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="import">The item to import.  Any leftover stack will be in this parameter after calling this method</param>
+		public static void ImportItem(IInventoryMachine machine, Item import) {
 			if (import.IsAir)
 				return;
 
-			var slots = GetInputSlotsOrDefault();
+			var slots = machine.GetInputSlotsOrDefault();
 
 			int capacity = slots.Length;
 
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				if (CanImportItemAtSlot(import, slot, out _))
-					ImportItemAtSlot(import, slot);
+				if (machine.CanImportItemAtSlot(import, slot, out _))
+					machine.ImportItemAtSlot(import, slot);
 
 				if (import.stack <= 0)
 					return;
@@ -208,26 +214,27 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
-		/// Extracts items from this machine into <paramref name="network"/>
+		/// Extracts items from <paramref name="machine"/> into <paramref name="network"/>
 		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		/// <param name="network">The item network to import the items into</param>
 		/// <param name="extractCount">A counter for how many more items can be extracted from this machine</param>
 		/// <param name="simulation">If <see langword="true"/>, items will not be removed from this machine</param>
 		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
-		public List<InventoryExtractionResult> ExtractItems(ItemNetwork network, ref int extractCount, bool simulation = true) {
+		public static List<InventoryExtractionResult> ExtractItems(IInventoryMachine machine, ItemNetwork network, ref int extractCount, bool simulation = true) {
 			// Attempt to extract items from the machine
 			List<InventoryExtractionResult> results = new();
 
-			var slots = GetExportSlotsOrDefault();
+			var slots = machine.GetExportSlotsOrDefault();
 
 			int capacity = slots.Length;
 
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				if (CanExportItemAtSlot(slot)) {
+				if (machine.CanExportItemAtSlot(slot)) {
 					int count = extractCount;
-					if (!ExportItemAtSlot(network, slot, ref extractCount, simulation, out InventoryExtractionResult result)) {
+					if (!machine.ExportItemAtSlot(network, slot, ref extractCount, simulation, out InventoryExtractionResult result)) {
 						extractCount = count;  // Safeguard
 						continue;
 					}
@@ -245,8 +252,9 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Returns an enumeration of <see cref="ItemNetwork"/> instances that are adjacent to this machine
 		/// </summary>
-		public IEnumerable<ItemNetwork> GetAdjacentItemNetworks() {
-			return GetAdjacentNetworks(NetworkType.Items)
+		/// <param name="machine">The machine to process</param>
+		public static IEnumerable<ItemNetwork> GetAdjacentItemNetworks(IInventoryMachine machine) {
+			return GetAdjacentNetworks(machine, NetworkType.Items)
 				.Select(r => r.network as ItemNetwork)
 				.OfType<ItemNetwork>();
 		}

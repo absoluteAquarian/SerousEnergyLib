@@ -35,23 +35,24 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Applies <see cref="BaseUpgrade.GetPowerConsumptionMultiplier"/> to the result of <see cref="GetPowerConsumption(double)"/>
 		/// </summary>
-		/// <param name="ticks"></param>
-		/// <returns></returns>
-		public double GetPowerConsumptionWithUpgrades(double ticks)
-			=> CalculateFromUpgrades(StatModifier.Default, static (u, s, v) => u.GetPowerConsumptionMultiplier(s).CombineWith(v))
-				.ApplyTo(GetPowerConsumption(ticks));
+		/// <param name="machine">The machine to process</param>
+		/// <param name="ticks">The amount of game ticks to calculate</param>
+		public static double GetPowerConsumptionWithUpgrades(IPoweredMachine machine, double ticks)
+			=> CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetPowerConsumptionMultiplier(s).CombineWith(v))
+				.ApplyTo(machine.GetPowerConsumption(ticks));
 
 		/// <summary>
-		/// Attempts to consume power from this machine's flux storage
+		/// Attempts to consume power from the flux storage in <paramref name="machine"/>
 		/// </summary>
-		/// <param name="power">A quantity of power or the default consumption rate per tick (see: <see cref="GetPowerConsumptionWithUpgrades(double)"/>) if <see langword="null"/>.</param>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="power">A quantity of power or the default consumption rate per tick (see: <see cref="GetPowerConsumptionWithUpgrades(IPoweredMachine, double)"/>) if <see langword="null"/>.</param>
 		/// <returns>Whether there was enough power for consumption</returns>
-		public bool AttemptToConsumePower(double? power = null) {
-			double consume = power ?? GetPowerConsumptionWithUpgrades(1);
-			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(consume, EnergyID);
+		public static bool AttemptToConsumePower(IPoweredMachine machine, double? power = null) {
+			double consume = power ?? GetPowerConsumptionWithUpgrades(machine, 1);
+			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(consume, machine.EnergyID);
 
-			if (flux <= PowerStorage.CurrentCapacity) {
-				PowerStorage.Export(ref flux);
+			if (flux <= machine.PowerStorage.CurrentCapacity) {
+				machine.PowerStorage.Export(ref flux);
 				return true;
 			}
 
@@ -70,9 +71,9 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Returns an enumeration of all <see cref="PowerNetwork"/> instances that are adjacent to this machine
 		/// </summary>
-		/// <returns></returns>
-		public IEnumerable<PowerNetwork> GetAdjacentPowerNetworks() {
-			return GetAdjacentNetworks(NetworkType.Power)
+		/// <param name="machine">The machine to process</param>
+		public static IEnumerable<PowerNetwork> GetAdjacentPowerNetworks(IPoweredMachine machine) {
+			return GetAdjacentNetworks(machine, NetworkType.Power)
 				.Select(r => r.network as PowerNetwork)
 				.OfType<PowerNetwork>();
 		}
@@ -85,7 +86,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="transfer">The highest transfer rate, or <see cref="TerraFlux.Zero"/> if one could not be found.</param>
 		public static bool TryGetHighestTransferRate(IPoweredMachine machine, PowerNetwork source, out TerraFlux transfer) {
 			// Find the tile adjacent to this machine with the highest export rate and use it
-			var adjacent = machine.GetAdjacentNetworks(NetworkType.Power, allowDuplicates: true);
+			var adjacent = GetAdjacentNetworks(machine, NetworkType.Power, allowDuplicates: true);
 
 			TerraFlux maxTransfer = TerraFlux.Zero;
 			bool entryExists = false;
@@ -112,7 +113,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine"></param>
 		public static void Update(IPoweredMachine machine) {
 			var storage = machine.PowerStorage;
-			storage.MaxCapacity = new TerraFlux(machine.CalculateFromUpgrades(StatModifier.Default,
+			storage.MaxCapacity = new TerraFlux(CalculateFromUpgrades(machine, StatModifier.Default,
 				static (u, s, v) => u.GetPowerCapacityMultiplier(s).CombineWith(v))
 				.ApplyTo((double)storage.BaseMaxCapacity));
 

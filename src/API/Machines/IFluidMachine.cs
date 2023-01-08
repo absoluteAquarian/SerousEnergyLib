@@ -57,8 +57,9 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Returns an enumeration of <see cref="FluidNetwork"/> instances that are adjacent to this machine
 		/// </summary>
-		public IEnumerable<FluidNetwork> GetAdjacentFluidNetworks() {
-			return GetAdjacentNetworks(NetworkType.Fluids)
+		/// <param name="machine">The machine to process</param>
+		public static IEnumerable<FluidNetwork> GetAdjacentFluidNetworks(IFluidMachine machine) {
+			return GetAdjacentNetworks(machine, NetworkType.Fluids)
 				.Select(r => r.network as FluidNetwork)
 				.OfType<FluidNetwork>();
 		}
@@ -73,7 +74,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="importSubtileLocation">The tile location of the sub-tile in <paramref name="machine"/> being imported into</param>
 		public static bool TryGetHighestExportRate(IFluidMachine machine, FluidNetwork source, out double export, out Point16 exportTileLocation, out Point16 importSubtileLocation) {
 			// Find the tile adjacent to this machine with the highest export rate and use it
-			var adjacent = machine.GetAdjacentNetworks(NetworkType.Fluids, allowDuplicates: true);
+			var adjacent = GetAdjacentNetworks(machine, NetworkType.Fluids, allowDuplicates: true);
 
 			double maxExport = 0;
 			bool entryExists = false;
@@ -111,7 +112,7 @@ namespace SerousEnergyLib.API.Machines {
 				// Local capture for lambda
 				int slot = i;
 
-				storage.MaxCapacity = machine.CalculateFromUpgrades(StatModifier.Default,
+				storage.MaxCapacity = CalculateFromUpgrades(machine, StatModifier.Default,
 					machine.Upgrades.Where(u => machine.CanUpgradeApplyTo(u.Upgrade, slot)),
 					static (u, s, v) => u.GetFluidCapacityMultiplier(s).CombineWith(v))
 					.ApplyTo(storage.BaseMaxCapacity);

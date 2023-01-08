@@ -94,7 +94,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				}
 
 				if (IMachine.TryFindMachine(possibleInventory, out IMachine machine) && machine is IInventoryMachine inventory)
-					extractions = inventory.ExtractItems(this, ref numExtract, simulation: false);
+					extractions = IInventoryMachine.ExtractItems(inventory, this, ref numExtract, simulation: false);
 
 				// Inform clients of what the current state of the pump is
 				makeItems:
@@ -263,7 +263,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				Tile tile = Main.tile[adjacent.X, adjacent.Y];
 
 				if (TileLoader.GetTile(tile.TileType) is IInventoryMachine machine) {
-					if (machine.CanImportItem(import, out stackImported) && stackImported > 0) {
+					if (IInventoryMachine.CanImportItem(machine, import, out stackImported) && stackImported > 0) {
 						inventory = adjacent;
 						return true;
 					}

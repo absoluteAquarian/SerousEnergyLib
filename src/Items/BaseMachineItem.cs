@@ -86,7 +86,7 @@ namespace SerousEnergyLib.Items {
 
 			clone.LoadData(MachineData);
 
-			var consumed = powered.GetPowerConsumptionWithUpgrades(1);
+			var consumed = IPoweredMachine.GetPowerConsumptionWithUpgrades(powered, 1);
 
 			string shortUnit = energyType.ShortName;
 
@@ -117,7 +117,7 @@ namespace SerousEnergyLib.Items {
 
 			clone.LoadData(MachineData);
 
-			var generated = generator.GetPowerGenerationWithUpgrades(1);
+			var generated = IPowerGeneratorMachine.GetPowerGenerationWithUpgrades(generator, 1);
 
 			string shortUnit = energyType.ShortName;
 

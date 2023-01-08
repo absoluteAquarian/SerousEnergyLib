@@ -131,7 +131,7 @@ namespace SerousEnergyLib.API.Machines {
 				search |= NetworkType.Power;
 
 			if (search != NetworkType.None) {
-				foreach (var result in GetAdjacentNetworks(search)) {
+				foreach (var result in GetAdjacentNetworks(this, search)) {
 					var net = result.network;
 
 					if (net is ItemNetwork itemNet)
@@ -154,7 +154,7 @@ namespace SerousEnergyLib.API.Machines {
 				search |= NetworkType.Power;
 
 			if (search != NetworkType.None) {
-				foreach (var result in GetAdjacentNetworks(search)) {
+				foreach (var result in GetAdjacentNetworks(this, search)) {
 					var net = result.network;
 
 					if (net is ItemNetwork itemNet)
@@ -170,15 +170,16 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Iterates over <see cref="Upgrades"/> and applies <paramref name="mutator"/> to each of them
 		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		/// <param name="base">The default value for the calculated result</param>
 		/// <param name="mutator">A function which modifies the calculated result</param>
 		/// <returns>The final calculated result</returns>
-		protected T CalculateFromUpgrades<T>(T @base, Func<BaseUpgrade, int, T, T> mutator) {
+		protected static T CalculateFromUpgrades<T>(IMachine machine, T @base, Func<BaseUpgrade, int, T, T> mutator) {
 			T calculated = @base;
 
-			foreach (var upgrade in Upgrades) {
+			foreach (var upgrade in machine.Upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
-				if (upgrade.Upgrade.CanApplyTo(this))
+				if (upgrade.Upgrade.CanApplyTo(machine))
 					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
@@ -188,16 +189,17 @@ namespace SerousEnergyLib.API.Machines {
 		/// <summary>
 		/// Iterates over <paramref name="upgrades"/> and applies <paramref name="mutator"/> to each of them
 		/// </summary>
+		/// <param name="machine">The machine to process</param>
 		/// <param name="upgrades">An enumeration of upgrades</param>
-		/// <inheritdoc cref="CalculateFromUpgrades{T}(T, Func{BaseUpgrade, int, T, T})"/>
+		/// <inheritdoc cref="CalculateFromUpgrades{T}(IMachine, T, Func{BaseUpgrade, int, T, T})"/>
 		/// <param name="base"></param>
 		/// <param name="mutator"></param>
-		protected T CalculateFromUpgrades<T>(T @base, IEnumerable<BaseUpgradeItem> upgrades, Func<BaseUpgrade, int, T, T> mutator) {
+		protected static T CalculateFromUpgrades<T>(IMachine machine, T @base, IEnumerable<BaseUpgradeItem> upgrades, Func<BaseUpgrade, int, T, T> mutator) {
 			T calculated = @base;
 
 			foreach (var upgrade in upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
-				if (upgrade.Upgrade.CanApplyTo(this))
+				if (upgrade.Upgrade.CanApplyTo(machine))
 					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
@@ -258,11 +260,17 @@ namespace SerousEnergyLib.API.Machines {
 			}
 		}
 
-		public IEnumerable<NetworkSearchResult> GetAdjacentNetworks(NetworkType type, bool allowDuplicates = false) {
-			if (this is not ModTileEntity entity)
+		/// <summary>
+		/// Returns an enumeration of the adjacent networks to <paramref name="machine"/> which satisfy the filter, <paramref name="type"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="type">The network types to filter</param>
+		/// <param name="allowDuplicates">Whether a network can appear multiple times in the enumeration</param>
+		public static IEnumerable<NetworkSearchResult> GetAdjacentNetworks(IMachine machine, NetworkType type, bool allowDuplicates = false) {
+			if (machine is not ModTileEntity entity)
 				yield break;
 
-			if (TileLoader.GetTile(MachineTile) is not IMachineTile machineTile)
+			if (TileLoader.GetTile(machine.MachineTile) is not IMachineTile machineTile)
 				yield break;
 
 			HashSet<int> returnedIds = new();
