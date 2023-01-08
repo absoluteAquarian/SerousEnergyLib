@@ -95,6 +95,9 @@ namespace SerousEnergyLib.Systems {
 				case NetcodeMessage.SendSoundStop:
 					RecieveSoundStopPacket(reader);
 					break;
+				case NetcodeMessage.SyncReducedMachineData:
+					ReceiveReducedData(reader);
+					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
 			}
@@ -911,6 +914,56 @@ namespace SerousEnergyLib.Systems {
 			// Inform the machine instance that it needs to stop playing a sound
 			machine.OnSoundStopPacketReceived(id, extraInformation);
 		}
+
+		/// <summary>
+		/// Sends the stream of information written by <see cref="IReducedNetcodeMachine.ReducedNetSend(BinaryWriter)"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SendReducedData(IReducedNetcodeMachine machine) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("IReducedNetcodeMachine instance was not a ModTileEntity", nameof(machine));
+
+			SendReducedData_DoSync(machine, entity.Position);
+		}
+
+		/// <inheritdoc cref="SendReducedData(IReducedNetcodeMachine)"/>
+		public static void SendReducedData<T>(T machine) where T : ModTileEntity, IReducedNetcodeMachine, IMachine {
+			SendReducedData_DoSync(machine, machine.Position);
+		}
+
+		private static void SendReducedData_DoSync(IReducedNetcodeMachine machine, Point16 entityLocation) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncReducedMachineData);
+			packet.Write(entityLocation);
+
+			using (MemoryStream ms = new MemoryStream()) using (BinaryWriter writer = new(ms)) {
+				machine.ReducedNetSend(writer);
+
+				packet.Write((short)ms.Length);
+				packet.Write(ms.ToArray());
+			}
+
+			packet.Send();
+		}
+
+		private static void ReceiveReducedData(BinaryReader reader) {
+			Point16 location = reader.ReadPoint16();
+			short count = reader.ReadInt16();
+			byte[] data = reader.ReadBytes(count);
+
+			if (Main.netMode != NetmodeID.MultiplayerClient)
+				return;
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity te) || te is not ModTileEntity || te is not IReducedNetcodeMachine machine)
+				return;
+
+			using MemoryStream ms = new(data);
+			using BinaryReader msReader = new(ms);
+			machine.ReducedNetReceive(msReader);
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -936,6 +989,7 @@ namespace SerousEnergyLib.Systems {
 		SyncFullTileEntityData,
 		SendSoundPlay,
 		SendSoundPlayWithEmitter,
-		SendSoundStop
+		SendSoundStop,
+		SyncReducedMachineData
 	}
 }
