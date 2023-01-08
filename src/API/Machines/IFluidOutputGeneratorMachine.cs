@@ -9,7 +9,7 @@ namespace SerousEnergyLib.API.Machines {
 	/// </summary>
 	public interface IFluidOutputGeneratorMachine : IFluidMachine, IMachine {
 		/// <summary>
-		/// Modifies <paramref name="originalProduct"/> based on the upgrades contained in this machine
+		/// Applies <see cref="BaseUpgrade.GetFluidOutputGeneratorProductMultiplier(int)"/> to <paramref name="originalProduct"/>
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="originalProduct">The original product quantity in Liters</param>

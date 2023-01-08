@@ -91,5 +91,11 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// </summary>
 		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
 		public virtual StatModifier GetFluidOutputGeneratorProductMultiplier(int upgradeStack) => StatModifier.Default;
+
+		/// <summary>
+		/// Return a modifier for luck chance here.  This method is intended to be paired with <c>Main.rand.NextDouble()</c> with a range of [0, 1]
+		/// </summary>
+		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
+		public virtual StatModifier GetLuckPercentageMultiplier(int upgradeStack) => StatModifier.Default;
 	}
 }

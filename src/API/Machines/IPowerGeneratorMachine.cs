@@ -19,7 +19,7 @@ namespace SerousEnergyLib.API.Machines {
 		double GetPowerGeneration(double ticks);
 
 		/// <summary>
-		/// Applies <see cref="BaseUpgrade.GetPowerGenerationMultiplier"/> to the result of <see cref="GetPowerGeneration(double)"/>
+		/// Applies <see cref="BaseUpgrade.GetPowerGenerationMultiplier(int)"/> to the result of <see cref="GetPowerGeneration(double)"/>
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="ticks">The amount of game ticks to calculate</param>

@@ -33,7 +33,7 @@ namespace SerousEnergyLib.API.Machines {
 		double GetPowerConsumption(double ticks);
 
 		/// <summary>
-		/// Applies <see cref="BaseUpgrade.GetPowerConsumptionMultiplier"/> to the result of <see cref="GetPowerConsumption(double)"/>
+		/// Applies <see cref="BaseUpgrade.GetPowerConsumptionMultiplier(int)"/> to the result of <see cref="GetPowerConsumption(double)"/>
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="ticks">The amount of game ticks to calculate</param>

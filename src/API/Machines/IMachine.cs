@@ -207,6 +207,16 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
+		/// Applies <see cref="BaseUpgrade.GetLuckPercentageMultiplier(int)"/> to <paramref name="orig"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="orig">The original luck threshold, given the equation:<br/>
+		/// <c>Main.rand.NextDouble() &lt; orig</c></param>
+		/// <returns></returns>
+		public static double GetLuckThreshold(IMachine machine, double orig)
+			=> CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetLuckPercentageMultiplier(s).CombineWith(v)).ApplyTo(orig);
+
+		/// <summary>
 		/// Adds <paramref name="upgrade"/> to the upgrade collection in <paramref name="machine"/>
 		/// </summary>
 		/// <param name="machine">The machine to process</param>

@@ -7,7 +7,7 @@ namespace SerousEnergyLib.API.Machines {
 	/// </summary>
 	public interface IItemOutputGeneratorMachine : IInventoryMachine, IMachine {
 		/// <summary>
-		/// Modifies <paramref name="originalStack"/> based on the upgrades contained in this machine
+		/// Applies <see cref="BaseUpgrade.GetItemOutputGeneratorExtraStack(int, int)"/> to <paramref name="originalStack"/>
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="originalStack">The original stack</param>
