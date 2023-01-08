@@ -801,15 +801,15 @@ namespace SerousEnergyLib.Systems {
 		}
 
 		private static SlotId ReceiveSoundPlayingPacket(BinaryReader reader, out int id) {
-			if (!ReadSoundStyle(reader, out id, out SoundStyle style, out Vector2? location))
+			if (!ReadSoundStyle(reader, out id, out SoundStyle style, out _, out Vector2? location))
 				return SlotId.Invalid;
 
 			return SoundEngine.PlaySound(style, location);
 		}
 
-		private static bool ReadSoundStyle(BinaryReader reader, out int id, out SoundStyle style, out Vector2? location) {
+		private static bool ReadSoundStyle(BinaryReader reader, out int id, out SoundStyle style, out NetcodeSoundMode mode, out Vector2? location) {
 			id = reader.ReadInt16();
-			NetcodeSoundMode mode = (NetcodeSoundMode)reader.ReadByte();
+			mode = (NetcodeSoundMode)reader.ReadByte();
 
 			location = null;
 			if ((mode & NetcodeSoundMode.SendPosition) == NetcodeSoundMode.SendPosition) {
@@ -961,14 +961,14 @@ namespace SerousEnergyLib.Systems {
 			Point16 location = reader.ReadPoint16();
 			int extraInformation = reader.ReadInt32();
 
-			if (!ReadSoundStyle(reader, out int id, out SoundStyle data, out Vector2? soundLocation))
+			if (!ReadSoundStyle(reader, out int id, out SoundStyle data, out NetcodeSoundMode mode, out Vector2? soundLocation))
 				return;
 
 			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity te) || te is not ModTileEntity || te is not ISoundEmittingMachine machine)
 				return;
 
 			// Inform the machine instance that it's updating a sound
-			machine.OnSoundUpdatePacketReceived(id, data, soundLocation, extraInformation);
+			machine.OnSoundUpdatePacketReceived(id, data, mode, soundLocation, extraInformation);
 		}
 
 		/// <summary>
