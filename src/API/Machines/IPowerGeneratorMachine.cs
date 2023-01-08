@@ -2,6 +2,7 @@
 using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
+using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Machines {
@@ -48,10 +49,12 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		public static void ExportPowerToAdjacentNetworks(IPowerGeneratorMachine machine) {
 			foreach (var network in GetAdjacentPowerNetworks(machine)) {
-				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export))
+				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export, out Point16 exportTile, out _))
 					continue;
 
 				machine.PowerStorage.ExportTo(network.Storage, export);
+
+				Netcode.SyncNetworkPowerStorage(network, exportTile);
 			}
 		}
 	}

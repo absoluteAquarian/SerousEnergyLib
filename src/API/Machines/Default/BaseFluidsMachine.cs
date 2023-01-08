@@ -26,9 +26,11 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public virtual bool CanUpgradeApplyTo(BaseUpgrade upgrade, int slot) => true;
 
-		public abstract FluidStorage SelectFluidExportSource(Point16 pump, Point16 subtile);
+		public abstract int SelectFluidExportSource(Point16 pump, Point16 subtile);
 
-		public abstract FluidStorage SelectFluidImportDestination(Point16 pipe, Point16 subtile);
+		public abstract int SelectFluidImportDestination(Point16 pipe, Point16 subtile);
+
+		public abstract int SelectFluidImportDestinationFromType(int fluidType);
 
 		public override void Update() {
 			IMachine.Update(this);

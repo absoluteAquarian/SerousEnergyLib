@@ -25,6 +25,12 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		public FluidStorage Storage = new FluidStorage(0);
 
+		internal double netFluid;
+		/// <summary>
+		/// The net gain/loss of fluids in this fluid network
+		/// </summary>
+		public double NetFluid => netFluid;
+
 		internal FluidNetwork() : base(NetworkType.Fluids) { }
 
 		#pragma warning disable CS1591
@@ -47,10 +53,17 @@ namespace SerousEnergyLib.Systems.Networks {
 				if (!IFluidMachine.TryGetHighestExportRate(machine, this, out double rate, out Point16 pipeTile, out Point16 machineSubTile))
 					continue;
 
-				FluidStorage storage = machine.SelectFluidImportDestination(pipeTile, machineSubTile);
+				int slot = machine.SelectFluidImportDestination(pipeTile, machineSubTile);
 
-				storage?.ImportFrom(Storage, rate);
+				if (slot >= 0 && slot < machine.FluidStorage.Length) {
+					FluidStorage storage = machine.FluidStorage[slot];
+					storage?.ImportFrom(Storage, rate);
+
+					Netcode.SyncMachineFluidStorageSlot(machine, slot);
+				}
 			}
+
+			Netcode.SyncNetworkFluidStorage(this, FirstNode);
 		}
 
 		internal void AddPumpTimer(Point16 location, int timer) {
@@ -98,9 +111,14 @@ namespace SerousEnergyLib.Systems.Networks {
 				// TODO: allow sinks to pump water into networks?
 
 				if (IMachine.TryFindMachine(possibleStorage, out IMachine machine) && machine is IFluidMachine fluid) {
-					FluidStorage storage = fluid.SelectFluidExportSource(location, possibleStorage);
+					int slot = fluid.SelectFluidExportSource(location, possibleStorage);
 
-					storage?.ExportTo(Storage, extract);
+					if (slot >= 0 && slot < fluid.FluidStorage.Length) {
+						FluidStorage storage = fluid.FluidStorage[slot];
+						storage?.ExportTo(Storage, extract);
+
+						Netcode.SyncMachineFluidStorageSlot(fluid, slot);
+					}
 				}
 			}
 

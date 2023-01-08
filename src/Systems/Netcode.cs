@@ -1,9 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using ReLogic.Utilities;
 using SerousEnergyLib.API;
+using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.API.Sounds;
-using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -100,6 +101,18 @@ namespace SerousEnergyLib.Systems {
 					break;
 				case NetcodeMessage.SyncReducedMachineData:
 					ReceiveReducedData(reader);
+					break;
+				case NetcodeMessage.SyncMachinePowerStorage:
+					ReceiveMachinePowerStorageSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncMachineFluidStorageSlot:
+					ReceiveMachineFluidStorageSlotSync(reader, sender);
+					break;
+				case NetcodeMessage.SyncNetworkFluidStorage:
+					ReceiveNetworkFluidStorageSync(reader);
+					break;
+				case NetcodeMessage.SyncNetworkPowerStorage:
+					ReceiveNetworkPowerStorageSync(reader);
 					break;
 				default:
 					throw new IOException("Unknown message type: " + msg);
@@ -575,7 +588,7 @@ namespace SerousEnergyLib.Systems {
 			Point16 location = reader.ReadPoint16();
 
 			if (!TileEntity.manager.TryGetTileEntity(type, out ModTileEntity entity) || entity is not IMachine machine)
-				throw new IOException($"Tile entity ID {type} did not correspond with a valid machine type");
+				return;  // Machine does not exist
 
 			machine.AddToAdjacentNetworks();
 
@@ -603,7 +616,7 @@ namespace SerousEnergyLib.Systems {
 			Point16 location = reader.ReadPoint16();
 
 			if (!TileEntity.manager.TryGetTileEntity(type, out ModTileEntity entity) || entity is not IMachine machine)
-				throw new IOException($"Tile entity ID {type} did not correspond with a valid machine type");
+				return;  // Machine does not exist
 
 			machine.RemoveFromAdjacentNetworks();
 
@@ -671,7 +684,7 @@ namespace SerousEnergyLib.Systems {
 			Item item = ItemIO.Receive(reader, readStack: true, readFavorite: true);
 
 			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not IInventoryMachine machine)
-				throw new IOException($"Tile entity at location (X: {location.X}, Y: {location.Y}) either did not exist or did not have a valid machine type");
+				return;  // Machine does not exist
 
 			machine.Inventory[slot] = item;
 
@@ -1020,6 +1033,195 @@ namespace SerousEnergyLib.Systems {
 			using BinaryReader msReader = new(ms);
 			machine.ReducedNetReceive(msReader);
 		}
+
+		/// <summary>
+		/// Syncs the power storage in <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process.  Must refer to a <see cref="ModTileEntity"/> instance or an error will be thrown</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachinePowerStorage(IPoweredMachine machine) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("Machine was not a ModTileEntity", nameof(machine));
+
+			SyncMachinePowerStorage_DoSync(entity.Position, machine.PowerStorage);
+		}
+
+		/// <summary>
+		/// Syncs the power storage in the machine entity at the provided <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The tile coordinates of othe machine.  Must refer to a <see cref="ModTileEntity"/> and <see cref="IPoweredMachine"/> instance or an error will be thrown</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachinePowerStorage(Point16 location) {
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not ModTileEntity || entity is not IPoweredMachine machine)
+				throw new ArgumentException($"Tile entity at location (X: {location.X}, Y: {location.Y}) did not have a valid machine type", nameof(location));
+
+			SyncMachinePowerStorage_DoSync(location, machine.PowerStorage);
+		}
+
+		private static void SyncMachinePowerStorage_DoSync(Point16 location, FluxStorage storage) {
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncMachinePowerStorage);
+			packet.Write(location);
+			storage.Send(packet);
+			packet.Send();
+		}
+
+		private static void ReceiveMachinePowerStorageSync(BinaryReader reader, int sender) {
+			Point16 location = reader.ReadPoint16();
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not IPoweredMachine machine) {
+				// Machine does not exist
+				FluxStorage storage = new FluxStorage(TerraFlux.Zero);
+				storage.Receive(reader);
+				return;
+			}
+
+			machine.PowerStorage.Receive(reader);
+
+			if (Main.netMode == NetmodeID.Server) {
+				// Forward to other clients
+				var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
+				packet.Write(location);
+				machine.PowerStorage.Send(packet);
+				packet.Send(ignoreClient: sender);
+			}
+		}
+
+		/// <summary>
+		/// Syncs the fluid storage <paramref name="slot"/> in <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process.  Must refer to a <see cref="ModTileEntity"/> instance or an error will be thrown</param>
+		/// <param name="slot">The slot in the machine's inventory</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachineFluidStorageSlot(IFluidMachine machine, int slot) {
+			if (machine is not ModTileEntity entity)
+				throw new ArgumentException("Machine was not a ModTileEntity", nameof(machine));
+
+			var storage = machine.FluidStorage;
+			if (slot < 0 || slot >= storage.Length)
+				return;
+
+			storage[slot] ??= new(0);
+
+			SyncMachineFluidStorageSlot_DoSync(entity.Position, slot, storage[slot]);
+		}
+
+		/// <summary>
+		/// Syncs the fluid storage <paramref name="slot"/> in the machine entity at the provided <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The tile coordinates of othe machine.  Must refer to a <see cref="ModTileEntity"/> and <see cref="IFluidMachine"/> instance or an error will be thrown</param>
+		/// <param name="slot">The slot in the machine's inventory</param>
+		/// <exception cref="ArgumentException"/>
+		public static void SyncMachineFluidStorageSlot(Point16 location, int slot) {
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not ModTileEntity || entity is not IFluidMachine machine)
+				throw new ArgumentException($"Tile entity at location (X: {location.X}, Y: {location.Y}) did not have a valid machine type", nameof(location));
+
+			var storage = machine.FluidStorage;
+			if (slot < 0 || slot >= storage.Length)
+				return;
+
+			storage[slot] ??= new(0);
+
+			SyncMachineFluidStorageSlot_DoSync(location, slot, storage[slot]);
+		}
+
+		private static void SyncMachineFluidStorageSlot_DoSync(Point16 location, int slot, FluidStorage storage) {
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
+			packet.Write(location);
+			packet.Write((short)slot);
+			storage.Send(packet);
+			packet.Send();
+		}
+
+		private static void ReceiveMachineFluidStorageSlotSync(BinaryReader reader, int sender) {
+			Point16 location = reader.ReadPoint16();
+			short slot = reader.ReadInt16();
+
+			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) || entity is not IFluidMachine machine) {
+				// Machine does not exist
+				FluidStorage storage = new(0);
+				storage.Receive(reader);
+				return;
+			}
+
+			machine.FluidStorage[slot].Receive(reader);
+
+			if (Main.netMode == NetmodeID.Server) {
+				// Forward to other clients
+				var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
+				packet.Write(location);
+				packet.Write(slot);
+				machine.FluidStorage[slot].Send(packet);
+				packet.Send(ignoreClient: sender);
+			}
+		}
+
+		/// <summary>
+		/// Syncs the fluid storage within <paramref name="network"/> to all clients
+		/// </summary>
+		/// <param name="network">The fluid network</param>
+		/// <param name="networkEntry">A location within the network used to identify it on the client's end</param>
+		public static void SyncNetworkFluidStorage(FluidNetwork network, Point16 networkEntry) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncNetworkFluidStorage);
+			packet.Write(networkEntry);
+			packet.Write(network.netFluid);
+			network.Storage.Send(packet);
+			packet.Send();
+		}
+
+		private static void ReceiveNetworkFluidStorageSync(BinaryReader reader) {
+			Point16 location = reader.ReadPoint16();
+			double netFluid = reader.ReadDouble();
+
+			if (Network.GetFluidNetworkAt(location.X, location.Y) is not FluidNetwork net) {
+				// Network does not exist
+				FluidStorage storage = new(0);
+				storage.Receive(reader);
+				return;
+			}
+
+			net.netFluid = netFluid;
+			net.Storage.Receive(reader);
+		}
+
+		/// <summary>
+		/// Syncs the power storage within <paramref name="network"/> to all clients
+		/// </summary>
+		/// <param name="network">The power network</param>
+		/// <param name="networkEntry">A location within the network used to identify it on the client's end</param>
+		public static void SyncNetworkPowerStorage(PowerNetwork network, Point16 networkEntry) {
+			if (Main.netMode != NetmodeID.Server)
+				return;
+
+			var packet = GetPacket(NetcodeMessage.SyncNetworkPowerStorage);
+			packet.Write(networkEntry);
+			packet.Write(network.netPower);
+			network.Storage.Send(packet);
+			packet.Send();
+		}
+
+		private static void ReceiveNetworkPowerStorageSync(BinaryReader reader) {
+			Point16 location = reader.ReadPoint16();
+			TerraFlux netPower = reader.ReadFlux();
+
+			if (Network.GetPowerNetworkAt(location.X, location.Y) is not PowerNetwork net) {
+				// Network does not exist
+				FluxStorage storage = new(TerraFlux.Zero);
+				storage.Receive(reader);
+				return;
+			}
+
+			net.netPower = netPower;
+			net.Storage.Receive(reader);
+		}
 	}
 
 	internal enum NetcodeMessage {
@@ -1047,6 +1249,10 @@ namespace SerousEnergyLib.Systems {
 		SendSoundPlayWithEmitter,
 		SendSoundStop,
 		SendSoundUpdate,
-		SyncReducedMachineData
+		SyncReducedMachineData,
+		SyncMachinePowerStorage,
+		SyncMachineFluidStorageSlot,
+		SyncNetworkFluidStorage,
+		SyncNetworkPowerStorage
 	}
 }

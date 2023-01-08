@@ -84,12 +84,16 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to try to export from or insert into</param>
 		/// <param name="source">The network to examine</param>
 		/// <param name="transfer">The highest transfer rate, or <see cref="TerraFlux.Zero"/> if one could not be found.</param>
-		public static bool TryGetHighestTransferRate(IPoweredMachine machine, PowerNetwork source, out TerraFlux transfer) {
+		/// <param name="exportTileLocation">The tile location of the <see cref="IPowerTransportTile"/> being exported from</param>
+		/// <param name="importSubtileLocation">The tile location of the sub-tile in <paramref name="machine"/> being imported into</param>
+		public static bool TryGetHighestTransferRate(IPoweredMachine machine, PowerNetwork source, out TerraFlux transfer, out Point16 exportTileLocation, out Point16 importSubtileLocation) {
 			// Find the tile adjacent to this machine with the highest export rate and use it
 			var adjacent = GetAdjacentNetworks(machine, NetworkType.Power, allowDuplicates: true);
 
 			TerraFlux maxTransfer = TerraFlux.Zero;
 			bool entryExists = false;
+			exportTileLocation = Point16.NegativeOne;
+			importSubtileLocation = Point16.NegativeOne;
 
 			foreach (var result in adjacent) {
 				if (result.network.ID != source.ID)
@@ -99,6 +103,8 @@ namespace SerousEnergyLib.API.Machines {
 
 				if (TileLoader.GetTile(Main.tile[loc.X, loc.Y].TileType) is IPowerTransportTile transport && transport.TransferRate > maxTransfer) {
 					maxTransfer = transport.TransferRate;
+					exportTileLocation = loc;
+					importSubtileLocation = result.machineTileAdjacentToNetwork;
 					entryExists = true;
 				}
 			}

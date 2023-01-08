@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API;
+﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API;
 using SerousEnergyLib.Pathfinding;
 using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems.Networks;
@@ -46,6 +47,8 @@ namespace SerousEnergyLib.Systems {
 		public bool IsEmpty => nodes.Count == 0;
 
 		public int EntryCount => nodes.Count;
+
+		public Point16 FirstNode => nodes.Count == 0 ? Point16.NegativeOne : nodes.Keys.First();
 
 		internal NetworkInstance(NetworkType filter) {
 			Filter = filter;
@@ -1137,6 +1140,17 @@ namespace SerousEnergyLib.Systems {
 			coarseTop = reader.ReadInt16();
 			coarseRight = reader.ReadInt16();
 			coarseBottom = reader.ReadInt16();
+
+			// Request the map sections intersecting the network's area
+			int left = coarseLeft * CoarseNode.Stride / 200;
+			int top = coarseTop * CoarseNode.Stride / 150;
+			int right = coarseRight * CoarseNode.Stride / 200;
+			int bottom = coarseBottom * CoarseNode.Stride / 150;
+
+			for (int y = top; y <= bottom; y++) {
+				for (int x = left; x <= right; x++)
+					RemoteClient.CheckSection(Main.myPlayer, new Vector2(x * 200 + 1, y * 150 + 1));
+			}
 		}
 
 		internal void ReceiveNetworkData_4_Junctions(BinaryReader reader) {

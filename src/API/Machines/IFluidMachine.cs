@@ -36,16 +36,23 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="pump">The tile coordinates of the pump tile</param>
 		/// <param name="subtile">The tile coordinates of which sub-tile of this machine is being pumped from</param>
-		/// <returns>An instance from <see cref="FluidStorage"/> or <see langword="null"/> if no fluids can be extracted</returns>
-		FluidStorage SelectFluidExportSource(Point16 pump, Point16 subtile);
+		/// <returns>An index in <see cref="FluidStorage"/> or <c>-1</c> if no fluids can be extracted</returns>
+		int SelectFluidExportSource(Point16 pump, Point16 subtile);
 
 		/// <summary>
 		/// Select which fluid inventory can be imported into from a given <paramref name="pipe"/> location at the given <paramref name="subtile"/> location within this machine
 		/// </summary>
 		/// <param name="pipe">The tile coordinates of the <see cref="IFluidTransportTile"/> tile</param>
 		/// <param name="subtile">The tile coordinates of which sub-tile of this machine is being imported into</param>
-		/// <returns>An instance from <see cref="FluidStorage"/> or <see langword="null"/> if no fluid storages can be imported into</returns>
-		FluidStorage SelectFluidImportDestination(Point16 pipe, Point16 subtile);
+		/// <returns>An index in <see cref="FluidStorage"/> or <c>-1</c> if no fluid storages can be imported into</returns>
+		int SelectFluidImportDestination(Point16 pipe, Point16 subtile);
+
+		/// <summary>
+		/// Select which fluid inventory can be imported into based on <paramref name="fluidType"/>
+		/// </summary>
+		/// <param name="fluidType">The <see cref="FluidTypeID"/> of the fluid being imported</param>
+		/// <returns>An index in <see cref="FluidStorage"/> or <c>-1</c> if no fluid storages can be imported into</returns>
+		int SelectFluidImportDestinationFromType(int fluidType);
 
 		/// <summary>
 		/// Whether <paramref name="upgrade"/> can apply to the storage in <see cref="FluidStorage"/> at index <paramref name="slot"/>
@@ -86,8 +93,22 @@ namespace SerousEnergyLib.API.Machines {
 					continue;
 
 				Point16 loc = result.tileInNetwork;
+				Tile tile = Main.tile[loc.X, loc.Y];
 
-				if (TileLoader.GetTile(Main.tile[loc.X, loc.Y].TileType) is IFluidTransportTile transport && transport.ExportRate > maxExport) {
+				if (TileLoader.GetTile(tile.TileType) is IFluidTransportTile transport && transport.ExportRate > maxExport) {
+					// Fluid pumps must be pointed toward this machine
+					if (tile.Get<NetworkInfo>().IsPump) {
+						if (transport is IFluidPumpTile) {
+							PumpDirection direction = tile.Get<NetworkTaggedInfo>().PumpDirection;
+
+							if (!NetworkTaggedInfo.DoesOrientationMatchPumpDirection(result.machineTileAdjacentToNetwork - loc, direction))
+								continue;
+						} else {
+							// Data mismatch
+							continue;
+						}
+					}
+
 					maxExport = transport.ExportRate;
 					exportTileLocation = loc;
 					importSubtileLocation = result.machineTileAdjacentToNetwork;

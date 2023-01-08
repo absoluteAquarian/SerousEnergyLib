@@ -23,7 +23,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		public FluxStorage Storage = new FluxStorage(TerraFlux.Zero);
 
-		private TerraFlux netPower;
+		internal TerraFlux netPower;
 		/// <summary>
 		/// The net gain/loss of power in this power network
 		/// </summary>
@@ -47,13 +47,15 @@ namespace SerousEnergyLib.Systems.Networks {
 				.Where(p => p is not IPowerGeneratorMachine);
 
 			foreach (var machine in machines) {
-				if (!IPoweredMachine.TryGetHighestTransferRate(machine, this, out TerraFlux rate))
+				if (!IPoweredMachine.TryGetHighestTransferRate(machine, this, out TerraFlux rate, out _, out _))
 					continue;
 
 				Storage.ExportTo(machine.PowerStorage, rate);
 			}
 
 			netPower = Storage.CurrentCapacity - previousPower;
+
+			Netcode.SyncNetworkPowerStorage(this, FirstNode);
 		}
 
 		public override void OnEntryAdded(Point16 location) {
