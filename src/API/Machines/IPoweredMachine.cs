@@ -9,6 +9,7 @@ using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Tiles;
 using Terraria.DataStructures;
 using Terraria;
+using System.IO;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -121,15 +122,23 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		#pragma warning disable CS1591
-		public static void SavePower(IPoweredMachine machine, TagCompound tag) {
+		public static void SaveData(IPoweredMachine machine, TagCompound tag) {
 			TagCompound flux;
 			tag["flux"] = flux = new TagCompound();
 			machine.PowerStorage.SaveData(flux);
 		}
 
-		public static void LoadPower(IPoweredMachine machine, TagCompound tag) {
+		public static void LoadData(IPoweredMachine machine, TagCompound tag) {
 			if (tag.GetCompound("flux") is TagCompound flux)
 				machine.PowerStorage.LoadData(flux);
+		}
+
+		public static void NetSend(IPoweredMachine machine, BinaryWriter writer) {
+			machine.PowerStorage.Send(writer);
+		}
+
+		public static void NetReceive(IPoweredMachine machine, BinaryReader reader) {
+			machine.PowerStorage.Receive(reader);
 		}
 	}
 }

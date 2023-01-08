@@ -1,6 +1,7 @@
 ﻿using SerousEnergyLib.API.Machines.UI;
 using SerousEnergyLib.Items;
 using System.Collections.Generic;
+using System.IO;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
@@ -37,13 +38,23 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public abstract int[] GetInputSlots();
 
 		public override void SaveData(TagCompound tag) {
-			IMachine.SaveUpgrades(this, tag);
+			IMachine.SaveData(this, tag);
 			IInventoryMachine.SaveInventory(this, tag);
 		}
 
 		public override void LoadData(TagCompound tag) {
-			IMachine.LoadUpgrades(this, tag);
+			IMachine.LoadData(this, tag);
 			IInventoryMachine.LoadInventory(this, tag);
+		}
+
+		public override void NetSend(BinaryWriter writer) {
+			IMachine.NetSend(this, writer);
+			IInventoryMachine.NetSend(this, writer);
+		}
+
+		public override void NetReceive(BinaryReader reader) {
+			IMachine.NetReceive(this, reader);
+			IInventoryMachine.NetReceive(this, reader);
 		}
 	}
 }

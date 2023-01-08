@@ -7,6 +7,7 @@ using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
@@ -300,14 +301,42 @@ namespace SerousEnergyLib.API.Machines {
 			}
 		}
 
-		public static void SaveUpgrades(IMachine machine, TagCompound tag) {
+		public static void SaveData(IMachine machine, TagCompound tag) {
 			tag["upgrades"] = machine.Upgrades.Select(UpgradeLoader.SaveUpgrade).ToList();
 		}
 
-		public static void LoadUpgrades(IMachine machine, TagCompound tag) {
+		public static void LoadData(IMachine machine, TagCompound tag) {
 			machine.Upgrades = tag.GetList<TagCompound>("upgrades") is List<TagCompound> list
 				? list.Select(UpgradeLoader.LoadUpgrade).OfType<BaseUpgradeItem>().Where(static s => s.Upgrade is not null).ToList()
 				: new();
+		}
+
+		public static void NetSend(IMachine machine, BinaryWriter writer) {
+			writer.Write((short)machine.Upgrades.Count);
+
+			foreach (var upgrade in machine.Upgrades) {
+				writer.Write(upgrade.Type);
+				writer.Write((short)upgrade.Stack);
+			}
+		}
+
+		public static void NetReceive(IMachine machine, BinaryReader reader) {
+			if (machine.Upgrades is null)
+				machine.Upgrades = new();
+			else
+				machine.Upgrades.Clear();
+
+			short count = reader.ReadInt16();
+
+			for (int i = 0; i < count; i++) {
+				BaseUpgradeItem upgradeItem = new Item(reader.ReadInt32()).ModItem as BaseUpgradeItem
+					?? throw new IOException("Item ID did not refer to a BaseUpgradeItem instance");
+				short stack = reader.ReadInt16();
+
+				upgradeItem.Stack = stack;
+
+				machine.Upgrades.Add(upgradeItem);
+			}
 		}
 	}
 }

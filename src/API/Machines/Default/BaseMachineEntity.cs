@@ -1,7 +1,9 @@
 ﻿using SerousEnergyLib.API.Machines.UI;
 using SerousEnergyLib.Items;
 using System.Collections.Generic;
+using System.IO;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
@@ -20,5 +22,21 @@ namespace SerousEnergyLib.API.Machines.Default {
 		}
 
 		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
+
+		public override void SaveData(TagCompound tag) {
+			IMachine.SaveData(this, tag);
+		}
+
+		public override void LoadData(TagCompound tag) {
+			IMachine.LoadData(this, tag);
+		}
+
+		public override void NetSend(BinaryWriter writer) {
+			IMachine.NetSend(this, writer);
+		}
+
+		public override void NetReceive(BinaryReader reader) {
+			IMachine.NetReceive(this, reader);
+		}
 	}
 }

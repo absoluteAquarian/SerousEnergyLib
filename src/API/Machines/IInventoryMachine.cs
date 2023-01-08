@@ -5,6 +5,7 @@ using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
@@ -302,6 +303,34 @@ namespace SerousEnergyLib.API.Machines {
 			if (tag.GetList<Item>("inventory") is List<Item> items && inv.Length == items.Count) {
 				for (int i = 0; i < items.Count; i++)
 					inv[i] = items[i];
+			}
+		}
+
+		public static void NetSend(IInventoryMachine machine, BinaryWriter writer) {
+			using (CompressionStream compression = new CompressionStream()) {
+				var compressedWriter = compression.writer;
+
+				compressedWriter.Write(machine.Inventory.Length);
+
+				foreach (var item in machine.Inventory)
+					ItemIO.Send(item, compressedWriter, writeStack: true, writeFavorite: true);
+
+				compression.WriteToStream(writer);
+			}
+		}
+
+		public static void NetReceive(IInventoryMachine machine, BinaryReader reader) {
+			using (DecompressionStream decompression = new DecompressionStream(reader)) {
+				var decompressedReader = decompression.reader;
+
+				int count = decompressedReader.ReadInt32();
+
+				machine.Inventory = new Item[count];
+
+				for (int i = 0; i < count; i++) {
+					Item item = ItemIO.Receive(decompressedReader, readStack: true, readFavorite: true);
+					machine.Inventory[i] = item;
+				}
 			}
 		}
 	}

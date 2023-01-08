@@ -10,6 +10,7 @@ using SerousEnergyLib.API.Upgrades;
 using Terraria.ModLoader;
 using SerousEnergyLib.Tiles;
 using Terraria;
+using System.IO;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -121,7 +122,7 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		#pragma warning disable CS1591
-		public static void SaveFluids(IFluidMachine machine, TagCompound tag) {
+		public static void SaveData(IFluidMachine machine, TagCompound tag) {
 			static TagCompound SaveFluid(FluidStorage storage) {
 				TagCompound fluidTag = new TagCompound();
 				storage.SaveData(fluidTag);
@@ -131,11 +132,30 @@ namespace SerousEnergyLib.API.Machines {
 			tag["fluids"] = machine.FluidStorage.Select(SaveFluid).ToList();
 		}
 
-		public static void LoadFluids(IFluidMachine machine, TagCompound tag) {
+		public static void LoadData(IFluidMachine machine, TagCompound tag) {
 			var storage = machine.FluidStorage;
 			if (tag.GetList<TagCompound>("fluids") is List<TagCompound> fluids && fluids.Count == storage.Length) {
 				for (int i = 0; i < storage.Length; i++)
 					storage[i].LoadData(fluids[i]);
+			}
+		}
+
+		public static void NetSend(IFluidMachine machine, BinaryWriter writer) {
+			writer.Write((short)machine.FluidStorage.Length);
+
+			foreach (var storage in machine.FluidStorage)
+				storage.Send(writer);
+		}
+
+		public static void NetReceive(IFluidMachine machine, BinaryReader reader) {
+			short count = reader.ReadInt16();
+
+			machine.FluidStorage = new FluidStorage[count];
+
+			for (int i = 0; i < count; i++) {
+				FluidStorage storage = new(0);
+				storage.Receive(reader);
+				machine.FluidStorage[i] = storage;
 			}
 		}
 	}

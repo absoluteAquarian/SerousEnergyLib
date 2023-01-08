@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 using SerousEnergyLib.Items;
+using System.IO;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
@@ -32,13 +33,23 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public virtual bool CanMergeWithWire(int wireX, int wireY, int machineX, int machineY) => true;
 
 		public override void SaveData(TagCompound tag) {
-			IMachine.SaveUpgrades(this, tag);
-			IPoweredMachine.SavePower(this, tag);
+			IMachine.SaveData(this, tag);
+			IPoweredMachine.SaveData(this, tag);
 		}
 
 		public override void LoadData(TagCompound tag) {
-			IMachine.LoadUpgrades(this, tag);
-			IPoweredMachine.LoadPower(this, tag);
+			IMachine.LoadData(this, tag);
+			IPoweredMachine.LoadData(this, tag);
+		}
+
+		public override void NetSend(BinaryWriter writer) {
+			IMachine.NetSend(this, writer);
+			IPoweredMachine.NetSend(this, writer);
+		}
+
+		public override void NetReceive(BinaryReader reader) {
+			IMachine.NetReceive(this, reader);
+			IPoweredMachine.NetReceive(this, reader);
 		}
 	}
 }

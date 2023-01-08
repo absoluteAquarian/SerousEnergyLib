@@ -3,6 +3,7 @@ using SerousEnergyLib.API.Machines.UI;
 using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Items;
 using System.Collections.Generic;
+using System.IO;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
@@ -37,13 +38,23 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 
 		public override void SaveData(TagCompound tag) {
-			IMachine.SaveUpgrades(this, tag);
-			IFluidMachine.SaveFluids(this, tag);
+			IMachine.SaveData(this, tag);
+			IFluidMachine.SaveData(this, tag);
 		}
 
 		public override void LoadData(TagCompound tag) {
-			IMachine.LoadUpgrades(this, tag);
-			IFluidMachine.LoadFluids(this, tag);
+			IMachine.LoadData(this, tag);
+			IFluidMachine.LoadData(this, tag);
+		}
+
+		public override void NetSend(BinaryWriter writer) {
+			IMachine.NetSend(this, writer);
+			IFluidMachine.NetSend(this, writer);
+		}
+
+		public override void NetReceive(BinaryReader reader) {
+			IMachine.NetReceive(this, reader);
+			IFluidMachine.NetReceive(this, reader);
 		}
 	}
 }

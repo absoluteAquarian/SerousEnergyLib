@@ -673,7 +673,7 @@ namespace SerousEnergyLib.Systems {
 				// Forward to other clients
 				var packet = GetPacket(NetcodeMessage.SyncMachineInventorySlot);
 				packet.Write(location);
-				packet.Write((short)slot);
+				packet.Write(slot);
 				ItemIO.Send(item, packet, writeStack: true, writeFavorite: true);
 				packet.Send(ignoreClient: sender);
 			}
@@ -698,11 +698,7 @@ namespace SerousEnergyLib.Systems {
 			var packet = GetPacket(NetcodeMessage.SyncMachineUpgrades);
 			packet.Write(location);
 
-			packet.Write((short)machine.Upgrades.Count);
-			foreach (var upgrade in machine.Upgrades) {
-				packet.Write(upgrade.Type);
-				packet.Write((short)upgrade.Stack);
-			}
+			IMachine.NetSend(machine, packet);
 
 			packet.Send(ignoreClient: sender);
 		}
@@ -713,22 +709,7 @@ namespace SerousEnergyLib.Systems {
 			if (!TileEntity.ByPosition.TryGetValue(position, out TileEntity te) || te is not ModTileEntity || te is not IMachine machine)
 				throw new IOException("Position was either invalid or did not refer to a valid IMachine instance");
 
-			short upgradeCount = reader.ReadInt16();
-
-			if (machine.Upgrades is null)
-				machine.Upgrades = new();
-			else
-				machine.Upgrades.Clear();
-
-			for (int i = 0; i < upgradeCount; i++) {
-				BaseUpgradeItem upgradeItem = new Item(reader.ReadInt32()).ModItem as BaseUpgradeItem
-					?? throw new IOException("Item ID did not refer to a BaseUpgradeItem instance");
-				short stack = reader.ReadInt16();
-
-				upgradeItem.Stack = stack;
-
-				machine.Upgrades.Add(upgradeItem);
-			}
+			IMachine.NetReceive(machine, reader);
 
 			if (Main.netMode == NetmodeID.Server)
 				SyncMachineUpgrades_SendPacket(machine, position, sender);
