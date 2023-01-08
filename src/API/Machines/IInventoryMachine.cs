@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader.IO;
@@ -247,6 +248,26 @@ namespace SerousEnergyLib.API.Machines {
 			}
 
 			return results;
+		}
+
+		/// <summary>
+		/// Attempts to add <paramref name="item"/> to the export slots of <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="item">The item to insert in the export slots of <paramref name="machine"/>.  Any leftover stack will be in this parameter after calling this method</param>
+		protected static void AddItemToExportInventory(IInventoryMachine machine, Item item) {
+			var slots = machine.GetExportSlotsOrDefault();
+
+			int capacity = slots.Length;
+
+			for (int i = 0; i < capacity; i++) {
+				int slot = slots[i];
+
+				machine.ImportItemAtSlot(item, slot);
+
+				if (item.IsAir)
+					return;
+			}
 		}
 
 		/// <summary>
