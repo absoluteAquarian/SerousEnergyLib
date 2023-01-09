@@ -37,10 +37,14 @@ namespace SerousEnergyLib.API {
 		/// </summary>
 		public IReadOnlyList<MachineRecipeOutput> PossibleOutputs => possibleOutputs.AsReadOnly();
 
-		private readonly MachineRecipeInputTime duration;
+		private readonly IMachineRecipeIngredient duration;
 
 		protected private MachineRecipe(Ticks duration) {
 			this.duration = new MachineRecipeInputTime(duration);
+		}
+
+		protected private MachineRecipe(Ticks minimumDuration, Ticks maximumDuration) {
+			duration = new MachineRecipeInputTimeRange(minimumDuration, maximumDuration);
 		}
 
 		public MachineRecipe(int machine, Ticks duration) {
@@ -49,6 +53,14 @@ namespace SerousEnergyLib.API {
 
 			MachineTile = machine;
 			this.duration = new MachineRecipeInputTime(duration);
+		}
+
+		public MachineRecipe(int machine, Ticks minimumDuration, Ticks maximumDuration) {
+			if (TileLoader.GetTile(machine) is not BaseMachineTile)
+				throw new ArgumentException("Tile ID did not refer to a BaseMachineTile instance", nameof(machine));
+
+			MachineTile = machine;
+			duration = new MachineRecipeInputTimeRange(minimumDuration, maximumDuration);
 		}
 
 		/// <inheritdoc cref="Recipe.AddIngredient(int, int)"/>
@@ -349,6 +361,29 @@ namespace SerousEnergyLib.API {
 		}
 
 		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient<TimeRecipeItem>(time.ticks);
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
+	}
+
+	public readonly struct MachineRecipeInputTimeRange : IMachineRecipeIngredient {
+		public readonly Ticks minimumTime;
+		public readonly Ticks maximumTime;
+
+		public MachineRecipeInputTimeRange(Ticks minimumTime, Ticks maximumTime) {
+			if (minimumTime.ticks > maximumTime.ticks)
+				throw new ArgumentException(nameof(minimumTime), "Minimum time must be less than or equal to maximum time");
+
+			if (minimumTime.ticks <= 0)
+				throw new ArgumentOutOfRangeException(nameof(minimumTime));
+
+			this.minimumTime = minimumTime;
+			this.maximumTime = maximumTime;
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			recipe.AddIngredient<TimeMinimumRangeRecipeItem>(minimumTime.ticks);
+			recipe.AddIngredient<TimeMaximumRangeRecipeItem>(maximumTime.ticks);
+		}
 
 		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
 	}

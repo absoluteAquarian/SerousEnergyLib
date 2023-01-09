@@ -41,6 +41,8 @@
 		DataHash: "Data hash: {0:x8}"
 
 		TimeItemDuration: "{0:0.###} seconds ({1} ticks)"
+		TimeItemMinimumDuration: "Minimum: {$Mods.SerousEnergyLib.TimeItemDuration}"
+		TimeItemMaximumDuration: "Maximum: {$Mods.SerousEnergyLib.TimeItemDuration}"
 
 		CommonMachineItemTooltipFooter:
 		'''
