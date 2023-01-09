@@ -39,6 +39,20 @@ namespace SerousEnergyLib.API {
 
 		private readonly IMachineRecipeIngredient duration;
 
+		/// <summary>
+		/// Gets the time range assigned to this recipe
+		/// </summary>
+		public (Ticks min, Ticks max) Duration {
+			get {
+				if (duration is MachineRecipeInputTime time)
+					return (time.time, time.time);
+				else if (duration is MachineRecipeInputTimeRange range)
+					return (range.minimumTime, range.maximumTime);
+
+				return (Ticks.Zero, Ticks.Zero);
+			}
+		}
+
 		protected private MachineRecipe(Ticks duration) {
 			this.duration = new MachineRecipeInputTime(duration);
 		}
