@@ -33,6 +33,14 @@ namespace SerousEnergyLib.API.Machines.UI {
 		private bool needsRecalculate;
 
 		/// <summary>
+		/// Set this property to <see langword="true"/> to make this UI call <see cref="Refresh"/> when it updates
+		/// </summary>
+		public bool NeedsToRecalculate {
+			get => needsRecalculate;
+			set => needsRecalculate |= value;
+		}
+
+		/// <summary>
 		/// The left edge of this UI's panel
 		/// </summary>
 		public float PanelLeft {
