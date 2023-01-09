@@ -6,6 +6,8 @@
 		#pragma warning disable CS1591
 		public readonly int ticks;
 
+		public static readonly Ticks Zero = new Ticks(0);
+
 		public Ticks(int ticks) {
 			this.ticks = ticks;
 		}
