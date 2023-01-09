@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.API.Machines;
+using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.UI;
@@ -20,13 +21,19 @@ namespace SerousEnergyLib.Systems {
 		public static IMachine ActiveMachine { get; private set; }
 
 		public override void Load() {
+			if (Main.dedServ)
+				return;
+
 			uiInterface = new();
 
 			Main.OnResolutionChanged += PendingResolutionChange;
 		}
 
 		public override void Unload() {
-			base.Unload();
+			if (!Main.dedServ)
+				Main.OnResolutionChanged -= PendingResolutionChange;
+
+			uiInterface = null;
 		}
 
 		internal static bool pendingUIChangeForAnyReason;
@@ -71,6 +78,24 @@ namespace SerousEnergyLib.Systems {
 
 			if (!Main.playerInventory)
 				CloseUI();
+
+			uiInterface?.Update(gameTime);
+		}
+
+		public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers) {
+			int inventoryIndex = layers.FindIndex(layer => layer.Name == "Vanilla: Inventory");
+			if (inventoryIndex != -1) {
+				layers.Insert(inventoryIndex + 1, new LegacyGameInterfaceLayer("SerousEnergyLib: Machine UI",
+					static () => {
+						if (uiInterface?.CurrentState is not null) {
+							Main.hidePlayerCraftingMenu = true;
+
+							uiInterface.Draw(Main.spriteBatch, Main.gameTimeCache);
+						}
+
+						return true;
+					}, InterfaceScaleType.UI));
+			}
 		}
 	}
 }
