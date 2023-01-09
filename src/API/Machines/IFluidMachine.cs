@@ -17,6 +17,7 @@ namespace SerousEnergyLib.API.Machines {
 	/// An interface containing methods used by machines that can store fluids
 	/// </summary>
 	public interface IFluidMachine : IMachine {
+		#pragma warning disable CS1591
 		/// <summary>
 		/// The fluid storages within this machine
 		/// </summary>
@@ -53,6 +54,13 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="fluidType">The <see cref="FluidTypeID"/> of the fluid being imported</param>
 		/// <returns>An index in <see cref="FluidStorage"/> or <c>-1</c> if no fluid storages can be imported into</returns>
 		int SelectFluidImportDestinationFromType(int fluidType);
+
+		/// <summary>
+		/// Return the slots in <see cref="FluidStorage"/> that can be used in recipes, or <see langword="null"/> to indicate that all slots can be used.
+		/// </summary>
+		int[] GetInputSlotsForRecipes();
+
+		public int[] GetInputSlotsForRecipesOrDefault() => GetInputSlotsForRecipes() ?? Enumerable.Range(0, FluidStorage.Length).ToArray();
 
 		/// <summary>
 		/// Whether <paramref name="upgrade"/> can apply to the storage in <see cref="FluidStorage"/> at index <paramref name="slot"/>

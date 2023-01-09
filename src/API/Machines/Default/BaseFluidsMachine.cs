@@ -30,6 +30,8 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract int SelectFluidImportDestination(Point16 pipe, Point16 subtile);
 
+		public abstract int[] GetInputSlotsForRecipes();
+
 		public abstract int SelectFluidImportDestinationFromType(int fluidType);
 
 		public override void Update() {

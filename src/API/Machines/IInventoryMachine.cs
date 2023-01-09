@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.Pathfinding.Objects;
+﻿using SerousEnergyLib.API.Fluid;
+using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -45,6 +46,13 @@ namespace SerousEnergyLib.API.Machines {
 		int[] GetInputSlots();
 
 		public int[] GetInputSlotsOrDefault() => GetInputSlots() ?? Enumerable.Range(0, DefaultInventoryCapacity).ToArray();
+
+		/// <summary>
+		/// Return the slots in <see cref="Inventory"/> that can be used in recipes, or <see langword="null"/> to indicate that all slots can be used.
+		/// </summary>
+		int[] GetInputSlotsForRecipes();
+
+		public int[] GetInputSlotsForRecipesOrDefault() => GetInputSlotsForRecipes() ?? Enumerable.Range(0, Inventory.Length).ToArray();
 
 		/// <summary>
 		/// Whether <paramref name="import"/> can be inserted in this machine's inventory at the given <paramref name="slot"/> in <see cref="Inventory"/>

@@ -37,6 +37,8 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract int[] GetInputSlots();
 
+		public abstract int[] GetInputSlotsForRecipes();
+
 		public override void SaveData(TagCompound tag) {
 			IMachine.SaveData(this, tag);
 			IInventoryMachine.SaveInventory(this, tag);

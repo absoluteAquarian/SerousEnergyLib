@@ -431,24 +431,32 @@ namespace SerousEnergyLib.API {
 
 		internal MachineRecipeState(IMachine machine) {
 			// Get the item inventory
-			Item[] inventoryItems;
-			if (machine is IInventoryMachine inventory) {
-				inventoryItems = inventory.Inventory;
+			Item[] itemInv;
+			int[] inventoryItems;
+			if (machine is IInventoryMachine inventory && inventory.GetInputSlotsForRecipesOrDefault() is { Length: > 0 } itemInputSlots) {
+				itemInv = inventory.Inventory;
+				inventoryItems = itemInputSlots;
 
-				if (inventoryItems is null)
+				if (itemInv is null)
 					throw new ArgumentException("Item inventory array was null");
-			} else
-				inventoryItems = Array.Empty<Item>();
+			} else {
+				itemInv = Array.Empty<Item>();
+				inventoryItems = Array.Empty<int>();
+			}
 
 			// Get the fluid inventory
-			FluidStorage[] storageFluids;
-			if (machine is IFluidMachine fluid) {
-				storageFluids = fluid.FluidStorage;
+			FluidStorage[] fluidInv;
+			int[] storageFluids;
+			if (machine is IFluidMachine fluid && fluid.GetInputSlotsForRecipesOrDefault() is { Length: > 0 } fluidInputSlots) {
+				fluidInv = fluid.FluidStorage;
+				storageFluids = fluidInputSlots;
 
-				if (storageFluids is null)
+				if (fluidInv is null)
 					throw new ArgumentException("Fluid storage array was null");
-			} else
-				storageFluids = Array.Empty<FluidStorage>();
+			} else {
+				fluidInv = Array.Empty<FluidStorage>();
+				storageFluids = Array.Empty<int>();
+			}
 
 			// Get the power inventory
 			power = new FluxStorage(TerraFlux.Zero);
@@ -466,9 +474,9 @@ namespace SerousEnergyLib.API {
 				items = new Item[inventoryItems.Length];
 
 				for (int i = 0; i < items.Length; i++)
-					items[i] = inventoryItems[i].Clone();
+					items[i] = itemInv[inventoryItems[i]].Clone();
 			} else
-				items = inventoryItems;
+				items = itemInv;
 
 			if (storageFluids.Length > 0) {
 				fluids = new FluidStorage[storageFluids.Length];
@@ -477,13 +485,13 @@ namespace SerousEnergyLib.API {
 					FluidStorage storage = new(0);
 
 					TagCompound tag = new();
-					storageFluids[i].SaveData(tag);
+					fluidInv[storageFluids[i]].SaveData(tag);
 					storage.LoadData(tag);
 
 					fluids[i] = storage;
 				}
 			} else
-				fluids = storageFluids;
+				fluids = fluidInv;
 		}
 	}
 }
