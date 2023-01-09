@@ -6,7 +6,10 @@ namespace SerousEnergyLib.API.Machines.UI {
 	/// The base implementation of a page within a <see cref="BaseMachineUI"/> state
 	/// </summary>
 	public abstract class BaseMachineUIPage : UIElement {
-		internal BaseMachineUI parentUI;
+		/// <summary>
+		/// The <see cref="BaseMachineUI"/> that this page is assigned to
+		/// </summary>
+		protected readonly BaseMachineUI parentUI;
 
 		/// <summary>
 		/// The name of this page
