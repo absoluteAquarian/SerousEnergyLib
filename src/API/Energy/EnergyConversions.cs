@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.API.Energy.Default;
+using System;
 using System.Collections.Generic;
 using Terraria.ModLoader;
 
@@ -64,7 +65,10 @@ namespace SerousEnergyLib.API.Energy {
 				return new TerraFlux(amount);
 
 			// Convert to Terra Flux
-			double tf = amount * Get(sourceType).ConversionRatioToTerraFlux;
+			if (Get(sourceType) is not EnergyTypeID id)
+				throw new ArgumentException("Energy source type ID was invalid", nameof(sourceType));
+
+			double tf = amount * id.ConversionRatioToTerraFlux;
 
 			return new TerraFlux(tf);
 		}
@@ -96,7 +100,10 @@ namespace SerousEnergyLib.API.Energy {
 				return (double)flux;
 
 			// Convert to the destination type
-			double ratio = Get(destinationType).ConversionRatioToTerraFlux;
+			if (Get(destinationType) is not EnergyTypeID id)
+				throw new ArgumentException("Energy destination type ID was invalid", nameof(destinationType));
+
+			double ratio = id.ConversionRatioToTerraFlux;
 
 			// Ensure that the amount is always positive
 			double tf = (double)flux;

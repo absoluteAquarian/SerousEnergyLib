@@ -1,11 +1,12 @@
-﻿using SerousEnergyLib.API.Energy;
+﻿using SerousEnergyLib.API;
+using SerousEnergyLib.API.Energy;
 using System.Collections.Generic;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Items.Materials {
 	/// <summary>
-	/// An item representing an <see cref="EnergyTypeID"/> ingredient for a recipe
+	/// An item representing an <see cref="EnergyTypeID"/> ingredient for a <see cref="MachineRecipe"/>
 	/// </summary>
 	public abstract class EnergyRecipeItem : ModItem {
 		/// <summary>

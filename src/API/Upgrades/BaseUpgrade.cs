@@ -1,5 +1,6 @@
 ﻿using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Terraria.ModLoader;
 
@@ -107,5 +108,13 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
 		/// <param name="itemType">The item type that the machine is trying to generate</param>
 		public virtual bool BlockItemOutputGeneratorOutput(int upgradeStack, int itemType) => false;
+
+		/// <summary>
+		/// Modify the <paramref name="ingredient"/> within a <see cref="MachineRecipe"/> with the given <paramref name="possibleOutputs"/> here
+		/// </summary>
+		/// <param name="ingredient">The ingredient for the recipe</param>
+		/// <param name="defaultIngredients">A collection of the original ingredients that the recipe contains</param>
+		/// <param name="possibleOutputs">A collection of the possible outputs that the recipe contains</param>
+		public virtual void ModifyMachineRecipeIngredient(ref IMachineRecipeIngredient ingredient, IReadOnlyList<IMachineRecipeIngredient> defaultIngredients, IReadOnlyList<MachineRecipeOutput> possibleOutputs) { }
 	}
 }

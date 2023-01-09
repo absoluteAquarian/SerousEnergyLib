@@ -180,9 +180,9 @@ namespace SerousEnergyLib.API.Fluid {
 		public void ImportFrom(FluidStorage source, double import) => Transfer(source, this, import);
 
 		/// <summary>
-		/// Exports at most <paramref name="amount"/> fluid into this storage.
+		/// Exports at most <paramref name="amount"/> fluid from this storage.
 		/// </summary>
-		/// <param name="amount">The amount of fluid to import</param>
+		/// <param name="amount">The amount of fluid to export</param>
 		/// <param name="exportedType">The fluid ID that was exported</param>
 		/// <remarks>
 		/// <see cref="UnloadedFluidID"/> cannot be exported.<br/>

@@ -18,6 +18,7 @@
 			WaterRecipeItem: "{$Mods.SerousEnergyLib.FluidName.WaterFluidID}"
 			LavaRecipeItem: "{$Mods.SerousEnergyLib.FluidName.LavaFluidID}"
 			HoneyRecipeItem: "{$Mods.SerousEnergyLib.FluidName.HoneyFluidID}"
+			TimeRecipeItem: "N/A Seconds"
 		}
 
 		ItemTooltip: {
@@ -38,6 +39,8 @@
 
 		ItemHasMachineData: "This item contains metadata from a machine"
 		DataHash: "Data hash: {0:x8}"
+
+		TimeItemDuration: "{0:0.###} seconds ({1} ticks)"
 
 		CommonMachineItemTooltipFooter:
 		'''

@@ -1,4 +1,10 @@
-﻿using SerousEnergyLib.Tiles;
+﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.API.Energy.Default;
+using SerousEnergyLib.API.Fluid;
+using SerousEnergyLib.API.Fluid.Default;
+using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Items.Materials;
+using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +12,7 @@ using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ModLoader.Exceptions;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API {
 	#pragma warning disable CS1591
@@ -30,13 +37,18 @@ namespace SerousEnergyLib.API {
 		/// </summary>
 		public IReadOnlyList<MachineRecipeOutput> PossibleOutputs => possibleOutputs.AsReadOnly();
 
-		protected private MachineRecipe() { }
+		private readonly MachineRecipeInputTime duration;
 
-		public MachineRecipe(int machine) {
+		protected private MachineRecipe(Ticks duration) {
+			this.duration = new MachineRecipeInputTime(duration);
+		}
+
+		public MachineRecipe(int machine, Ticks duration) {
 			if (TileLoader.GetTile(machine) is not BaseMachineTile)
 				throw new ArgumentException("Tile ID did not refer to a BaseMachineTile instance", nameof(machine));
 
 			MachineTile = machine;
+			this.duration = new MachineRecipeInputTime(duration);
 		}
 
 		/// <inheritdoc cref="Recipe.AddIngredient(int, int)"/>
@@ -100,6 +112,8 @@ namespace SerousEnergyLib.API {
 				foreach (var input in ingredients)
 					input.AddToRecipe(recipe);
 
+				duration.AddToRecipe(recipe);
+
 				recipe.AddTile(MachineTile);
 
 				string chanceString = output.chance >= 0.01 ? $"{output.chance * 100:0.###}" : "<1";
@@ -113,26 +127,36 @@ namespace SerousEnergyLib.API {
 		}
 
 		/// <summary>
-		/// Checks if the sequence of items indicated by <paramref name="inventoryItems"/> is valid for any of this instance's recipes
+		/// Checks if the contents of <paramref name="machine"/> can satisfy any of this recipe's requirements
 		/// </summary>
-		/// <param name="inventoryItems">A sequence of item instance to compare against</param>
-		/// <returns>Whether any recipes created by this instance can be satisfied by the item sequence</returns>
-		public bool IngredientSetMatches(Item[] inventoryItems) {
-			if (inventoryItems is not { Length: > 0 })
-				return false;
+		/// <param name="machine"></param>
+		/// <returns>Whether all of the requirements for this recipe can be satisfied by the machine's contents</returns>
+		public bool IngredientSetMatches(IMachine machine) {
+			MachineRecipeState state = new(machine);
 
-			// Clone the items since they'll be clobbered later
-			Item[] cloned = new Item[inventoryItems.Length];
-			for (int i = 0; i < cloned.Length; i++)
-				cloned[i] = inventoryItems[i].Clone();
+			// Copy the ingredients, modify them, then use them
+			var modifiedIngredients = new List<IMachineRecipeIngredient>(ingredients);
 
-			return ingredients.All(i => i.IsIngredientRequirementMet(cloned));
+			foreach (var upgradeItem in machine.Upgrades) {
+				var upgrade = upgradeItem.Upgrade;
+
+				if (!upgrade.CanApplyTo(machine))
+					continue;
+
+				for (int i = 0; i < modifiedIngredients.Count; i++) {
+					IMachineRecipeIngredient obj = modifiedIngredients[i];
+					upgrade.ModifyMachineRecipeIngredient(ref obj, Ingredients, PossibleOutputs);
+					modifiedIngredients[i] = obj;
+				}
+			}
+
+			return modifiedIngredients.All(i => i.IsIngredientRequirementMet(machine, state));
 		}
 	}
 
 	/// <inheritdoc cref="MachineRecipe"/>
 	public sealed class MachineRecipe<T> : MachineRecipe where T : BaseMachineTile {
-		public MachineRecipe() : base() {
+		public MachineRecipe(Ticks duration) : base(duration) {
 			MachineTile = ModContent.TileType<T>();
 		}
 	}
@@ -140,7 +164,7 @@ namespace SerousEnergyLib.API {
 	public interface IMachineRecipeIngredient {
 		void AddToRecipe(Recipe recipe);
 
-		bool IsIngredientRequirementMet(Item[] items);
+		bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state);
 	}
 
 	/// <summary>
@@ -157,10 +181,10 @@ namespace SerousEnergyLib.API {
 
 		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient(type, stack);
 
-		public bool IsIngredientRequirementMet(Item[] items) {
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) {
 			int remaining = stack;
 
-			foreach (Item item in items) {
+			foreach (Item item in state.items) {
 				if (item.IsAir)
 					continue;
 
@@ -204,13 +228,13 @@ namespace SerousEnergyLib.API {
 
 		public void AddToRecipe(Recipe recipe) => recipe.AddRecipeGroup(group, stack);
 
-		public bool IsIngredientRequirementMet(Item[] items) {
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) {
 			int remaining = stack;
 
 			if (!RecipeGroup.recipeGroups.TryGetValue(group, out RecipeGroup recipeGroup))
 				return false;
 
-			foreach (Item item in items) {
+			foreach (Item item in state.items) {
 				if (item.IsAir)
 					continue;
 
@@ -229,6 +253,106 @@ namespace SerousEnergyLib.API {
 		}
 	}
 
+	public readonly struct MachineRecipeInputFluid : IMachineRecipeIngredient {
+		public readonly int type;
+		public readonly int amountInMilliliters;
+
+		public MachineRecipeInputFluid(int fluidType, double liters) {
+			if (FluidLoader.Get(fluidType) is not FluidTypeID id || id is UnloadedFluidID)
+				throw new ArgumentException("Fluid type ID for ingredient was invalid", nameof(fluidType));
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not FluidRecipeItem)
+				throw new ArgumentException($"Fluid type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (liters < 0.001)
+				throw new ArgumentException("Fluid quantity must be greater than or equal to 1 milliliter");
+
+			type = fluidType;
+			amountInMilliliters = (int)(liters * 1000d);
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			var id = FluidLoader.Get(type);
+
+			recipe.AddIngredient(id.RecipeItemType, amountInMilliliters);
+		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) {
+			double liters = amountInMilliliters / 1000d;
+			foreach (var storage in state.fluids) {
+				if (storage.FluidType != type)
+					continue;
+
+				double export = liters;
+				storage.Export(ref liters, out _);
+
+				liters -= export;
+
+				if (liters <= 0)
+					return true;
+			}
+
+			return false;
+		}
+	}
+
+	public readonly struct MachineRecipeInputPower : IMachineRecipeIngredient {
+		public readonly int amount;
+		public readonly int type;
+
+		public MachineRecipeInputPower(TerraFlux flux) {
+			if (flux <= TerraFlux.Zero)
+				throw new ArgumentOutOfRangeException(nameof(flux));
+
+			amount = (int)(double)flux;
+			type = SerousMachines.EnergyType<TerraFluxTypeID>();
+		}
+
+		public MachineRecipeInputPower(int amount, int energyType) {
+			if (EnergyConversions.Get(energyType) is not EnergyTypeID id)
+				throw new ArgumentException("Energy type ID for ingredient was invalid");
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not EnergyRecipeItem)
+				throw new ArgumentException($"Energy type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (amount <= 0)
+				throw new ArgumentOutOfRangeException(nameof(amount));
+
+			this.amount = amount;
+			type = energyType;
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			var id = EnergyConversions.Get(type);
+
+			recipe.AddIngredient(id.RecipeItemType, amount);
+		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) {
+			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(amount, type);
+			TerraFlux export = flux;
+
+			state.power.Export(ref export);
+
+			return flux - export <= TerraFlux.Zero;
+		}
+	}
+
+	public readonly struct MachineRecipeInputTime : IMachineRecipeIngredient {
+		public readonly Ticks time;
+
+		public MachineRecipeInputTime(Ticks time) {
+			if (time.ticks <= 0)
+				throw new ArgumentOutOfRangeException(nameof(time));
+
+			this.time = time;
+		}
+
+		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient<TimeRecipeItem>(time.ticks);
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
+	}
+
 	/// <summary>
 	/// A structure representing an output item with a probability
 	/// </summary>
@@ -241,6 +365,72 @@ namespace SerousEnergyLib.API {
 			this.type = type;
 			this.stack = stack;
 			this.chance = Utils.Clamp(chance, 0, 1);
+		}
+	}
+
+	/// <summary>
+	/// A collection of information that's passed to <see cref="IMachineRecipeIngredient.IsIngredientRequirementMet(IMachine, MachineRecipeState)"/>
+	/// </summary>
+	public sealed class MachineRecipeState {
+		public readonly Item[] items;
+		public readonly FluidStorage[] fluids;
+		public readonly FluxStorage power;
+
+		internal MachineRecipeState(IMachine machine) {
+			// Get the item inventory
+			Item[] inventoryItems;
+			if (machine is IInventoryMachine inventory) {
+				inventoryItems = inventory.Inventory;
+
+				if (inventoryItems is null)
+					throw new ArgumentException("Item inventory array was null");
+			} else
+				inventoryItems = Array.Empty<Item>();
+
+			// Get the fluid inventory
+			FluidStorage[] storageFluids;
+			if (machine is IFluidMachine fluid) {
+				storageFluids = fluid.FluidStorage;
+
+				if (storageFluids is null)
+					throw new ArgumentException("Fluid storage array was null");
+			} else
+				storageFluids = Array.Empty<FluidStorage>();
+
+			// Get the power inventory
+			power = new FluxStorage(TerraFlux.Zero);
+			if (machine is IPoweredMachine powered) {
+				if (powered.PowerStorage is null)
+					throw new ArgumentException("Power storage was null");
+
+				TagCompound tag = new TagCompound();
+				powered.PowerStorage.SaveData(tag);
+				power.LoadData(tag);
+			}
+
+			// Clone the collections since they'll be clobbered later
+			if (inventoryItems.Length > 0) {
+				items = new Item[inventoryItems.Length];
+
+				for (int i = 0; i < items.Length; i++)
+					items[i] = inventoryItems[i].Clone();
+			} else
+				items = inventoryItems;
+
+			if (storageFluids.Length > 0) {
+				fluids = new FluidStorage[storageFluids.Length];
+
+				for (int i = 0; i < fluids.Length; i++) {
+					FluidStorage storage = new(0);
+
+					TagCompound tag = new();
+					storageFluids[i].SaveData(tag);
+					storage.LoadData(tag);
+
+					fluids[i] = storage;
+				}
+			} else
+				fluids = storageFluids;
 		}
 	}
 }

@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Energy {
@@ -55,5 +56,10 @@ namespace SerousEnergyLib.API.Energy {
 			if (DisplayName.IsDefault())
 				DisplayName.SetDefault(Regex.Replace(Name, "([A-Z])", " $1").Trim());
 		}
+
+		/// <summary>
+		/// Gets the display name for this energy ID
+		/// </summary>
+		public virtual string GetPrintedDisplayName() => DisplayName.GetTranslation(Language.ActiveCulture);
 	}
 }
