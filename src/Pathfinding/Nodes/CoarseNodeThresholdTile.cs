@@ -14,6 +14,7 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 		public CoarseNodeThresholdTile(Point16 location, ConnectionDirection edge) {
 			this.location = location;
 			this.edge = edge;
+			paths = null;
 		}
 
 		public override bool Equals(object obj) => obj is CoarseNodeThresholdTile tile && location == tile.location;

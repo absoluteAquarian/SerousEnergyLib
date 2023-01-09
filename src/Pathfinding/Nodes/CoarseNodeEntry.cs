@@ -6,13 +6,13 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 
 		Point16 IAStarEntry.Location => location;
 
-		public double TravelTime { get; set; }
+		public double TravelTime { get; set; } = 0;
 
 		public double Heuristic => TileDistance + TravelTime;
 
-		public int TileDistance { get; set; }
+		public int TileDistance { get; set; } = 0;
 
-		IAStarEntry IAStarEntry.Parent { get; set; }
+		IAStarEntry IAStarEntry.Parent { get; set; } = default;
 
 		public CoarseNodeEntry(Point16 location) {
 			this.location = location;
