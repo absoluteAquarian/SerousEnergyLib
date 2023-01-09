@@ -58,7 +58,9 @@ namespace SerousEnergyLib.API {
 		}
 
 		protected private MachineRecipe(Ticks minimumDuration, Ticks maximumDuration) {
-			duration = new MachineRecipeInputTimeRange(minimumDuration, maximumDuration);
+			duration = minimumDuration == maximumDuration
+				? new MachineRecipeInputTimeRange(minimumDuration, maximumDuration)
+				: new MachineRecipeInputTime(minimumDuration);
 		}
 
 		public MachineRecipe(int machine, Ticks duration) {
@@ -372,7 +374,7 @@ namespace SerousEnergyLib.API {
 		public readonly Ticks time;
 
 		public MachineRecipeInputTime(Ticks time) {
-			if (time.ticks <= 0)
+			if (time <= 0)
 				throw new ArgumentOutOfRangeException(nameof(time));
 
 			this.time = time;
@@ -388,10 +390,10 @@ namespace SerousEnergyLib.API {
 		public readonly Ticks maximumTime;
 
 		public MachineRecipeInputTimeRange(Ticks minimumTime, Ticks maximumTime) {
-			if (minimumTime.ticks > maximumTime.ticks)
+			if (minimumTime > maximumTime)
 				throw new ArgumentException(nameof(minimumTime), "Minimum time must be less than or equal to maximum time");
 
-			if (minimumTime.ticks <= 0)
+			if (minimumTime <= 0)
 				throw new ArgumentOutOfRangeException(nameof(minimumTime));
 
 			this.minimumTime = minimumTime;
