@@ -41,7 +41,7 @@ namespace SerousEnergyLib.Systems.Networks {
 			TerraFlux previousPower = Storage.CurrentCapacity;
 
 			// Generators have already been processed.  Only send power to machines that store/consume it
-			IEnumerable<IPoweredMachine> machines = adjacentFluxStorageTiles.Select(a => IMachine.TryFindMachine(a, out IMachine machine) ? machine : null)
+			IEnumerable<IPoweredMachine> machines = adjacentFluxStorageTiles.Select(a => IMachine.TryFindMachine(a, out IPoweredMachine machine) ? machine : null)
 				.OfType<ModTileEntity>()
 				.OfType<IPoweredMachine>()
 				.Where(p => p is not IPowerGeneratorMachine);
@@ -70,13 +70,13 @@ namespace SerousEnergyLib.Systems.Networks {
 				down = location + new Point16(0, 1);
 
 			// Add adjacent machines
-			if (IMachine.TryFindMachine(left, out IMachine machine) && machine is IPoweredMachine)
+			if (IMachine.TryFindMachine(left, out IPoweredMachine _))
 				adjacentFluxStorageTiles.Add(left);
-			if (IMachine.TryFindMachine(up, out machine) && machine is IPoweredMachine)
+			if (IMachine.TryFindMachine(up, out IPoweredMachine _))
 				adjacentFluxStorageTiles.Add(up);
-			if (IMachine.TryFindMachine(right, out machine) && machine is IPoweredMachine)
+			if (IMachine.TryFindMachine(right, out IPoweredMachine _))
 				adjacentFluxStorageTiles.Add(right);
-			if (IMachine.TryFindMachine(down, out machine) && machine is IPoweredMachine)
+			if (IMachine.TryFindMachine(down, out IPoweredMachine _))
 				adjacentFluxStorageTiles.Add(down);
 		}
 
@@ -85,7 +85,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		/// <param name="storage">The tile location of the adjacent machine to add</param>
 		public void AddAdjacentFluxStorage(Point16 storage) {
-			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IPoweredMachine)
+			if (IMachine.TryFindMachine(storage, out IPoweredMachine _))
 				adjacentFluxStorageTiles.Add(storage);
 		}
 

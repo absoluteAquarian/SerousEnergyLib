@@ -45,7 +45,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				pumpTimers.Remove(pump);
 
 			// Export fluids from this network into adjacent machines
-			IEnumerable<IFluidMachine> machines = adjacentFluidStorageTiles.Select(a => IMachine.TryFindMachine(a, out IMachine machine) ? machine : null)
+			IEnumerable<IFluidMachine> machines = adjacentFluidStorageTiles.Select(a => IMachine.TryFindMachine(a, out IFluidMachine machine) ? machine : null)
 				.OfType<ModTileEntity>()
 				.OfType<IFluidMachine>();
 
@@ -110,14 +110,14 @@ namespace SerousEnergyLib.Systems.Networks {
 
 				// TODO: allow sinks to pump water into networks?
 
-				if (IMachine.TryFindMachine(possibleStorage, out IMachine machine) && machine is IFluidMachine fluid) {
-					int slot = fluid.SelectFluidExportSource(location, possibleStorage);
+				if (IMachine.TryFindMachine(possibleStorage, out IFluidMachine machine)) {
+					int slot = machine.SelectFluidExportSource(location, possibleStorage);
 
-					if (slot >= 0 && slot < fluid.FluidStorage.Length) {
-						FluidStorage storage = fluid.FluidStorage[slot];
+					if (slot >= 0 && slot < machine.FluidStorage.Length) {
+						FluidStorage storage = machine.FluidStorage[slot];
 						storage?.ExportTo(Storage, extract);
 
-						Netcode.SyncMachineFluidStorageSlot(fluid, slot);
+						Netcode.SyncMachineFluidStorageSlot(machine, slot);
 					}
 				}
 			}
@@ -141,13 +141,13 @@ namespace SerousEnergyLib.Systems.Networks {
 				down = location + new Point16(0, 1);
 
 			// Add adjacent machines
-			if (IMachine.TryFindMachine(left, out IMachine machine) && machine is IFluidMachine)
+			if (IMachine.TryFindMachine(left, out IFluidMachine _))
 				adjacentFluidStorageTiles.Add(left);
-			if (IMachine.TryFindMachine(up, out machine) && machine is IFluidMachine)
+			if (IMachine.TryFindMachine(up, out IFluidMachine _))
 				adjacentFluidStorageTiles.Add(up);
-			if (IMachine.TryFindMachine(right, out machine) && machine is IFluidMachine)
+			if (IMachine.TryFindMachine(right, out IFluidMachine _))
 				adjacentFluidStorageTiles.Add(right);
-			if (IMachine.TryFindMachine(down, out machine) && machine is IFluidMachine)
+			if (IMachine.TryFindMachine(down, out IFluidMachine _))
 				adjacentFluidStorageTiles.Add(down);
 		}
 
@@ -156,7 +156,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		/// <param name="storage">The tile location of the adjacent machine to add</param>
 		public void AddAdjacentFluidStorage(Point16 storage) {
-			if (IMachine.TryFindMachine(storage, out IMachine machine) && machine is IFluidMachine)
+			if (IMachine.TryFindMachine(storage, out IFluidMachine _))
 				adjacentFluidStorageTiles.Add(storage);
 		}
 

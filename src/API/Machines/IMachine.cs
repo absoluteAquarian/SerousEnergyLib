@@ -75,7 +75,7 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <inheritdoc cref="TryFindMachine(Point16, out IMachine)"/>
-		public static bool TryFindMachine<T>(Point16 location, out T machine) where T : ModTileEntity, IMachine {
+		public static bool TryFindMachine<T>(Point16 location, out T machine) where T : IMachine {
 			Point16 topleft = TileFunctions.GetTopLeftTileInMultitile(location.X, location.Y);
 
 			if (TileEntity.ByPosition.TryGetValue(topleft, out TileEntity entity) && entity is T m) {
@@ -83,7 +83,7 @@ namespace SerousEnergyLib.API.Machines {
 				return true;
 			}
 
-			machine = null;
+			machine = default;
 			return false;
 		}
 
@@ -104,13 +104,13 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <inheritdoc cref="TryFindMachineExact(Point16, out IMachine)"/>
-		public static bool TryFindMachineExact<T>(Point16 location, out T machine) where T : ModTileEntity, IMachine {
+		public static bool TryFindMachineExact<T>(Point16 location, out T machine) where T : IMachine {
 			if (TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) && entity is T m) {
 				machine = m;
 				return true;
 			}
 
-			machine = null;
+			machine = default;
 			return false;
 		}
 

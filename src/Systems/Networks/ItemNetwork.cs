@@ -93,8 +93,8 @@ namespace SerousEnergyLib.Systems.Networks {
 					goto makeItems;
 				}
 
-				if (IMachine.TryFindMachine(possibleInventory, out IMachine machine) && machine is IInventoryMachine inventory)
-					extractions = IInventoryMachine.ExtractItems(inventory, this, ref numExtract, simulation: false);
+				if (IMachine.TryFindMachine(possibleInventory, out IInventoryMachine machine))
+					extractions = IInventoryMachine.ExtractItems(machine, this, ref numExtract, simulation: false);
 
 				// Inform clients of what the current state of the pump is
 				makeItems:
@@ -170,13 +170,13 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentInventoryTiles.Add(left);
 
 			// Add adjacent machines
-			if (IMachine.TryFindMachine(left, out IMachine machine) && machine is IInventoryMachine)
+			if (IMachine.TryFindMachine(left, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(left);
-			if (IMachine.TryFindMachine(up, out machine) && machine is IInventoryMachine)
+			if (IMachine.TryFindMachine(up, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(up);
-			if (IMachine.TryFindMachine(right, out machine) && machine is IInventoryMachine)
+			if (IMachine.TryFindMachine(right, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(right);
-			if (IMachine.TryFindMachine(down, out machine) && machine is IInventoryMachine)
+			if (IMachine.TryFindMachine(down, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(down);
 		}
 
@@ -209,7 +209,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		/// <param name="inventory">The tile location of the adjacent machine or chest to add</param>
 		public void AddAdjacentInventory(Point16 inventory) {
-			if (IMachine.TryFindMachine(inventory, out IMachine machine) && machine is IInventoryMachine)
+			if (IMachine.TryFindMachine(inventory, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(inventory);
 		}
 
