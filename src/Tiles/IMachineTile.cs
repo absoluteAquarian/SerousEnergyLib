@@ -180,7 +180,7 @@ namespace SerousEnergyLib.Tiles {
 			if (!IMachine.TryFindMachine(new Point16(x, y), out IMachine entity) || entity is not ModTileEntity)
 				return false;
 
-			if (!machine.PreRightClick(entity, x, y))
+			if (machine.PreRightClick(entity, x, y))
 				return true;
 
 			if (!object.ReferenceEquals(UIHandler.ActiveMachine, entity))
