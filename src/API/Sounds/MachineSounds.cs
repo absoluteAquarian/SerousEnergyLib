@@ -9,14 +9,12 @@ namespace SerousEnergyLib.API.Sounds {
 	/// </summary>
 	public class MachineSounds : ModSystem {
 		private static readonly List<SoundStyle> soundMap = new();
-		private static int nextSound;
 
 		#pragma warning disable CS1591
 		public static int Count => soundMap.Count;
 
 		public override void Unload() {
 			soundMap.Clear();
-			nextSound = 0;
 		}
 
 		/// <summary>
@@ -25,8 +23,8 @@ namespace SerousEnergyLib.API.Sounds {
 		/// <param name="style">The sound information</param>
 		/// <returns>The unique identifier for the sound information</returns>
 		public static int RegisterSound(in SoundStyle style) {
-			soundMap[nextSound] = style;
-			return nextSound++;
+			soundMap.Add(style);
+			return Count - 1;
 		}
 
 		/// <summary>
