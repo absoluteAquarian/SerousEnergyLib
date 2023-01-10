@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Common.Configs;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -248,7 +249,7 @@ namespace SerousEnergyLib.Tiles {
 		}
 
 		public override bool PreDraw(int i, int j, SpriteBatch spriteBatch) {
-			if (this is not IItemTransportTile)
+			if (this is not IItemTransportTile || !RenderingConfig.RenderItemsInPipes)
 				return true;
 
 			Rectangle tileRect = new Rectangle(i * 16, j * 16, 16, 16);

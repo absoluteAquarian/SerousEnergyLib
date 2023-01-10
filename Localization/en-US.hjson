@@ -63,5 +63,27 @@
 		}
 
 		RecipeChanceOutput: "{0}% chance"
+
+		Config: {
+			RenderingConfig: {
+				Label: "Clientside Rendering Config"
+
+				animatePumps: {
+					Label: "Animate Pumps"
+					Tooltip:
+					'''
+					Disable this config option to prevent item/fluid pumps from animating.
+					'''
+				}
+
+				drawItems: {
+					Label: "Render Moving Items in Pipes"
+					Tooltip:
+					'''
+					Disable this config option to prevent items from being drawn in item networks.
+					'''
+				}
+			}
+		}
 	}
 }
