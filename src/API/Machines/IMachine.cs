@@ -74,6 +74,46 @@ namespace SerousEnergyLib.API.Machines {
 			return false;
 		}
 
+		/// <inheritdoc cref="TryFindMachine(Point16, out IMachine)"/>
+		public static bool TryFindMachine<T>(Point16 location, out T machine) where T : ModTileEntity, IMachine {
+			Point16 topleft = TileFunctions.GetTopLeftTileInMultitile(location.X, location.Y);
+
+			if (TileEntity.ByPosition.TryGetValue(topleft, out TileEntity entity) && entity is T m) {
+				machine = m;
+				return true;
+			}
+
+			machine = null;
+			return false;
+		}
+
+		/// <summary>
+		/// Attempts to find a machine at <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The exact tile coordinates to for a machine's entity at</param>
+		/// <param name="machine">The machine instanc if one was found</param>
+		/// <returns>Whether a machine entity could be found</returns>
+		public static bool TryFindMachineExact(Point16 location, out IMachine machine) {
+			if (TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) && entity is IMachine m) {
+				machine = m;
+				return true;
+			}
+
+			machine = null;
+			return false;
+		}
+
+		/// <inheritdoc cref="TryFindMachineExact(Point16, out IMachine)"/>
+		public static bool TryFindMachineExact<T>(Point16 location, out T machine) where T : ModTileEntity, IMachine {
+			if (TileEntity.ByPosition.TryGetValue(location, out TileEntity entity) && entity is T m) {
+				machine = m;
+				return true;
+			}
+
+			machine = null;
+			return false;
+		}
+
 		internal static ModTileEntity PlaceInWorld(IMachine machine, Point16 location) {
 			if (machine is not ModTileEntity entity)
 				throw new ArgumentException("IMachine parameter was not a ModTileEntity", nameof(machine));
