@@ -5,7 +5,7 @@ namespace SerousEnergyLib.Items.Materials.Default {
 	public class TerraFluxRecipeItem : EnergyRecipeItem {
 		public override int EnergyType => SerousMachines.EnergyType<TerraFluxTypeID>();
 
-		public override string Texture => "SerousMachines/Assets/Items/TerraFluxRecipeItem";
+		public override string Texture => "SerousEnergyLib/Assets/Items/TerraFluxRecipeItem";
 
 		public override void SetDefaults() {
 			Item.width = 32;
