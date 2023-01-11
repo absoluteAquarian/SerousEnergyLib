@@ -14,7 +14,7 @@ namespace SerousEnergyLib.Items {
 
 		public override void SetStaticDefaults() {
 			// Frame gets overwritten in custom PlayerDrawLayers
-			Main.RegisterItemAnimation(Type, new DrawAnimationHorizontal(0, 3) {
+			Main.RegisterItemAnimation(Type, new DrawAnimationHorizontal(1000, 3) {
 				NotActuallyAnimating = true
 			});
 		}
@@ -71,7 +71,7 @@ namespace SerousEnergyLib.Items {
 			animation.Frame = 0;
 
 			var texture = TextureAssets.Item[Type].Value;
-			frame = texture.Frame(3, 1, Item.placeStyle, 0);
+			frame = texture.Frame(3, 0, Item.placeStyle, 0);
 			spriteBatch.Draw(texture, position, frame, drawColor, 0f, origin, scale, SpriteEffects.None, 0);
 			return false;
 		}
@@ -82,7 +82,7 @@ namespace SerousEnergyLib.Items {
 			animation.Frame = 0;
 
 			var texture = TextureAssets.Item[Type].Value;
-			Rectangle frame = texture.Frame(3, 1, Item.placeStyle, 0);
+			Rectangle frame = texture.Frame(3, 0, Item.placeStyle, 0);
 			spriteBatch.Draw(texture, Item.Center - Main.screenPosition, frame, lightColor, rotation, frame.Size() / 2f, scale, SpriteEffects.None, 0);
 			return false;
 		}
