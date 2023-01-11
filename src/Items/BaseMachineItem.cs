@@ -35,7 +35,7 @@ namespace SerousEnergyLib.Items {
 		/// <summary>
 		/// The tile ID of the machine to place
 		/// </summary>
-		public abstract int MachineTIle { get; }
+		public abstract int MachineTile { get; }
 
 		/// <summary>
 		/// If this item's machine is an <see cref="IPoweredMachine"/>, this property indicates whether the tooltip line should be "per game tick" or "per operation"
@@ -55,7 +55,7 @@ namespace SerousEnergyLib.Items {
 			Item.useTime = 10;
 			Item.useAnimation = 15;
 			Item.useStyle = ItemUseStyleID.Swing;
-			Item.createTile = MachineTIle;
+			Item.createTile = MachineTile;
 			Item.consumable = true;
 			Item.autoReuse = true;
 			Item.useTurn = true;
@@ -69,7 +69,7 @@ namespace SerousEnergyLib.Items {
 		/// </summary>
 		/// <param name="perGameTick">Whether the rates are displayed as "X/gt" and "X/s" (<see langword="true"/>) or "X/operation" (<see langword="false"/>)</param>
 		protected string GetEnergyUsageString(bool perGameTick) {
-			if (TileLoader.GetTile(MachineTIle) is not IMachineTile machine)
+			if (TileLoader.GetTile(MachineTile) is not IMachineTile machine)
 				return null;
 
 			IMachine singleton = machine.GetMachineEntity();
@@ -100,7 +100,7 @@ namespace SerousEnergyLib.Items {
 		/// </summary>
 		/// <param name="perGameTick">Whether the rates are displayed as "X/gt" and "X/s" (<see langword="true"/>) or "X/operation" (<see langword="false"/>)</param>
 		protected string GetEnergyGenerationString(bool perGameTick) {
-			if (TileLoader.GetTile(MachineTIle) is not IMachineTile machine)
+			if (TileLoader.GetTile(MachineTile) is not IMachineTile machine)
 				return null;
 
 			IMachine singleton = machine.GetMachineEntity();
@@ -157,7 +157,7 @@ namespace SerousEnergyLib.Items {
 
 	/// <inheritdoc cref="BaseMachineItem"/>
 	public abstract class BaseMachineItem<T> : BaseMachineItem where T : ModTile, IMachineTile {
-		public sealed override int MachineTIle => ModContent.TileType<T>();
+		public sealed override int MachineTile => ModContent.TileType<T>();
 
 		public override void SafeSetDefaults() {
 			Item.maxStack = 99;
