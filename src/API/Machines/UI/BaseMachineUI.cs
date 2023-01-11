@@ -269,6 +269,8 @@ namespace SerousEnergyLib.API.Machines.UI {
 			if (needsRecalculate) {
 				Refresh();
 				Recalculate();
+
+				needsRecalculate = false;
 			}
 
 			if (pendingUIChange) {
@@ -283,13 +285,9 @@ namespace SerousEnergyLib.API.Machines.UI {
 			if (needsRecalculate) {
 				Refresh();
 				Recalculate();
+
+				needsRecalculate = false;
 			}
-		}
-
-		public override void Recalculate() {
-			base.Recalculate();
-
-			needsRecalculate = false;
 		}
 
 		/// <summary>
