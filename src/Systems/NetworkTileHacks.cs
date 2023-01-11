@@ -24,10 +24,10 @@ namespace SerousEnergyLib.Systems {
 
 		public override void PreUpdateEntities() {
 			// ModSystem.PreUpdateEntities() is called before WorldGen.UpdateWorld(), which updates the tile entities
-            // So this is a good place to have the tile stuff update
+			// So this is a good place to have the tile stuff update
 
-            // Sanity check
-            SetNetworkTilesToSolid(solid: false);
+			// Sanity check
+			SetNetworkTilesToSolid(solid: false);
 		}
 	}
 }

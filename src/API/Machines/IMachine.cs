@@ -273,17 +273,24 @@ namespace SerousEnergyLib.API.Machines {
 			int type = upgrade.Type;
 			var existing = machine.Upgrades.Where(u => u.Upgrade.Type == type).FirstOrDefault();
 
+			int max = upgrade.Upgrade.MaxUpgradesPerMachine;
+
 			if (existing is null) {
 				var clone = upgrade.Item.Clone().ModItem as BaseUpgradeItem;
 
+				if (clone.Stack > max) {
+					clone.Stack = max;
+					upgrade.Stack -= max;
+				}
+
 				machine.Upgrades.Add(clone);
-				upgrade.Item.TurnToAir();
+
+				if (upgrade.Stack <= 0)
+					upgrade.Item.TurnToAir();
 
 				Netcode.SyncMachineUpgrades(machine);
 				return true;
 			}
-
-			int max = upgrade.Upgrade.MaxUpgradesPerMachine;
 
 			if (existing.Stack >= max)
 				return false;
