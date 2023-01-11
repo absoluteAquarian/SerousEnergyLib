@@ -281,7 +281,8 @@ namespace SerousEnergyLib.API.Machines {
 				if (clone.Stack > max) {
 					clone.Stack = max;
 					upgrade.Stack -= max;
-				}
+				} else
+					upgrade.Stack = 0;
 
 				machine.Upgrades.Add(clone);
 
