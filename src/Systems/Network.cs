@@ -91,7 +91,9 @@ namespace SerousEnergyLib.Systems {
 				if (GetItemNetworkAt(x, y) is ItemNetwork itemNet) {
 					itemNet.AddPumpTimer(location, maxPumpTime);
 					Netcode.SyncPumpTimer(itemNet, location, maxPumpTime);
-				} else if (GetFluidNetworkAt(x, y) is FluidNetwork fluidNet) {
+				}
+				
+				if (GetFluidNetworkAt(x, y) is FluidNetwork fluidNet) {
 					fluidNet.AddPumpTimer(location, maxPumpTime);
 					Netcode.SyncPumpTimer(fluidNet, location, maxPumpTime);
 				}

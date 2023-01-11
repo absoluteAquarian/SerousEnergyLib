@@ -26,8 +26,8 @@ namespace SerousEnergyLib.TileData {
 		/// Whether this network tile is classified as a pump.  If it is, the pump direction will be derived from <see cref="NetworkTaggedInfo"/>
 		/// </summary>
 		public bool IsPump {
-			get => TileDataPacking.GetBit(netData, 4);
-			set => TileDataPacking.SetBit(value, netData, 4);
+			get => TileDataPacking.GetBit(netData, 3);
+			set => TileDataPacking.SetBit(value, netData, 3);
 		}
 
 		/// <summary>
