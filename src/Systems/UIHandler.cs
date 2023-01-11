@@ -2,6 +2,10 @@
 using SerousEnergyLib.API.Machines;
 using System.Collections.Generic;
 using Terraria;
+using Terraria.Audio;
+using Terraria.GameInput;
+using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
 
@@ -12,7 +16,7 @@ namespace SerousEnergyLib.Systems {
 	public sealed class UIHandler : ModSystem {
 		// TODO: should the "block actions under certain UI things" logic be moved from Magic Storage to the common library?
 
-		#pragma warning disable CS1591
+#pragma warning disable CS1591
 		public static UserInterface uiInterface;
 
 		/// <summary>
@@ -43,16 +47,39 @@ namespace SerousEnergyLib.Systems {
 		}
 
 		/// <summary>
-		/// Closes the current machine UI if one is open, then opens the UI for <paramref name="machine"/>
+		/// Closes the current machine UI if one is open, then opens the UI for <paramref name="machine"/>.<br/>
+		/// If the current machine UI is the same object from <paramref name="machine"/>, the UI is not reopened.
 		/// </summary>
-		/// <param name="machine"></param>
+		/// <param name="machine">The machine entity which opened the UI</param>
 		public static void OpenUI(IMachine machine) {
-			if (ActiveMachine is not null)
+			if (object.ReferenceEquals(ActiveMachine, machine)) {
+				// Only close the UI
 				CloseUI();
+				return;
+			}
+
+			bool hadOtherOpen = false;
+			if (ActiveMachine is not null) {
+				hadOtherOpen = true;
+				CloseUI();
+			}
+
+			Main.playerInventory = true;
+
+			bool hadChestOpen = Main.LocalPlayer.chest != -1;
+
+			CloseEverythingButUI();
 
 			uiInterface.SetState(machine.MachineUI);
 
 			ActiveMachine = machine;
+
+			// Other misc things that wouldn't belong in CloseEverythingButUI()
+			if (PlayerInput.GrappleAndInteractAreShared)
+				PlayerInput.Triggers.JustPressed.Grapple = false;
+			Main.recBigList = false;
+			SoundEngine.PlaySound(hadChestOpen || hadOtherOpen ? SoundID.MenuTick : SoundID.MenuOpen);
+			Recipe.FindRecipes();
 		}
 
 		/// <summary>
@@ -96,6 +123,47 @@ namespace SerousEnergyLib.Systems {
 						return true;
 					}, InterfaceScaleType.UI));
 			}
+		}
+
+		/// <summary>
+		/// This method closes everything in preparation for opening a machine's UI
+		/// </summary>
+		public static void CloseEverythingButUI() {
+			Player player = Main.LocalPlayer;
+
+			Main.mouseRightRelease = false;
+			
+			if (player.sign > -1) {
+				// Close the active sign UI
+				SoundEngine.PlaySound(SoundID.MenuClose);
+				player.sign = -1;
+				Main.editSign = false;
+				Main.npcChatText = string.Empty;
+			}
+
+			if (Main.editChest) {
+				// Close the active chest name UI
+				SoundEngine.PlaySound(SoundID.MenuTick);
+				Main.editChest = false;
+				Main.npcChatText = string.Empty;
+			}
+
+			if (player.editedChestName) {
+				// Close the active ches namet UI
+				NetMessage.SendData(MessageID.SyncPlayerChest, -1, -1, NetworkText.FromLiteral(Main.chest[player.chest].name), player.chest, 1f);
+				player.editedChestName = false;
+			}
+
+			if (player.talkNPC > -1) {
+				// Close the active town NPC dialogue/shop UI
+				player.SetTalkNPC(-1);
+				Main.npcChatCornerItem = 0;
+				Main.npcChatText = string.Empty;
+			}
+
+			// Close the active chest UI
+			player.chest = -1;
+			Main.stackSplit = 600;
 		}
 	}
 }

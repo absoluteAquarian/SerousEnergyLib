@@ -49,13 +49,13 @@ namespace SerousEnergyLib.Items {
 
 		#pragma warning disable CS1591
 		public sealed override void SetDefaults() {
+			Item.maxStack = 1;
 			SafeSetDefaults();
 			Item.DamageType = DamageClass.Default;
 			Item.useTime = 10;
 			Item.useAnimation = 15;
 			Item.useStyle = ItemUseStyleID.Swing;
 			Item.createTile = MachineTIle;
-			Item.maxStack = 1;
 			Item.consumable = true;
 			Item.autoReuse = true;
 			Item.useTurn = true;
@@ -158,5 +158,9 @@ namespace SerousEnergyLib.Items {
 	/// <inheritdoc cref="BaseMachineItem"/>
 	public abstract class BaseMachineItem<T> : BaseMachineItem where T : ModTile, IMachineTile {
 		public sealed override int MachineTIle => ModContent.TileType<T>();
+
+		public override void SafeSetDefaults() {
+			Item.maxStack = 99;
+		}
 	}
 }

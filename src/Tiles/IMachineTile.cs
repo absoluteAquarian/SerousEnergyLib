@@ -48,21 +48,9 @@ namespace SerousEnergyLib.Tiles {
 		/// <returns><see langword="true"/> if the logic for opening this machine's UI should be blocked, <see langword="false"/> otherwise.</returns>
 		public virtual bool PreRightClick(IMachine machine, int x, int y) {
 			var item = Main.LocalPlayer.HeldItem;
-			
-			if (item.ModItem is not BaseUpgradeItem upgradeItem)
-				return false;
 
-			if (IMachine.AddUpgrade(machine, upgradeItem)) {
-				// An upgrade was consumed
-				item.stack--;
-				
-				if (item.stack <= 0) {
-					item.TurnToAir();
-					Main.mouseItem = new Item();
-				}
-
+			if (IMachine.AddUpgrade(machine, item.ModItem as BaseUpgradeItem))
 				return true;
-			}
 
 			// Nothing special happened
 			return false;

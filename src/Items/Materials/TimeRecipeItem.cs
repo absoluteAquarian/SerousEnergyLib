@@ -46,7 +46,7 @@ namespace SerousEnergyLib.Items.Materials {
 			if (index != -1) {
 				ref string name = ref tooltips[index].Text;
 
-				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMiniumumDuration", Item.stack / 60d, Item.stack);
+				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMinimumDuration", Item.stack / 60d, Item.stack);
 			}
 		}
 	}
@@ -69,7 +69,7 @@ namespace SerousEnergyLib.Items.Materials {
 			if (index != -1) {
 				ref string name = ref tooltips[index].Text;
 
-				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMaxiumumDuration", Item.stack / 60d, Item.stack);
+				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMaximumDuration", Item.stack / 60d, Item.stack);
 			}
 		}
 	}

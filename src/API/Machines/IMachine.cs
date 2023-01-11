@@ -263,6 +263,10 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="upgrade">The upgrade to add</param>
 		/// <returns>Whether <paramref name="upgrade"/> could be added to <paramref name="machine"/></returns>
 		public static bool AddUpgrade(IMachine machine, BaseUpgradeItem upgrade) {
+			// Allow callees to do things like "IMachine.AddUpgrade(machine, item.ModItem as BaseUpgradeItem)"
+			if (upgrade is null)
+				return false;
+
 			if (!upgrade.Upgrade.CanApplyTo(machine))
 				return false;
 
@@ -270,16 +274,31 @@ namespace SerousEnergyLib.API.Machines {
 			var existing = machine.Upgrades.Where(u => u.Upgrade.Type == type).FirstOrDefault();
 
 			if (existing is null) {
-				machine.Upgrades.Add(upgrade);
+				var clone = upgrade.Item.Clone().ModItem as BaseUpgradeItem;
+
+				machine.Upgrades.Add(clone);
+				upgrade.Item.TurnToAir();
 
 				Netcode.SyncMachineUpgrades(machine);
 				return true;
 			}
 
-			if (existing.Stack + 1 >= upgrade.Upgrade.MaxUpgradesPerMachine)
+			int max = upgrade.Upgrade.MaxUpgradesPerMachine;
+
+			if (existing.Stack >= max)
 				return false;
 
-			existing.Stack++;
+			if (existing.Stack + upgrade.Stack > max) {
+				int diff = max - existing.Stack;
+				existing.Stack = max;
+				upgrade.Stack -= diff;
+				return true;
+			}
+
+			existing.Stack += upgrade.Stack;
+
+			upgrade.Item.TurnToAir();
+
 			Netcode.SyncMachineUpgrades(machine);
 			return true;
 		}

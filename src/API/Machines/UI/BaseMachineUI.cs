@@ -157,6 +157,11 @@ namespace SerousEnergyLib.API.Machines.UI {
 		/// </summary>
 		public bool pendingUIChange;
 
+		/// <summary>
+		/// Whether the upgrades page for this UI's machine is currently open
+		/// </summary>
+		public abstract bool IsUpgradesPageOpen { get; }
+
 		#pragma warning disable CS1591
 		public override void OnInitialize() {
 			panel = new(true, GetMenuOptions().Select(p => (p, GetMenuOptionLocalization(p))));
