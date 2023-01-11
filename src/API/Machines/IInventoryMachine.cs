@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API.Fluid;
+﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
+using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API.Machines {
@@ -307,7 +309,8 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="slot">The index in <see cref="Inventory"/></param>
-		public static int DropItemInInventory(IInventoryMachine machine, int slot) {
+		/// <param name="quickSpawn">Whether to spawn the item at the local player's center (<see langword="true"/>) or at the machine's center (<see langword="false"/>)</param>
+		public static int DropItemInInventory(IInventoryMachine machine, int slot, bool quickSpawn = false) {
 			Update(machine);
 
 			var inv = machine.Inventory;
@@ -316,8 +319,28 @@ namespace SerousEnergyLib.API.Machines {
 
 			ref var item = ref inv[slot];
 
+			if (item.IsAir)
+				return Main.maxItems;
+
 			// Drop the item
-			int drop = Main.LocalPlayer.QuickSpawnItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+			int drop = Main.maxItems;
+			if (quickSpawn)
+				drop = Main.LocalPlayer.QuickSpawnItem(Main.LocalPlayer.GetSource_DropAsItem(), item, item.stack);
+			else {
+				// If the machine is not a tile entity or has no machine tile, just don't spawn an item
+				if (machine is TileEntity entity) {
+					int x = entity.Position.X;
+					int y = entity.Position.Y;
+
+					if (TileLoader.GetTile(Main.tile[x, y].TileType) is IMachineTile machineTile) {
+						machineTile.GetMachineDimensions(out uint width, out uint height);
+
+						Vector2 center = new Point16(x, y).ToWorldCoordinates(0, 0) + new Vector2(width * 8, height * 8);
+
+						drop = ItemFunctions.NewClonedItem(new EntitySource_TileEntity(entity), center, item, item.stack);
+					}
+				}
+			}
 
 			// Destroy the slot
 			item = new();
