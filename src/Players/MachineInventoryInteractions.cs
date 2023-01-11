@@ -6,13 +6,12 @@ using Terraria;
 using Terraria.Audio;
 using Terraria.ID;
 using Terraria.ModLoader;
-using Terraria.UI;
 
 namespace SerousEnergyLib.Players {
 	internal class MachineInventoryInteractions : ModPlayer {
 		public override bool ShiftClickSlot(Item[] inventory, int context, int slot) {
 			// Slot must be a main inventory slot
-			if (context != ItemSlot.Context.InventoryItem && context != ItemSlot.Context.InventoryCoin && context != ItemSlot.Context.InventoryAmmo)
+			if (!object.ReferenceEquals(inventory, Main.LocalPlayer.inventory) || slot == 58)
 				return false;
 
 			// A machine UI must be active
