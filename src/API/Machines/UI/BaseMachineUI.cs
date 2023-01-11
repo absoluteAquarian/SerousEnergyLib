@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousCommonLib.UI;
+using SerousEnergyLib.Systems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -167,11 +168,10 @@ namespace SerousEnergyLib.API.Machines.UI {
 			panel = new(true, GetMenuOptions().Select(p => (p, GetMenuOptionLocalization(p))));
 
 			panel.OnMenuReset += () => pendingUIChange = true;
+			panel.OnMenuClose += UIHandler.CloseUI;
 
 			GetDefaultPanelDimensions(out int width, out int height);
 
-			PanelTop = Main.screenHeight / 2 - height / 2;
-			PanelLeft = Main.screenWidth / 2 - width / 2;
 			PanelWidth = width + 2 * UIDragablePanel.cornerPadding;
 			PanelHeight = height + 2 * UIDragablePanel.cornerPadding;
 
@@ -199,6 +199,7 @@ namespace SerousEnergyLib.API.Machines.UI {
 			PostAppendPanel();
 
 			needsRecalculate = false;
+			pendingUIChange = true;  // Run the logic to reset the UI location
 		}
 
 		public sealed override void OnActivate() => Open();

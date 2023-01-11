@@ -171,8 +171,8 @@ namespace SerousEnergyLib.Tiles {
 			if (machine.PreRightClick(entity, x, y))
 				return true;
 
-			if (!object.ReferenceEquals(UIHandler.ActiveMachine, entity))
-				UIHandler.OpenUI(entity);
+			// Handles closing the UI if it's from the same machine...
+			UIHandler.OpenUI(entity);
 
 			return true;
 		}
