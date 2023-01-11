@@ -266,6 +266,18 @@ namespace SerousEnergyLib.API.Machines.UI {
 		protected virtual void OnClose() { }
 
 		public override void Update(GameTime gameTime) {
+			// Safeguard for if any logic goes wrong in the Upgrades list
+			if (UIHandler.ActiveMachine is IMachine machine) {
+				int? prev = machine.Upgrades?.Count;
+
+				IMachine.Update(machine);
+
+				machine.Upgrades.RemoveAll(static u => u.Stack <= 0 || u.Item.ModItem is null);
+
+				if (machine.Upgrades.Count != prev)
+					needsRecalculate = true;
+			}
+
 			if (needsRecalculate) {
 				Refresh();
 				Recalculate();
