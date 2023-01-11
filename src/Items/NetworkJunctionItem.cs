@@ -24,7 +24,7 @@ namespace SerousEnergyLib.Items {
 			Item.height = 16;
 			Item.scale = 16f / 14f;
 			Item.useStyle = ItemUseStyleID.Swing;
-			Item.useTime = 10;
+			Item.useTime = 15;
 			Item.useAnimation = 15;
 			Item.useTurn = true;
 			Item.autoReuse = true;
@@ -50,6 +50,11 @@ namespace SerousEnergyLib.Items {
 			}
 
 			return true;
+		}
+
+		public override bool ConsumeItem(Player player) {
+			// Right click should not consume the item, only rotate it
+			return player.altFunctionUse != 2;
 		}
 
 		public override void AddRecipes() {
