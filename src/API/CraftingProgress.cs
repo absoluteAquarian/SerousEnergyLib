@@ -1,5 +1,6 @@
 ﻿using System;
 using Terraria.ModLoader;
+using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.API {
 	/// <summary>
@@ -35,6 +36,30 @@ namespace SerousEnergyLib.API {
 				_progress = 0;
 
 			return finished;
+		}
+
+		#pragma warning disable CS1591
+		public void SaveData(TagCompound tag) {
+			tag["current"] = _progress;
+			tag["speed"] = new TagCompound() {
+				["add"] = SpeedFactor.Additive,
+				["mult"] = SpeedFactor.Multiplicative,
+				["flat"] = SpeedFactor.Flat,
+				["base"] = SpeedFactor.Base
+			};
+		}
+
+		public void LoadData(TagCompound tag) {
+			_progress = tag.GetFloat("current");
+
+			if (tag.GetCompound("speed") is TagCompound speed) {
+				float add = speed.GetFloat("add");
+				float mult = speed.GetFloat("mult");
+				float flat = speed.GetFloat("flat");
+				float @base = speed.GetFloat("base");
+
+				SpeedFactor = new StatModifier(add, mult, flat, @base);
+			}
 		}
 	}
 }
