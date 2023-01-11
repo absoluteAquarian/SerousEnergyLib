@@ -5,7 +5,6 @@ using SerousEnergyLib.Systems;
 using Terraria;
 using Terraria.Audio;
 using Terraria.ModLoader;
-using static tModPorter.ProgressUpdate;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
