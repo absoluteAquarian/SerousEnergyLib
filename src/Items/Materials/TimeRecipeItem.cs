@@ -73,4 +73,17 @@ namespace SerousEnergyLib.Items.Materials {
 			}
 		}
 	}
+
+	/// <summary>
+	/// An item representing a lack of a time requirement for a <see cref="MachineRecipe"/>
+	/// </summary>
+	public sealed class TimeNoDurationRecipeItem : ModItem {
+		#pragma warning disable CS1591
+		public override string Texture => "Terraria/Images/Item_" + ItemID.GoldWatch;
+
+		public override void SetDefaults() {
+			Item.maxStack = 1;
+			Item.rare = ItemRarityID.Yellow;
+		}
+	}
 }

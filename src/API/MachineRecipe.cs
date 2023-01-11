@@ -37,7 +37,7 @@ namespace SerousEnergyLib.API {
 		/// </summary>
 		public IReadOnlyList<MachineRecipeOutput> PossibleOutputs => possibleOutputs.AsReadOnly();
 
-		private readonly IMachineRecipeIngredient duration;
+		private IMachineRecipeIngredient duration;
 
 		/// <summary>
 		/// Gets the time range assigned to this recipe
@@ -53,30 +53,16 @@ namespace SerousEnergyLib.API {
 			}
 		}
 
-		protected private MachineRecipe(Ticks duration) {
-			this.duration = new MachineRecipeInputTime(duration);
+		protected private MachineRecipe() {
+			duration = new MachineRecipeInputNoTime();
 		}
 
-		protected private MachineRecipe(Ticks minimumDuration, Ticks maximumDuration) {
-			duration = minimumDuration == maximumDuration
-				? new MachineRecipeInputTimeRange(minimumDuration, maximumDuration)
-				: new MachineRecipeInputTime(minimumDuration);
-		}
-
-		public MachineRecipe(int machine, Ticks duration) {
+		public MachineRecipe(int machine) {
 			if (TileLoader.GetTile(machine) is not BaseMachineTile)
 				throw new ArgumentException("Tile ID did not refer to a BaseMachineTile instance", nameof(machine));
 
 			MachineTile = machine;
-			this.duration = new MachineRecipeInputTime(duration);
-		}
-
-		public MachineRecipe(int machine, Ticks minimumDuration, Ticks maximumDuration) {
-			if (TileLoader.GetTile(machine) is not BaseMachineTile)
-				throw new ArgumentException("Tile ID did not refer to a BaseMachineTile instance", nameof(machine));
-
-			MachineTile = machine;
-			duration = new MachineRecipeInputTimeRange(minimumDuration, maximumDuration);
+			duration = new MachineRecipeInputNoTime();
 		}
 
 		/// <inheritdoc cref="Recipe.AddIngredient(int, int)"/>
@@ -106,6 +92,56 @@ namespace SerousEnergyLib.API {
 		/// <inheritdoc cref="Recipe.AddRecipeGroup(RecipeGroup, int)"/>
 		public MachineRecipe AddRecipeGroup(RecipeGroup group, int stack = 1) {
 			ingredients.Add(new MachineRecipeInputRecipeGroup(group.ID, stack));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a fluid ingredient to this recipe of the given type and quantity
+		/// </summary>
+		public MachineRecipe AddFluidIngredient(int fluidType, double liters) {
+			ingredients.Add(new MachineRecipeInputFluid(fluidType, liters));
+			return this;
+		}
+
+		/// <inheritdoc cref="AddFluidIngredient(int, double)"/>
+		public MachineRecipe AddFluidIngredient<T>(double liters) where T : FluidTypeID {
+			ingredients.Add(new MachineRecipeInputFluid(SerousMachines.FluidType<T>(), liters));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a power requirement to this recipe
+		/// </summary>
+		public MachineRecipe AddPowerRequirement(TerraFlux flux) {
+			ingredients.Add(new MachineRecipeInputPower(flux));
+			return this;
+		}
+
+		/// <inheritdoc cref="AddPowerRequirement(TerraFlux)"/>
+		public MachineRecipe AddPowerRequirement(int energyType, int amount) {
+			ingredients.Add(new MachineRecipeInputPower(energyType, amount));
+			return this;
+		}
+
+		/// <inheritdoc cref="AddPowerRequirement(TerraFlux)"/>
+		public MachineRecipe AddPowerRequirement<T>(int amount) where T : EnergyTypeID {
+			ingredients.Add(new MachineRecipeInputPower(SerousMachines.EnergyType<T>(), amount));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a time requirement to this recipe
+		/// </summary>
+		public MachineRecipe AddTimeRequirement(Ticks duration) {
+			this.duration = new MachineRecipeInputTime(duration);
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a variable time requirement to this recipe
+		/// </summary>
+		public MachineRecipe AddTimeVarianceRequirement(Ticks minimumDuration, Ticks maximumDuration) {
+			duration = new MachineRecipeInputTimeRange(minimumDuration, maximumDuration);
 			return this;
 		}
 
@@ -184,11 +220,7 @@ namespace SerousEnergyLib.API {
 
 	/// <inheritdoc cref="MachineRecipe"/>
 	public sealed class MachineRecipe<T> : MachineRecipe where T : BaseMachineTile {
-		public MachineRecipe(Ticks duration) : base(duration) {
-			MachineTile = ModContent.TileType<T>();
-		}
-
-		public MachineRecipe(Ticks minimumDuration, Ticks maximumDuration) : base(minimumDuration, maximumDuration) {
+		public MachineRecipe() : base() {
 			MachineTile = ModContent.TileType<T>();
 		}
 	}
@@ -340,7 +372,7 @@ namespace SerousEnergyLib.API {
 			type = SerousMachines.EnergyType<TerraFluxTypeID>();
 		}
 
-		public MachineRecipeInputPower(int amount, int energyType) {
+		public MachineRecipeInputPower(int energyType, int amount) {
 			if (EnergyConversions.Get(energyType) is not EnergyTypeID id)
 				throw new ArgumentException("Energy type ID for ingredient was invalid");
 
@@ -404,6 +436,12 @@ namespace SerousEnergyLib.API {
 			recipe.AddIngredient<TimeMinimumRangeRecipeItem>(minimumTime.ticks);
 			recipe.AddIngredient<TimeMaximumRangeRecipeItem>(maximumTime.ticks);
 		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
+	}
+
+	public readonly struct MachineRecipeInputNoTime : IMachineRecipeIngredient {
+		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient<TimeNoDurationRecipeItem>(1);
 
 		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
 	}

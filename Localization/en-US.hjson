@@ -18,7 +18,10 @@
 			WaterRecipeItem: "{$Mods.SerousEnergyLib.FluidName.WaterFluidID}"
 			LavaRecipeItem: "{$Mods.SerousEnergyLib.FluidName.LavaFluidID}"
 			HoneyRecipeItem: "{$Mods.SerousEnergyLib.FluidName.HoneyFluidID}"
-			TimeRecipeItem: "N/A Seconds"
+			TimeRecipeItem: "N/A seconds"
+			TimeMinimumRangeRecipeItem: "{$Mods.SerousEnergyLib.ItemName.TimeRecipeItem}"
+			TimeMaximumRangeRecipeItem: "{$Mods.SerousEnergyLib.ItemName.TimeRecipeItem}"
+			TimeNoDurationRecipeItem: "0 seconds (0 ticks)"
 		}
 
 		ItemTooltip: {
