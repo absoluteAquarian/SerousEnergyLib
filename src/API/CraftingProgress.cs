@@ -59,7 +59,8 @@ namespace SerousEnergyLib.API {
 				float @base = speed.GetFloat("base");
 
 				SpeedFactor = new StatModifier(add, mult, flat, @base);
-			}
+			} else
+				SpeedFactor = StatModifier.Default;
 		}
 	}
 }
