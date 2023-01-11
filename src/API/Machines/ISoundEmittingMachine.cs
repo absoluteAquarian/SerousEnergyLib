@@ -48,9 +48,9 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="extraInformation">Extra information to sent to clients</param>
 		public static void EmitSound<T>(T emitter, SoundStyle style, NetcodeSoundMode mode, ref SlotId clientSoundSlot, ref bool serverPlayingFlag, Vector2? location = null, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
 			if (!Main.dedServ) {
-				if (!clientSoundSlot.IsValid)
+				if (!clientSoundSlot.IsValid || !SoundEngine.TryGetActiveSound(clientSoundSlot, out var activeSound))
 					clientSoundSlot = SoundEngine.PlaySound(style, location);
-				else if (SoundEngine.TryGetActiveSound(clientSoundSlot, out var activeSound))
+				else
 					activeSound.Position = location;
 			} else {
 				if (!serverPlayingFlag) {
