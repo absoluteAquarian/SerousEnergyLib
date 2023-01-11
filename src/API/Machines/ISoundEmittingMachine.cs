@@ -46,8 +46,11 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="serverPlayingFlag">The variable used to track if the sound is playing on the server</param>
 		/// <param name="location">The location to play the sound at.  Defaults to <see langword="null"/>, which indicates a "directionless" sound</param>
 		/// <param name="extraInformation">Extra information to sent to clients</param>
-		public static void EmitSound<T>(T emitter, SoundStyle style, NetcodeSoundMode mode, ref SlotId clientSoundSlot, ref bool serverPlayingFlag, Vector2? location = null, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+		/// <param name="allowClientsideSoundMuting">Whether clients should be able to mute the sound while their game window is inactive</param>
+		public static void EmitSound<T>(T emitter, SoundStyle style, NetcodeSoundMode mode, ref SlotId clientSoundSlot, ref bool serverPlayingFlag, Vector2? location = null, int extraInformation = 0, bool allowClientsideSoundMuting = true) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
 			if (!Main.dedServ) {
+				style = AdjustSoundForMuting(style, allowClientsideSoundMuting);
+
 				if (!clientSoundSlot.IsValid || !SoundEngine.TryGetActiveSound(clientSoundSlot, out var activeSound))
 					clientSoundSlot = SoundEngine.PlaySound(style, location);
 				else
@@ -56,10 +59,17 @@ namespace SerousEnergyLib.API.Machines {
 				if (!serverPlayingFlag) {
 					serverPlayingFlag = true;
 
-					Netcode.SendSoundToClients(emitter, style, mode, location, extraInformation);
+					Netcode.SendSoundToClients(emitter, style, mode, location, extraInformation, allowClientsideSoundMuting);
 				} else
-					Netcode.SendSoundUpdateToClients(emitter, style, mode, location, extraInformation);
+					Netcode.SendSoundUpdateToClients(emitter, style, mode, location, extraInformation, allowClientsideSoundMuting);
 			}
+		}
+
+		internal static SoundStyle AdjustSoundForMuting(SoundStyle style, bool allowClientsideSoundMuting) {
+			// Allow singleplayer to mute the sound when the game window isn't active
+			float volumeAdjustment = Main.dedServ || !allowClientsideSoundMuting || Main.instance.IsActive ? 1f : 0f;
+
+			return style.WithVolumeScale(volumeAdjustment);
 		}
 
 		/// <summary>

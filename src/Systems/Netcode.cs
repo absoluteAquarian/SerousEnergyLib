@@ -782,7 +782,8 @@ namespace SerousEnergyLib.Systems {
 		/// This argument is only used when <paramref name="mode"/> has <see cref="NetcodeSoundMode.SendPosition"/> set.<br/>
 		/// If that is not the case, this argument is ignored and the sound is treated as a "directionless" sound
 		/// </param>
-		public static void SendSoundToClients(in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null) {
+		/// <param name="allowClientsideSoundMuting">Whether clients should be able to mute the sound while their game window is inactive</param>
+		public static void SendSoundToClients(in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null, bool allowClientsideSoundMuting = true) {
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
@@ -792,12 +793,12 @@ namespace SerousEnergyLib.Systems {
 
 			var packet = GetPacket(NetcodeMessage.SendSoundPlay);
 			
-			SendSoundInformationToPacket(packet, id, data, mode, source);
+			SendSoundInformationToPacket(packet, id, data, mode, source, allowClientsideSoundMuting);
 
 			packet.Send();
 		}
 
-		private static void SendSoundInformationToPacket(ModPacket packet, int id, in SoundStyle data, NetcodeSoundMode mode, Vector2? source) {
+		private static void SendSoundInformationToPacket(ModPacket packet, int id, in SoundStyle data, NetcodeSoundMode mode, Vector2? source, bool allowClientsideSoundMuting) {
 			packet.Write((short)id);
 			packet.Write((byte)mode);
 
@@ -811,16 +812,20 @@ namespace SerousEnergyLib.Systems {
 				packet.Write(data.Pitch);
 				packet.Write(data.PitchVariance);
 			}
+
+			packet.Write(allowClientsideSoundMuting);
 		}
 
 		private static SlotId ReceiveSoundPlayingPacket(BinaryReader reader, out int id) {
-			if (!ReadSoundStyle(reader, out id, out SoundStyle style, out _, out Vector2? location))
+			if (!ReadSoundStyle(reader, out id, out SoundStyle style, out _, out Vector2? location, out bool allowClientsideSoundMuting))
 				return SlotId.Invalid;
+
+			style = ISoundEmittingMachine.AdjustSoundForMuting(style, allowClientsideSoundMuting);
 
 			return SoundEngine.PlaySound(style, location);
 		}
 
-		private static bool ReadSoundStyle(BinaryReader reader, out int id, out SoundStyle style, out NetcodeSoundMode mode, out Vector2? location) {
+		private static bool ReadSoundStyle(BinaryReader reader, out int id, out SoundStyle style, out NetcodeSoundMode mode, out Vector2? location, out bool allowClientsideSoundMuting) {
 			id = reader.ReadInt16();
 			mode = (NetcodeSoundMode)reader.ReadByte();
 
@@ -841,10 +846,13 @@ namespace SerousEnergyLib.Systems {
 				pitchVariance = reader.ReadSingle();
 			}
 
+			allowClientsideSoundMuting = reader.ReadBoolean();
+
 			if (Main.netMode != NetmodeID.MultiplayerClient) {
 				id = -1;
 				style = default;
 				location = null;
+				allowClientsideSoundMuting = false;
 				return false;
 			}
 
@@ -853,6 +861,7 @@ namespace SerousEnergyLib.Systems {
 				id = -1;
 				style = default;
 				location = null;
+				allowClientsideSoundMuting = false;
 				return false;
 			}
 
@@ -880,7 +889,8 @@ namespace SerousEnergyLib.Systems {
 		/// If that is not the case, this argument is ignored and the sound is treated as a "directionless" sound
 		/// </param>
 		/// <param name="extraInformation">An optional argument for specifying any additional information that should be conveyed to clients</param>
-		public static void SendSoundToClients<T>(T emitter, in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+		/// <param name="allowClientsideSoundMuting">Whether clients should be able to mute the sound while their game window is inactive</param>
+		public static void SendSoundToClients<T>(T emitter, in SoundStyle data, NetcodeSoundMode mode, Vector2? source = null, int extraInformation = 0, bool allowClientsideSoundMuting = true) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
@@ -892,7 +902,7 @@ namespace SerousEnergyLib.Systems {
 			
 			packet.Write(emitter.Position);
 			packet.Write(extraInformation);
-			SendSoundInformationToPacket(packet, id, data, mode, source);
+			SendSoundInformationToPacket(packet, id, data, mode, source, allowClientsideSoundMuting);
 
 			packet.Send();
 		}
@@ -952,8 +962,8 @@ namespace SerousEnergyLib.Systems {
 		/// <summary>
 		/// Sends a packet from the server to all clients telling them to update a sound
 		/// </summary>
-		/// <inheritdoc cref="SendSoundToClients{T}(T, in SoundStyle, NetcodeSoundMode, Vector2?, int)"/>
-		public static void SendSoundUpdateToClients<T>(T emitter, SoundStyle data, NetcodeSoundMode mode, Vector2? source = null, int extraInformation = 0) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
+		/// <inheritdoc cref="SendSoundToClients{T}(T, in SoundStyle, NetcodeSoundMode, Vector2?, int, bool)"/>
+		public static void SendSoundUpdateToClients<T>(T emitter, SoundStyle data, NetcodeSoundMode mode, Vector2? source = null, int extraInformation = 0, bool allowClientsideSoundMuting = true) where T : ModTileEntity, IMachine, ISoundEmittingMachine {
 			if (Main.netMode != NetmodeID.Server)
 				return;
 
@@ -965,7 +975,7 @@ namespace SerousEnergyLib.Systems {
 			
 			packet.Write(emitter.Position);
 			packet.Write(extraInformation);
-			SendSoundInformationToPacket(packet, id, data, mode, source);
+			SendSoundInformationToPacket(packet, id, data, mode, source, allowClientsideSoundMuting);
 
 			packet.Send();
 		}
@@ -974,11 +984,13 @@ namespace SerousEnergyLib.Systems {
 			Point16 location = reader.ReadPoint16();
 			int extraInformation = reader.ReadInt32();
 
-			if (!ReadSoundStyle(reader, out int id, out SoundStyle data, out NetcodeSoundMode mode, out Vector2? soundLocation))
+			if (!ReadSoundStyle(reader, out int id, out SoundStyle data, out NetcodeSoundMode mode, out Vector2? soundLocation, out bool allowClientsideSoundMuting))
 				return;
 
 			if (!TileEntity.ByPosition.TryGetValue(location, out TileEntity te) || te is not ModTileEntity || te is not ISoundEmittingMachine machine)
 				return;
+
+			data = ISoundEmittingMachine.AdjustSoundForMuting(data, allowClientsideSoundMuting);
 
 			// Inform the machine instance that it's updating a sound
 			machine.OnSoundUpdatePacketReceived(id, data, mode, soundLocation, extraInformation);
