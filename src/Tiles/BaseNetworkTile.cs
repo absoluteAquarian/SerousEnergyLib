@@ -85,6 +85,12 @@ namespace SerousEnergyLib.Tiles {
 			// (Continuing from CanPlace) ... then I can just set it back to not solid here
 			NetworkTileHacks.SetNetworkTilesToSolid(solid: false);
 			Network.PlaceEntry(i, j, NetworkTypeToPlace);
+
+			// Force tile merging at this location again
+			WorldGen.SquareTileFrame(i, j);
+
+			if (Main.netMode == NetmodeID.MultiplayerClient)
+				NetMessage.SendTileSquare(Main.myPlayer, i, j, centeredSquareSize: 3);
 		}
 
 		public override void KillTile(int i, int j, ref bool fail, ref bool effectOnly, ref bool noItem) {
