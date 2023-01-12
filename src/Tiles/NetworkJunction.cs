@@ -1,6 +1,5 @@
 ﻿using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.TileData;
-using Terraria.ObjectData;
 
 namespace SerousEnergyLib.Tiles {
 	/// <summary>
@@ -23,9 +22,6 @@ namespace SerousEnergyLib.Tiles {
 
 		public float GetItemSize(int x, int y) => 5.5f;
 
-		public override bool TileFrame(int i, int j, ref bool resetFrame, ref bool noBreak) {
-			// Do not update the frame
-			return false;
-		}
+		protected override bool IgnoreSpriteSheetFraming => true;
 	}
 }

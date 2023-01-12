@@ -92,6 +92,11 @@ namespace SerousEnergyLib.Tiles {
 				Network.RemoveEntry(i, j, NetworkTypeToPlace);
 		}
 
+		/// <summary>
+		/// Whether this tile should ignore the logic in <see cref="TileFrame(int, int, ref bool, ref bool)"/> that modifies the tile's TileFrameX and TileFrameY
+		/// </summary>
+		protected virtual bool IgnoreSpriteSheetFraming => false;
+
 		public override bool TileFrame(int i, int j, ref bool resetFrame, ref bool noBreak) {
 			Tile tile = Main.tile[i, j];
 
@@ -102,78 +107,80 @@ namespace SerousEnergyLib.Tiles {
 			bool canMergeRight = i < Main.maxTilesX - 1 && CheckTileMerge(i, j, dirX: 1, dirY: 0);
 			bool canMergeDown = j < Main.maxTilesY - 1 && CheckTileMerge(i, j, dirX: 0, dirY: 1);
 
-			//Default to the "no merge" frame
-			int frameX = 0;
-			int frameY = 0;
+			if (!IgnoreSpriteSheetFraming) {
+				//Default to the "no merge" frame
+				int frameX = 0;
+				int frameY = 0;
 
-			//Fortunately, the tilesets for these tiles are much easier to work with
-			if (!canMergeUp && !canMergeLeft && !canMergeRight && !canMergeDown) {  // None connected
-				// Only one frame for this, the default
-				// 0000
-			} else if (canMergeUp && !canMergeLeft && !canMergeRight && !canMergeDown) {  // Main connection: Up
-				// 1000
-				frameX = 6;
-				frameY = 3;
-			} else if (canMergeUp && canMergeLeft && !canMergeRight && !canMergeDown) {
-				// 1100
-				frameX = Main.rand.NextBool() ? 2 : 5;
-				frameY = 3;
-			} else if (canMergeUp && !canMergeLeft && canMergeRight && !canMergeDown) {
-				// 1010
-				frameX = Main.rand.NextBool() ? 0 : 3;
-				frameY = 3;
-			} else if (canMergeUp && canMergeLeft && canMergeRight && !canMergeDown) {
-				// 1110
-				frameX = Main.rand.NextBool() ? 1 : 4;
-				frameY = 3;
-			} else if (canMergeUp && !canMergeLeft && !canMergeRight && canMergeDown) {
-				// 1001
-				frameX = 6;
-				frameY = 2;
-			} else if (canMergeUp && canMergeLeft && !canMergeRight && canMergeDown) {
-				// 1101
-				frameX = Main.rand.NextBool() ? 2 : 5;
-				frameY = 2;
-			} else if (canMergeUp && !canMergeLeft && canMergeRight && canMergeDown) {
-				// 1011
-				frameX = Main.rand.NextBool() ? 0 : 3;
-				frameY = 2;
-			} else if (!canMergeUp && canMergeLeft && !canMergeRight && !canMergeDown) {  // Main connection: Left
-				// 0100
-				frameX = 3;
-				frameY = 0;
-			} else if (!canMergeUp && canMergeLeft && canMergeRight && !canMergeDown) {
-				// 0110
-				frameX = 2;
-				frameY = 0;
-			} else if (!canMergeUp && canMergeLeft && !canMergeRight && canMergeDown) {
-				// 0101
-				frameX = Main.rand.NextBool() ? 2 : 5;
-				frameY = 1;
-			} else if (!canMergeUp && canMergeLeft && canMergeRight && canMergeDown) {
-				// 0111
-				frameX = Main.rand.NextBool() ? 1 : 4;
-				frameY = 1;
-			} else if (!canMergeUp && !canMergeLeft && canMergeRight && !canMergeDown) {  // Main connection: Right
-				// 0010
-				frameX = 1;
-				frameY = 0;
-			} else if (!canMergeUp && !canMergeLeft && canMergeRight && canMergeDown) {
-				// 0011
-				frameX = Main.rand.NextBool() ? 0 : 3;
-				frameY = 1;
-			} else if (!canMergeUp && !canMergeLeft && !canMergeRight && canMergeDown) {  // Main connection: Down
-				// 0001
-				frameX = 6;
-				frameY = 1;
-			} else if (canMergeUp && canMergeLeft && canMergeRight && canMergeDown) {  // All connected
-				// 1111
-				frameX = Main.rand.NextBool() ? 1 : 4;
-				frameY = 2;
+				//Fortunately, the tilesets for these tiles are much easier to work with
+				if (!canMergeUp && !canMergeLeft && !canMergeRight && !canMergeDown) {  // None connected
+					// Only one frame for this, the default
+					// 0000
+				} else if (canMergeUp && !canMergeLeft && !canMergeRight && !canMergeDown) {  // Main connection: Up
+					// 1000
+					frameX = 6;
+					frameY = 3;
+				} else if (canMergeUp && canMergeLeft && !canMergeRight && !canMergeDown) {
+					// 1100
+					frameX = Main.rand.NextBool() ? 2 : 5;
+					frameY = 3;
+				} else if (canMergeUp && !canMergeLeft && canMergeRight && !canMergeDown) {
+					// 1010
+					frameX = Main.rand.NextBool() ? 0 : 3;
+					frameY = 3;
+				} else if (canMergeUp && canMergeLeft && canMergeRight && !canMergeDown) {
+					// 1110
+					frameX = Main.rand.NextBool() ? 1 : 4;
+					frameY = 3;
+				} else if (canMergeUp && !canMergeLeft && !canMergeRight && canMergeDown) {
+					// 1001
+					frameX = 6;
+					frameY = 2;
+				} else if (canMergeUp && canMergeLeft && !canMergeRight && canMergeDown) {
+					// 1101
+					frameX = Main.rand.NextBool() ? 2 : 5;
+					frameY = 2;
+				} else if (canMergeUp && !canMergeLeft && canMergeRight && canMergeDown) {
+					// 1011
+					frameX = Main.rand.NextBool() ? 0 : 3;
+					frameY = 2;
+				} else if (!canMergeUp && canMergeLeft && !canMergeRight && !canMergeDown) {  // Main connection: Left
+					// 0100
+					frameX = 3;
+					frameY = 0;
+				} else if (!canMergeUp && canMergeLeft && canMergeRight && !canMergeDown) {
+					// 0110
+					frameX = 2;
+					frameY = 0;
+				} else if (!canMergeUp && canMergeLeft && !canMergeRight && canMergeDown) {
+					// 0101
+					frameX = Main.rand.NextBool() ? 2 : 5;
+					frameY = 1;
+				} else if (!canMergeUp && canMergeLeft && canMergeRight && canMergeDown) {
+					// 0111
+					frameX = Main.rand.NextBool() ? 1 : 4;
+					frameY = 1;
+				} else if (!canMergeUp && !canMergeLeft && canMergeRight && !canMergeDown) {  // Main connection: Right
+					// 0010
+					frameX = 1;
+					frameY = 0;
+				} else if (!canMergeUp && !canMergeLeft && canMergeRight && canMergeDown) {
+					// 0011
+					frameX = Main.rand.NextBool() ? 0 : 3;
+					frameY = 1;
+				} else if (!canMergeUp && !canMergeLeft && !canMergeRight && canMergeDown) {  // Main connection: Down
+					// 0001
+					frameX = 6;
+					frameY = 1;
+				} else if (canMergeUp && canMergeLeft && canMergeRight && canMergeDown) {  // All connected
+					// 1111
+					frameX = Main.rand.NextBool() ? 1 : 4;
+					frameY = 2;
+				}
+
+				tile.TileFrameX = (short)(frameX * 18);
+				tile.TileFrameY = (short)(frameY * 18);
 			}
-
-			tile.TileFrameX = (short)(frameX * 18);
-			tile.TileFrameY = (short)(frameY * 18);
 
 			// Safety check: modify the directions
 			ConnectionDirection dirs = ConnectionDirection.None;
