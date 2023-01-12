@@ -95,13 +95,6 @@ namespace SerousEnergyLib.Tiles {
 		public override bool TileFrame(int i, int j, ref bool resetFrame, ref bool noBreak) {
 			Tile tile = Main.tile[i, j];
 
-			if (this is NetworkJunction) {
-				// Special hardcoded case: force the frame to (0, 0)
-				tile.TileFrameX = 0;
-				tile.TileFrameY = 0;
-				return false;
-			}
-
 			// All network tiles should use the same spritesheet layout
 			// Check which directions can be merged with and merge with them accordingly
 			bool canMergeLeft = i > 0 && CheckTileMerge(i, j, dirX: -1, dirY: 0);
