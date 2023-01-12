@@ -32,7 +32,7 @@ namespace SerousEnergyLib.Items {
 			Item.value = Item.buyPrice(copper: 50);
 			Item.consumable = true;
 			Item.maxStack = 999;
-			Item.createTile = ModContent.TileType<NetworkJunction>();
+			Item.createTile = -1;
 		}
 
 		public override bool AltFunctionUse(Player player) => true;
