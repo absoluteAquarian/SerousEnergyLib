@@ -27,7 +27,7 @@ namespace SerousEnergyLib.TileData {
 		/// </summary>
 		public bool IsPump {
 			get => TileDataPacking.GetBit(netData, 3);
-			set => TileDataPacking.SetBit(value, netData, 3);
+			set => netData = (byte)TileDataPacking.SetBit(value, netData, 3);
 		}
 
 		/// <summary>
