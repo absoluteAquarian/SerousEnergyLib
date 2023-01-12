@@ -1,5 +1,7 @@
 ﻿using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.Items;
 using SerousEnergyLib.TileData;
+using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Tiles {
 	/// <summary>
@@ -23,5 +25,7 @@ namespace SerousEnergyLib.Tiles {
 		public float GetItemSize(int x, int y) => 5.5f;
 
 		protected override bool IgnoreSpriteSheetFraming => true;
+
+		public override int NetworkItem => ModContent.ItemType<NetworkJunctionItem>();
 	}
 }
