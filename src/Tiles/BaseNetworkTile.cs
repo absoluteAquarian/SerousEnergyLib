@@ -6,6 +6,7 @@ using SerousEnergyLib.Common.Configs;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
+using System;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.Enums;
@@ -35,9 +36,13 @@ namespace SerousEnergyLib.Tiles {
 			TileObjectData.newTile.FlattenAnchors = false;
 			TileObjectData.newTile.LavaDeath = false;
 			TileObjectData.newTile.AnchorBottom = new AnchorData(AnchorType.None, 0, 0);
-			TileObjectData.newTile.UsesCustomCanPlace = true;
+			TileObjectData.newTile.StyleHorizontal = true;
+			TileObjectData.newTile.HookPlaceOverride = new PlacementHook(CustomPlace, -1, 0, false);
 
 			PreRegisterTileObjectData();
+
+			if (TileObjectData.newTile.Width != 1 || TileObjectData.newTile.Height != 1)
+				throw new Exception("Tile object data was not 1x1");
 
 			TileObjectData.addTile(Type);
 		}
@@ -48,6 +53,27 @@ namespace SerousEnergyLib.Tiles {
 		/// This is called after the default values are assigned to <see cref="TileObjectData.newTile"/>, but before it's added
 		/// </summary>
 		protected virtual void PreRegisterTileObjectData() { }
+
+		private static int CustomPlace(int i, int j, int type, int style, int direction, int alternative) {
+			// Destroy the tile at the location, then place a new one
+			Tile tile = Main.tile[i, j];
+
+			if (tile.HasTile && tile.TileType != 484 && (Main.tileCut[tile.TileType] || TileID.Sets.BreakableWhenPlacing[tile.TileType])) {
+				WorldGen.KillTile(i, j);
+
+				if (!tile.HasTile && Main.netMode == NetmodeID.MultiplayerClient)
+					NetMessage.SendData(MessageID.TileManipulation, number: 0, number2: i, number3: j);
+			}
+
+			if (!tile.HasTile) {
+				tile.HasTile = true;
+				tile.TileFrameX = (short)(18 * style);
+				tile.TileFrameY = 0;
+				tile.TileType = (ushort)type;
+			}
+
+			return 1;
+		}
 
 		public override bool CanPlace(int i, int j) {
 			// This hook is called just before the tile is placed, which means we can fool the game into thinking this tile is solid when it really isn't

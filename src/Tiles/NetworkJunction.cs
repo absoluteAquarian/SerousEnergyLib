@@ -22,10 +22,5 @@ namespace SerousEnergyLib.Tiles {
 		TerraFlux IPowerTransportTile.TransferRate => new TerraFlux(500d / 60d);
 
 		public float GetItemSize(int x, int y) => 5.5f;
-
-		protected override void PreRegisterTileObjectData() {
-			TileObjectData.newTile.StyleHorizontal = true;
-			TileObjectData.newTile.StyleWrapLimit = 16;
-		}
 	}
 }
