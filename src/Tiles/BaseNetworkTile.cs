@@ -26,6 +26,11 @@ namespace SerousEnergyLib.Tiles {
 		/// </summary>
 		public abstract NetworkType NetworkTypeToPlace { get; }
 
+		/// <summary>
+		/// The item ID that's automatically assigned to <see cref="ModBlockType.ItemDrop"/>
+		/// </summary>
+		public abstract int NetworkItem { get; }
+
 		public sealed override void SetStaticDefaults() {
 			SafeSetStaticDefaults();
 
@@ -45,6 +50,8 @@ namespace SerousEnergyLib.Tiles {
 				throw new Exception("Tile object data was not 1x1");
 
 			TileObjectData.addTile(Type);
+
+			ItemDrop = NetworkItem;
 		}
 
 		protected virtual void SafeSetStaticDefaults() { }
@@ -251,13 +258,15 @@ namespace SerousEnergyLib.Tiles {
 			} else if (modTarget is NetworkJunction) {
 				// Always mergeable with a junction tile
 				return true;
-			} else if (modTarget is IMachine) {
+			} else if (modTarget is IMachineTile machineTile) {
+				var entity = machineTile.GetMachineEntity();
+
 				// Certain machine classifications can only merge with certain network types...
-				if ((networkType & NetworkType.Items) == NetworkType.Items && modTarget is IInventoryMachine inv && inv.CanMergeWithItemPipe(i, j, targetX, targetY))
+				if ((networkType & NetworkType.Items) == NetworkType.Items && entity is IInventoryMachine inv && inv.CanMergeWithItemPipe(i, j, targetX, targetY))
 					return true;
-				else if ((networkType & NetworkType.Fluids) == NetworkType.Fluids && modTarget is IFluidMachine flu && flu.CanMergeWithFluidPipe(i, j, targetX, targetY))
+				else if ((networkType & NetworkType.Fluids) == NetworkType.Fluids && entity is IFluidMachine flu && flu.CanMergeWithFluidPipe(i, j, targetX, targetY))
 					return true;
-				else if ((networkType & NetworkType.Power) == NetworkType.Power && modTarget is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
+				else if ((networkType & NetworkType.Power) == NetworkType.Power && entity is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
 					return true;
 			} else if (Chest.FindChestByGuessing(targetX, targetY) > -1) {
 				// Merge if, and only if, this tile is part of an item network
