@@ -143,6 +143,8 @@ namespace SerousEnergyLib.Systems {
 					// Combine the existing networks into one network
 					NetworkInstance net = adjacent[0];
 
+					net.AddEntry(location);
+
 					// Copy the data
 					for (int i = 1; i < adjacent.Count; i++) {
 						net.delayCoarsePathCalculationFromCopy = i < adjacent.Count - 1;
@@ -341,54 +343,15 @@ namespace SerousEnergyLib.Systems {
 		public static PowerNetwork GetPowerNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Power, out _) as PowerNetwork;
 
 		internal static void UpdateEntryConnections(int x, int y) {
-			ref NetworkInfo center = ref Main.tile[x, y].Get<NetworkInfo>();
+			Tile tile = Main.tile[x, y];
+			ref NetworkInfo info = ref tile.Get<NetworkInfo>();
 
-			bool hasLeft = false, hasUp = false, hasRight = false, hasDown = false;
+			// TileFrame updates the connection bits
+			if (info.Type != NetworkType.None && TileLoader.GetTile(tile.TileType) is BaseNetworkTile) {
+				bool resetFrame = false, noBreak = false;
 
-			// Check the left tile
-			if (x > 0) {
-				ref NetworkInfo check = ref Main.tile[x - 1, y].Get<NetworkInfo>();
-
-				if ((center.Type & check.Type) != 0)
-					hasLeft = true;
+				TileLoader.TileFrame(x, y, tile.TileType, ref resetFrame, ref noBreak);
 			}
-
-			// Check the up tile
-			if (y > 0) {
-				ref NetworkInfo check = ref Main.tile[x, y - 1].Get<NetworkInfo>();
-
-				if ((center.Type & check.Type) != 0)
-					hasUp = true;
-			}
-
-			// Check the right tile
-			if (x < Main.maxTilesX - 1) {
-				ref NetworkInfo check = ref Main.tile[x + 1, y].Get<NetworkInfo>();
-
-				if ((center.Type & check.Type) != 0)
-					hasRight = true;
-			}
-
-			// Check the down tile
-			if (y < Main.maxTilesY - 1) {
-				ref NetworkInfo check = ref Main.tile[x, y + 1].Get<NetworkInfo>();
-
-				if ((center.Type & check.Type) != 0)
-					hasDown = true;
-			}
-
-			ConnectionDirection dirs = ConnectionDirection.None;
-			
-			if (hasLeft)
-				dirs |= ConnectionDirection.Left;
-			if (hasUp)
-				dirs |= ConnectionDirection.Up;
-			if (hasRight)
-				dirs |= ConnectionDirection.Right;
-			if (hasDown)
-				dirs |= ConnectionDirection.Down;
-
-			center.Connections = dirs;
 		}
 	}
 }

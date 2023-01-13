@@ -249,6 +249,10 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				if (import.IsAir) {
 					Destroy(dropItem: false);
 					return;
+				} else if (Target == Point16.NegativeOne) {
+					// Item was wandering around and fell out of a dead end
+					Destroy(dropItem: true);
+					return;
 				}
 
 				// Only write the stack in case a machine decided to do some funny business

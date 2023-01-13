@@ -206,8 +206,8 @@ namespace SerousEnergyLib.Systems {
 				return false;
 
 			Tile tile = Main.tile[location.X, location.Y];
-			NetworkInfo info = tile.Get<NetworkInfo>();
-			NetworkTaggedInfo tags = tile.Get<NetworkTaggedInfo>();
+			ref NetworkInfo info = ref tile.Get<NetworkInfo>();
+			ref NetworkTaggedInfo tags = ref tile.Get<NetworkTaggedInfo>();
 
 			bool pump = info.IsPump;
 
@@ -335,7 +335,7 @@ namespace SerousEnergyLib.Systems {
 			
 			// Generate the "up" network
 			NetworkInstance netUp = null;
-			if (orig.HasEntry(right) && !(netLeft?.HasEntry(up) ?? false)) {
+			if (orig.HasEntry(up) && !(netLeft?.HasEntry(up) ?? false)) {
 				netUp = CloneNetwork(orig, leftUpConnected, left, upRightConnected, right, upDownConnected, down);
 
 				if (!netUp.IsEmpty) {
@@ -734,14 +734,14 @@ namespace SerousEnergyLib.Systems {
 			Tile fromTile = Main.tile[from.X, from.Y];
 			Tile toTile = Main.tile[to.X, to.Y];
 
-			NetworkTaggedInfo fromTags = fromTile.Get<NetworkTaggedInfo>();
-			NetworkTaggedInfo toTags = toTile.Get<NetworkTaggedInfo>();
+			ref NetworkTaggedInfo fromTags = ref fromTile.Get<NetworkTaggedInfo>();
+			ref NetworkTaggedInfo toTags = ref toTile.Get<NetworkTaggedInfo>();
 
 			if (!NetworkTaggedInfo.CanMergeColors(fromTags, toTags))
 				return false;
 
-			NetworkInfo fromInfo = fromTile.Get<NetworkInfo>();
-			NetworkInfo toInfo = toTile.Get<NetworkInfo>();
+			ref NetworkInfo fromInfo = ref fromTile.Get<NetworkInfo>();
+			ref NetworkInfo toInfo = ref toTile.Get<NetworkInfo>();
 
 			// Pumps cannot merge with each other
 			if (fromInfo.IsPump && toInfo.IsPump)

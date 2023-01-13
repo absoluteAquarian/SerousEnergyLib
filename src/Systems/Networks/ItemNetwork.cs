@@ -154,10 +154,8 @@ namespace SerousEnergyLib.Systems.Networks {
 			ItemNetwork src = source as ItemNetwork;
 
 			foreach (var item in src.items) {
-				if (item is not { Destroyed: false }) {
-					items.Add(null);
+				if (item is not { Destroyed: false })
 					continue;
-				}
 
 				TagCompound tag = new();
 				item.SaveData(tag);
@@ -168,7 +166,7 @@ namespace SerousEnergyLib.Systems.Networks {
 			}
 
 			foreach (var (loc, pump) in src.pumpTimers)
-				pumpTimers[loc] = pump;
+				pumpTimers[loc] = new Ref<int>(pump.Value);
 
 			foreach (var loc in src.adjacentInventoryTiles)
 				adjacentInventoryTiles.Add(loc);
@@ -178,6 +176,9 @@ namespace SerousEnergyLib.Systems.Networks {
 			// Remove any items no longer in the network
 			for (int i = 0; i < items.Count; i++) {
 				PipedItem item = items[i];
+
+				if (item is not { Destroyed: false })
+					continue;
 
 				if (!HasEntry(item.CurrentTile)) {
 					item.Destroy(dropItem: false);
@@ -241,6 +242,38 @@ namespace SerousEnergyLib.Systems.Networks {
 			adjacentInventoryTiles = null;
 			items = null;
 			pumpTimers = null;
+		}
+
+		public override void OnEntryRemoved(Point16 location) {
+			// Drop all items that are at the removed location
+			for (int i = 0; i < items.Count; i++) {
+				PipedItem item = items[i];
+
+				if (item is not { Destroyed: false })
+					continue;
+
+				if (item.CurrentTile == location) {
+					item.Destroy(dropItem: HasEntry(location));
+
+					Netcode.SyncPipedItem(item, fullSync: false);
+
+					items[i] = null;
+				}
+			}
+
+			// Remove any adjacent inventories
+			Point16 left = location + new Point16(-1, 0),
+				up = location = new Point16(0, -1),
+				right = location + new Point16(1, 0),
+				down = location + new Point16(0, 1);
+
+			adjacentInventoryTiles.Remove(left);
+			adjacentInventoryTiles.Remove(up);
+			adjacentInventoryTiles.Remove(right);
+			adjacentInventoryTiles.Remove(down);
+
+			// Remove the pump timer if it's present
+			pumpTimers.Remove(location);
 		}
 
 		/// <summary>

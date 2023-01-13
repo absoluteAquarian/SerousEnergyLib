@@ -214,6 +214,20 @@ namespace SerousEnergyLib.Systems.Networks {
 			// Clamp the storage
 			if (Storage.CurrentCapacity > Storage.MaxCapacity)
 				Storage.CurrentCapacity = Storage.MaxCapacity;
+
+			// Remove any adjacent storages
+			Point16 left = location + new Point16(-1, 0),
+				up = location = new Point16(0, -1),
+				right = location + new Point16(1, 0),
+				down = location + new Point16(0, 1);
+
+			adjacentFluidStorageTiles.Remove(left);
+			adjacentFluidStorageTiles.Remove(up);
+			adjacentFluidStorageTiles.Remove(right);
+			adjacentFluidStorageTiles.Remove(down);
+
+			// Remove the pump timer if it's present
+			pumpTimers.Remove(location);
 		}
 
 		protected override void SaveExtraData(TagCompound tag) {
