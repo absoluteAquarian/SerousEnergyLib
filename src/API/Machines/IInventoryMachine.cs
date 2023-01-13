@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.API.Fluid;
+using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
@@ -141,18 +142,13 @@ namespace SerousEnergyLib.API.Machines {
 				return false;
 
 			// Make a clone of the machine
-			var clone = ModTileEntity.ConstructFromBase(entity) as IInventoryMachine
+			var cloneEntity = ModTileEntity.ConstructFromBase(entity);
+			var clone = cloneEntity as IInventoryMachine
 				?? throw new Exception("Constructed machine object was not an IInventoryMachine");
 
-			var inv = machine.Inventory;
-			clone.Inventory = new Item[inv.Length].Populate(index => {
-				var slot = inv[index];
-
-				if (slot is null || slot.IsAir)
-					return slot;
-
-				return slot.Clone();
-			});
+			TagCompound tag = new();
+			entity.SaveData(tag);
+			cloneEntity.LoadData(tag);
 
 			blockSlotSyncing = true;
 
@@ -169,7 +165,7 @@ namespace SerousEnergyLib.API.Machines {
 
 				var import = pipedItem.GetItemClone();
 
-				ImportItem(inventory, item);
+				ImportItem(clone, import);
 
 				if (!import.IsAir) {
 					// Prediction failed -- new item cannot be imported
@@ -215,7 +211,7 @@ namespace SerousEnergyLib.API.Machines {
 				existing.stack = existing.maxStack;
 			}
 
-			if (blockSlotSyncing)
+			if (!blockSlotSyncing)
 				Netcode.SyncMachineInventorySlot(this, slot);
 		}
 

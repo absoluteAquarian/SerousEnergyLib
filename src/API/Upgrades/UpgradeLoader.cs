@@ -53,21 +53,23 @@ namespace SerousEnergyLib.API.Upgrades {
 			if (string.IsNullOrWhiteSpace(mod) || string.IsNullOrWhiteSpace(name))
 				return null;
 
-			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out BaseUpgradeItem item)) {
+			BaseUpgradeItem upgradeItem;
+			if (!ModLoader.TryGetMod(mod, out Mod source) || !source.TryFind(name, out ModItem item)) {
 				var unloaded = new Item(ModContent.ItemType<UnloadedUpgradeItem>()).ModItem as UnloadedUpgradeItem;
 				unloaded.unloadedMod = mod;
 				unloaded.unloadedName = name;
-				item = unloaded;
-			}
+				upgradeItem = unloaded;
+			} else
+				upgradeItem = new Item(item.Type).ModItem as BaseUpgradeItem;
 
 			int stack = tag.GetInt("stack");
 
 			if (stack <= 0)
 				return null;
 
-			item.Stack = stack;
+			upgradeItem.Stack = stack;
 
-			return item;
+			return upgradeItem;
 		}
 	}
 }
