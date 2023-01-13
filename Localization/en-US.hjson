@@ -22,6 +22,7 @@
 			TimeMinimumRangeRecipeItem: "{$Mods.SerousEnergyLib.ItemName.TimeRecipeItem}"
 			TimeMaximumRangeRecipeItem: "{$Mods.SerousEnergyLib.ItemName.TimeRecipeItem}"
 			TimeNoDurationRecipeItem: "0 seconds (0 ticks)"
+			DebugTool: "DEBUG//Network"
 		}
 
 		ItemTooltip: {
@@ -38,6 +39,13 @@
 			WaterRecipeItem: "Found sporatically throughout the world"
 			LavaRecipeItem: "Found deep in the Caverns layer and in the Underworld"
 			HoneyRecipeItem: "Found within bee hives in the Jungle"
+			DebugTool:
+			'''
+			Right click a network tile to enable debugging for its networks.
+			Left click to clear the current debugging coordinates.
+			Only one tile coordinate can be debugged at once.
+			<NET_INFO>
+			'''
 		}
 
 		ItemHasMachineData: "This item contains metadata from a machine"

@@ -1,6 +1,5 @@
 ﻿using SerousEnergyLib.API;
 using SerousEnergyLib.API.Energy;
-using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
@@ -18,6 +17,8 @@ namespace SerousEnergyLib.Systems.Networks {
 	/// </summary>
 	public sealed class PowerNetwork : NetworkInstance {
 		private HashSet<Point16> adjacentFluxStorageTiles = new();
+
+		internal int AdjacentStorageCount => adjacentFluxStorageTiles.Count;
 
 		/// <summary>
 		/// The power storage within this network
@@ -126,10 +127,17 @@ namespace SerousEnergyLib.Systems.Networks {
 			adjacentFluxStorageTiles.Remove(storage);
 		}
 
+		/// <summary>
+		/// Returns whether the tile at <paramref name="storage"/> is considered an adjacent flux storage to this network
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent tile</param>
+		public bool HasAdjacentFluxStorage(Point16 storage) => adjacentFluxStorageTiles.Contains(storage);
+
 		protected override void DisposeSelf(bool disposing) {
 			if (disposing)
 				adjacentFluxStorageTiles.Clear();
 
+			adjacentFluxStorageTiles = null;
 			Storage = null;
 		}
 

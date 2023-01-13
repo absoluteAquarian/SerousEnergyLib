@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API;
+﻿using Microsoft.Xna.Framework;
+using SerousEnergyLib.API;
 using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
@@ -19,6 +20,9 @@ namespace SerousEnergyLib.Systems.Networks {
 	public sealed class FluidNetwork : NetworkInstance {
 		private HashSet<Point16> adjacentFluidStorageTiles = new();
 		private Dictionary<Point16, Ref<int>> pumpTimers = new();
+
+		internal int AdjacentStorageCount => adjacentFluidStorageTiles.Count;
+		internal int PumpCount => pumpTimers.Count;
 
 		/// <summary>
 		/// The fluid storage within this network
@@ -44,6 +48,8 @@ namespace SerousEnergyLib.Systems.Networks {
 			foreach (var pump in invalidPumps)
 				pumpTimers.Remove(pump);
 
+			double previousCapacity = Storage.CurrentCapacity;
+
 			// Export fluids from this network into adjacent machines
 			IEnumerable<IFluidMachine> machines = adjacentFluidStorageTiles.Select(a => IMachine.TryFindMachine(a, out IFluidMachine machine) ? machine : null)
 				.OfType<ModTileEntity>()
@@ -62,6 +68,8 @@ namespace SerousEnergyLib.Systems.Networks {
 					Netcode.SyncMachineFluidStorageSlot(machine, slot);
 				}
 			}
+
+			netFluid = Storage.CurrentCapacity - previousCapacity;
 
 			Netcode.SyncNetworkFluidStorage(this, FirstNode);
 		}
@@ -193,6 +201,12 @@ namespace SerousEnergyLib.Systems.Networks {
 		public void RemoveAdjacentFluidStorage(Point16 storage) {
 			adjacentFluidStorageTiles.Remove(storage);
 		}
+
+		/// <summary>
+		/// Returns whether the tile at <paramref name="storage"/> is considered an adjacent fluid storage to this network
+		/// </summary>
+		/// <param name="storage">The tile location of the adjacent tile</param>
+		public bool HasAdjacentFluidStorage(Point16 storage) => adjacentFluidStorageTiles.Contains(storage);
 
 		protected override void DisposeSelf(bool disposing) {
 			if (disposing) {

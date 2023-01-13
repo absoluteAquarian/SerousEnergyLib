@@ -22,6 +22,9 @@ namespace SerousEnergyLib.Systems.Networks {
 		private Dictionary<Point16, Ref<int>> pumpTimers = new();
 		internal List<PipedItem> items = new();
 
+		internal int AdjacentInventoryCount => adjacentInventoryTiles.Count;
+		internal int PumpCount => pumpTimers.Count;
+
 		internal ItemNetwork() : base(NetworkType.Items) { }
 
 		#pragma warning disable CS1591
@@ -233,6 +236,12 @@ namespace SerousEnergyLib.Systems.Networks {
 				}
 			}
 		}
+
+		/// <summary>
+		/// Returns whether the tile at <paramref name="inventory"/> is considered an adjacent inventory to this network
+		/// </summary>
+		/// <param name="inventory">The tile location of the adjacent tile</param>
+		public bool HasAdjacentInventory(Point16 inventory) => adjacentInventoryTiles.Contains(inventory);
 
 		protected override void DisposeSelf(bool disposing) {
 			if (disposing) {

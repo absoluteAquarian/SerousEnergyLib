@@ -198,7 +198,7 @@ namespace SerousEnergyLib.API.Machines {
 
 			if (existing.IsAir) {
 				inv[slot] = import.Clone();
-				import.TurnToAir();
+				import.stack = 0;
 				return;
 			}
 
