@@ -258,15 +258,13 @@ namespace SerousEnergyLib.Tiles {
 			} else if (modTarget is NetworkJunction) {
 				// Always mergeable with a junction tile
 				return true;
-			} else if (modTarget is IMachineTile machineTile) {
-				var entity = machineTile.GetMachineEntity();
-
+			} else if (modTarget is IMachineTile && IMachine.TryFindMachine(new Point16(targetX, targetY), out IMachine machine)) {
 				// Certain machine classifications can only merge with certain network types...
-				if ((networkType & NetworkType.Items) == NetworkType.Items && entity is IInventoryMachine inv && inv.CanMergeWithItemPipe(i, j, targetX, targetY))
+				if ((networkType & NetworkType.Items) == NetworkType.Items && machine is IInventoryMachine inv && inv.CanMergeWithItemPipe(i, j, targetX, targetY))
 					return true;
-				else if ((networkType & NetworkType.Fluids) == NetworkType.Fluids && entity is IFluidMachine flu && flu.CanMergeWithFluidPipe(i, j, targetX, targetY))
+				else if ((networkType & NetworkType.Fluids) == NetworkType.Fluids && machine is IFluidMachine flu && flu.CanMergeWithFluidPipe(i, j, targetX, targetY))
 					return true;
-				else if ((networkType & NetworkType.Power) == NetworkType.Power && entity is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
+				else if ((networkType & NetworkType.Power) == NetworkType.Power && machine is IPoweredMachine pow && pow.CanMergeWithWire(i, j, targetX, targetY))
 					return true;
 			} else if (Chest.FindChestByGuessing(targetX, targetY) > -1) {
 				// Merge if, and only if, this tile is part of an item network

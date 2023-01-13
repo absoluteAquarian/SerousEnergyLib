@@ -57,22 +57,22 @@ namespace SerousEnergyLib.API.Fluid {
 		}
 
 		public FluidStorage(double max, params FluidTypeID[] allowedFluidTypes) {
-			if (allowedFluidTypes.Any(f => f is null or UnloadedFluidID))
+			if (allowedFluidTypes is not null && allowedFluidTypes.Any(f => f is null or UnloadedFluidID))
 				throw new ArgumentException("Allowed fluid types array contained invalid values", nameof(allowedFluidTypes));
 
 			BaseMaxCapacity = MaxCapacity = max;
 
-			this.allowedFluidTypes = allowedFluidTypes.ToArray();
+			this.allowedFluidTypes = allowedFluidTypes?.ToArray();
 		}
 
 		public FluidStorage(double max, params int[] allowedFluidTypes) {
 			int unloadedType = SerousMachines.FluidType<UnloadedFluidID>();
-			if (allowedFluidTypes.Any(f => f == unloadedType || FluidLoader.Get(f) is null))
+			if (allowedFluidTypes is not null && allowedFluidTypes.Any(f => f == unloadedType || FluidLoader.Get(f) is null))
 				throw new ArgumentException("Allowed fluid types array contained invalid values", nameof(allowedFluidTypes));
 
 			BaseMaxCapacity = MaxCapacity = max;
 
-			this.allowedFluidTypes = allowedFluidTypes.Select(FluidLoader.Get).ToArray();
+			this.allowedFluidTypes = allowedFluidTypes?.Select(FluidLoader.Get).ToArray();
 		}
 
 		public void SaveData(TagCompound tag) {

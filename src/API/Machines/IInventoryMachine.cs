@@ -73,8 +73,10 @@ namespace SerousEnergyLib.API.Machines {
 
 			Item existing = inv[slot];
 
-			if (existing.IsAir)
+			if (existing.IsAir) {
+				stackImported = stack;
 				return true;
+			}
 
 			if (ItemFunctions.AreStrictlyEqual(import, existing) && existing.stack < existing.maxStack) {
 				int diff = existing.maxStack - existing.stack;
@@ -215,7 +217,7 @@ namespace SerousEnergyLib.API.Machines {
 					Netcode.SyncMachineInventorySlot(this, slot);
 				}
 
-				result = new InventoryExtractionResult(target, import);
+				result = new InventoryExtractionResult(target, Point16.NegativeOne, import, slot);
 				return true;
 			}
 
@@ -228,10 +230,11 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="network">The item network to import the items into</param>
+		/// <param name="inventoryTile">The sub-tile that the extraction is performed from</param>
 		/// <param name="extractCount">A counter for how many more items can be extracted from this machine</param>
 		/// <param name="simulation">If <see langword="true"/>, items will not be removed from this machine</param>
 		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
-		public static List<InventoryExtractionResult> ExtractItems(IInventoryMachine machine, ItemNetwork network, ref int extractCount, bool simulation = true) {
+		public static List<InventoryExtractionResult> ExtractItems(IInventoryMachine machine, ItemNetwork network, Point16 inventoryTile, ref int extractCount, bool simulation = true) {
 			// Attempt to extract items from the machine
 			List<InventoryExtractionResult> results = new();
 
@@ -239,8 +242,24 @@ namespace SerousEnergyLib.API.Machines {
 
 			int capacity = slots.Length;
 
+			network.ignoredValidTargets.Clear();
+
+			if (machine is ModTileEntity entity && TileLoader.GetTile(Main.tile[entity.Position.X, entity.Position.Y].TileType) is IMachineTile machineTile) {
+				machineTile.GetMachineDimensions(out uint width, out uint height);
+
+				for (int y = 0; y < height; y++) {
+					for (int x = 0; x < width; x++)
+						network.ignoredValidTargets.Add(entity.Position + new Point16(x, y));
+				}
+			}
+
+			var inv = machine.Inventory;
+
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
+
+				if (inv[slot].IsAir)
+					continue;
 
 				if (machine.CanExportItemAtSlot(slot)) {
 					int count = extractCount;
@@ -249,12 +268,16 @@ namespace SerousEnergyLib.API.Machines {
 						continue;
 					}
 
+					result = result.ChangeSource(inventoryTile);
+
 					results.Add(result);
 
 					if (extractCount <= 0)
 						break;
 				}
 			}
+
+			network.ignoredValidTargets.Clear();
 
 			return results;
 		}

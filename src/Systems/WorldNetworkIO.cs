@@ -52,7 +52,7 @@ namespace SerousEnergyLib.Systems {
 			if (tag.GetList<TagCompound>("maps") is List<TagCompound> maps) {
 				foreach (var map in maps) {
 					try {
-						NetworkType filter = (NetworkType)map.GetByte("filter");
+						NetworkType filter = (NetworkType)map.GetByte("type");
 
 						if (filter != NetworkType.Items && filter != NetworkType.Fluids && filter != NetworkType.Power)
 							throw new IOException("Network type was invalid: " + filter);

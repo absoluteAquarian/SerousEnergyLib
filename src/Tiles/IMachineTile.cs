@@ -29,7 +29,8 @@ namespace SerousEnergyLib.Tiles {
 		string GetMachineMapEntryName();
 
 		/// <summary>
-		/// Return an instance of a <see cref="ModTileEntity"/> that inherits from <see cref="IMachine"/> here
+		/// Return an instance of a <see cref="ModTileEntity"/> that inherits from <see cref="IMachine"/> here.<br/>
+		/// This property should be treated as a singleton.
 		/// </summary>
 		IMachine GetMachineEntity();
 

@@ -3,7 +3,7 @@
 	/// An interface representing a tile that can pump items out of inventories
 	/// </summary>
 	public interface IItemPumpTile : IPumpTile, IItemTransportTile {
-		double IItemTransportTile.TransportSpeed => 45d / 60d;
+		double IItemTransportTile.TransportSpeed => 1d;
 
 		/// <summary>
 		/// How many items can be extracted from an inventory per pump cycle

@@ -71,7 +71,10 @@ namespace SerousEnergyLib.Pathfinding {
 						check = parent;
 					}
 
-					return path.Select(e => e.Location).ToList();
+					var list = path.Select(e => e.Location).ToList();
+					// List was built from target to source.  Reverse it to make index 0 be the source
+					list.Reverse();
+					return list;
 				}
 
 				// Path not found yet.  Check the surrounding entries

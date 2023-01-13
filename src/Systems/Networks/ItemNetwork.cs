@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.API;
+using SerousEnergyLib.API.Helpers;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.TileData;
@@ -35,7 +36,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				pumpTimers.Remove(pump);
 
 			for (int i = 0; i < items.Count; i++) {
-				if (items[i].Destroyed)
+				if (items[i] is { Destroyed: true })
 					items[i] = null;
 
 				items[i]?.Update();
@@ -88,23 +89,26 @@ namespace SerousEnergyLib.Systems.Networks {
 
 				if (NetworkHandler.locationToChest.TryGetValue(possibleInventory, out int chestNum)) {
 					// Chest should be valid here...
-					extractions = Main.chest[chestNum].ExtractItems(chestNum, this, ref numExtract, simulation: false);
+					extractions = Main.chest[chestNum].ExtractItems(chestNum, this, possibleInventory, ref numExtract, simulation: false);
 
 					goto makeItems;
 				}
 
 				if (IMachine.TryFindMachine(possibleInventory, out IInventoryMachine machine))
-					extractions = IInventoryMachine.ExtractItems(machine, this, ref numExtract, simulation: false);
+					extractions = IInventoryMachine.ExtractItems(machine, this, possibleInventory, ref numExtract, simulation: false);
 
 				// Inform clients of what the current state of the pump is
 				makeItems:
 
-				if (extractions is not null) {
+				if (extractions is { Count: > 0 }) {
 					foreach (var result in extractions) {
 						var path = AttemptToGeneratePathToInventoryTarget(location, result.target);
 
-						if (path is null)
+						if (path is null) {
+							// Failsafe: force the item back into its inventory
+							result.UndoExtraction();
 							continue;
+						}
 
 						PipedItem item = new PipedItem(this, possibleInventory, location, result.target, path, result.item);
 
@@ -146,7 +150,31 @@ namespace SerousEnergyLib.Systems.Networks {
 			adjacentInventoryTiles.Clear();
 		}
 
-		protected override void OnNetworkCloned() {
+		protected override void CopyExtraData(NetworkInstance source) {
+			ItemNetwork src = source as ItemNetwork;
+
+			foreach (var item in src.items) {
+				if (item is null || item.Destroyed) {
+					items.Add(null);
+					continue;
+				}
+
+				TagCompound tag = new();
+				item.SaveData(tag);
+
+				PipedItem clone = PipedItem.LoadData(this, tag);
+
+				items.Add(clone);
+			}
+
+			foreach (var (loc, pump) in src.pumpTimers)
+				pumpTimers[loc] = pump;
+
+			foreach (var loc in src.adjacentInventoryTiles)
+				adjacentInventoryTiles.Add(loc);
+		}
+
+		protected override void OnNetworkCloned(NetworkInstance orig) {
 			// Remove any items no longer in the network
 			for (int i = 0; i < items.Count; i++) {
 				PipedItem item = items[i];
@@ -160,14 +188,14 @@ namespace SerousEnergyLib.Systems.Networks {
 
 		// IInventoryMachine has a paired method for removing the machine from item networks
 		public override void OnEntryAdded(Point16 location) {
+			// Add adjacent chests
+			if (ChestFinder.FindChestAtCardinalTiles(location.X, location.Y, out Point16 chest) > -1)
+				adjacentInventoryTiles.Add(chest);
+
 			Point16 left = location + new Point16(-1, 0),
 				up = location + new Point16(0, -1),
 				right = location + new Point16(1, 0),
 				down = location + new Point16(0, 1);
-			
-			// Add adjacent chests
-			if (TryFindChest(left, up, right, down) > -1)
-				adjacentInventoryTiles.Add(left);
 
 			// Add adjacent machines
 			if (IMachine.TryFindMachine(left, out IInventoryMachine _))
@@ -178,30 +206,6 @@ namespace SerousEnergyLib.Systems.Networks {
 				adjacentInventoryTiles.Add(right);
 			if (IMachine.TryFindMachine(down, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(down);
-		}
-
-		// Manual logic to improve OnEntryAdded performance
-		private static int TryFindChest(Point16 left, Point16 up, Point16 right, Point16 down) {
-			for (int i = 0; i < 8000; i++) {
-				Chest chest = Main.chest[i];
-
-				if (chest is null)
-					continue;
-
-				if (chest.x >= left.X && chest.x < left.X + 2 && chest.y >= left.Y && chest.y < left.Y + 2)
-					return i;
-
-				if (chest.x >= up.X && chest.x < up.X + 2 && chest.y >= up.Y && chest.y < up.Y + 2)
-					return i;
-
-				if (chest.x >= right.X && chest.x < right.X + 2 && chest.y >= right.Y && chest.y < right.Y + 2)
-					return i;
-
-				if (chest.x >= down.X && chest.x < down.X + 2 && chest.y >= down.Y && chest.y < down.Y + 2)
-					return i;
-			}
-
-			return -1;
 		}
 
 		/// <summary>
@@ -228,14 +232,24 @@ namespace SerousEnergyLib.Systems.Networks {
 		}
 
 		protected override void DisposeSelf(bool disposing) {
-			if (disposing)
+			if (disposing) {
 				adjacentInventoryTiles.Clear();
+				items.Clear();
+				pumpTimers.Clear();
+			}
 
 			adjacentInventoryTiles = null;
+			items = null;
+			pumpTimers = null;
 		}
 
 		/// <summary>
-		/// Attempts to find a valid inventory that can have <paramref name="import"/> inserted into it.
+		/// The list of coordinates that <see cref="FindValidImportTarget(Item, out Point16, out int)"/> should ignore
+		/// </summary>
+		public readonly HashSet<Point16> ignoredValidTargets = new();
+
+		/// <summary>
+		/// Attempts to find a valid adjacent inventory that can have <paramref name="import"/> inserted into it.
 		/// </summary>
 		/// <param name="import">The item to attempt to insert.</param>
 		/// <param name="inventory">The location of the inventory's tile if one was found</param>
@@ -248,6 +262,9 @@ namespace SerousEnergyLib.Systems.Networks {
 
 			foreach (var adjacent in adjacentInventoryTiles) {
 				bool exists = false;
+
+				if (ignoredValidTargets.Contains(adjacent))
+					continue;
 
 				if (NetworkHandler.locationToChest.TryGetValue(adjacent, out int chest)) {
 					// Tile was a chest
@@ -262,7 +279,7 @@ namespace SerousEnergyLib.Systems.Networks {
 
 				Tile tile = Main.tile[adjacent.X, adjacent.Y];
 
-				if (TileLoader.GetTile(tile.TileType) is IInventoryMachine machine) {
+				if (TileLoader.GetTile(tile.TileType) is IMachineTile && IMachine.TryFindMachine(adjacent, out IInventoryMachine machine)) {
 					if (IInventoryMachine.CanImportItem(machine, import, out stackImported) && stackImported > 0) {
 						inventory = adjacent;
 						return true;
@@ -335,7 +352,20 @@ namespace SerousEnergyLib.Systems.Networks {
 				return itemTag;
 			}
 
-			tag["items"] = items.Select(SaveItem).ToList();
+			static TagCompound SavePump(Point16 location, Ref<int> timer) {
+				Tile tile = Main.tile[location.X, location.Y];
+
+				return new TagCompound() {
+					["x"] = location.X,
+					["y"] = location.Y,
+					["time"] = timer.Value,
+					["dir"] = (byte)(tile.TileFrameX / 18)
+				};
+			}
+
+			tag["items"] = items.OfType<PipedItem>().Select(SaveItem).ToList();
+
+			tag["pumps"] = pumpTimers.Select(static kvp => SavePump(kvp.Key, kvp.Value)).ToList();
 		}
 
 		protected override void LoadExtraData(TagCompound tag) {
@@ -344,6 +374,35 @@ namespace SerousEnergyLib.Systems.Networks {
 			if (tag.GetList<TagCompound>("items") is List<TagCompound> itemTags) {
 				foreach (var item in itemTags)
 					items.Add(PipedItem.LoadData(this, item));
+			}
+
+			pumpTimers.Clear();
+
+			if (tag.GetList<TagCompound>("pumps") is List<TagCompound> pumpTags) {
+				foreach (var pump in pumpTags) {
+					if (!pump.TryGet("x", out short x))
+						continue;
+
+					if (!pump.TryGet("y", out short y))
+						continue;
+
+					if (!pump.TryGet("time", out int time))
+						continue;
+
+					if (!pump.TryGet("dir", out byte dir))
+						continue;
+
+					pumpTimers[new Point16(x, y)] = new Ref<int>(time);
+
+					Tile tile = Main.tile[x, y];
+
+					ref var netInfo = ref tile.Get<NetworkInfo>();
+
+					if (netInfo.IsPump && (netInfo.Type & NetworkType.Items) == NetworkType.Items) {
+						tile.TileFrameX = (short)(dir * 18);
+						tile.TileFrameY = 0;
+					}
+				}
 			}
 		}
 

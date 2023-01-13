@@ -1,5 +1,6 @@
 ﻿using SerousEnergyLib.API;
 using SerousEnergyLib.API.Energy;
+using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
@@ -58,6 +59,34 @@ namespace SerousEnergyLib.Systems.Networks {
 			Netcode.SyncNetworkPowerStorage(this, FirstNode);
 		}
 
+		public override void OnNetworkReset() {
+			adjacentFluxStorageTiles.Clear();
+			Storage.MaxCapacity = TerraFlux.Zero;
+		}
+
+		protected override void CopyExtraData(NetworkInstance source) {
+			PowerNetwork src = source as PowerNetwork;
+
+			TagCompound tag = new();
+			src.Storage.SaveData(tag);
+			Storage = new FluxStorage(TerraFlux.Zero);
+			Storage.LoadData(tag);
+
+			foreach (var loc in src.adjacentFluxStorageTiles)
+				adjacentFluxStorageTiles.Add(loc);
+		}
+
+		protected override void OnNetworkCloned(NetworkInstance orig) {
+			// Find the "percentage capacity" that the original network had and apply it to this network's current storage
+			PowerNetwork src = orig as PowerNetwork;
+
+			var storage = src.Storage;
+
+			double percentage = storage.MaxCapacity <= TerraFlux.Zero ? 0 : (double)storage.CurrentCapacity / (double)storage.MaxCapacity;
+
+			Storage.CurrentCapacity = Storage.MaxCapacity * percentage;
+		}
+
 		public override void OnEntryAdded(Point16 location) {
 			Tile tile = Main.tile[location.X, location.Y];
 
@@ -95,6 +124,13 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// <param name="storage">The tile location of the adjacent machine to remove</param>
 		public void RemoveAdjacentFluxStorage(Point16 storage) {
 			adjacentFluxStorageTiles.Remove(storage);
+		}
+
+		protected override void DisposeSelf(bool disposing) {
+			if (disposing)
+				adjacentFluxStorageTiles.Clear();
+
+			Storage = null;
 		}
 
 		public override void OnEntryRemoved(Point16 location) {

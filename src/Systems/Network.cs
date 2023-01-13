@@ -22,16 +22,25 @@ namespace SerousEnergyLib.Systems {
 		internal static bool UpdatingPowerGenerators { get; private set; }
 
 		internal static void UpdateItemNetworks() {
+			// Ensure that no empty networks can exist
+			itemNetworks.RemoveAll(static i => i.IsEmpty);
+
 			foreach (var net in itemNetworks)
 				net.Update();
 		}
 
 		internal static void UpdateFluidNetworks() {
+			// Ensure that no empty networks can exist
+			fluidNetworks.RemoveAll(static f => f.IsEmpty);
+
 			foreach (var net in fluidNetworks)
 				net.Update();
 		}
 
 		internal static void UpdatePowerNetworks() {
+			// Ensure that no empty networks can exist
+			powerNetworks.RemoveAll(static f => f.IsEmpty);
+
 			UpdatingPowerGenerators = true;
 
 			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>())
@@ -117,13 +126,13 @@ namespace SerousEnergyLib.Systems {
 					// No adjacent networks.  Create a new one
 					NetworkInstance net = NetworkInstance.CreateNetwork(filter);
 					net.ReserveNextID();
-					
-					net.AddEntry(location);
+
+					net.Recalculate(location);
 
 					source.Add(net);
 
 					Netcode.SyncFullNetworkData(net.ID);
-				} else if (adjacent.Count == 0) {
+				} else if (adjacent.Count == 1) {
 					// Only one adjacent network detected.  Just add the entry to the network
 					NetworkInstance net = adjacent[0];
 
@@ -165,16 +174,16 @@ namespace SerousEnergyLib.Systems {
 
 			int index = 0;
 			foreach (NetworkInstance net in source) {
-				if (net.HasEntry(x - 1, y) && !netIDs.Add(net.ID)) {
+				if (net.HasEntry(x - 1, y) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x, y - 1) && !netIDs.Add(net.ID)) {
+				} else if (net.HasEntry(x, y - 1) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x + 1, y) && !netIDs.Add(net.ID)) {
+				} else if (net.HasEntry(x + 1, y) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x, y + 1) && !netIDs.Add(net.ID)){
+				} else if (net.HasEntry(x, y + 1) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
 				}
@@ -233,7 +242,7 @@ namespace SerousEnergyLib.Systems {
 				if (parent is null)
 					return;  // No network present
 
-				if (parent.EntryCount == 0) {
+				if (parent.EntryCount <= 1) {
 					// This was a single-entry network.  Just remove it
 					Netcode.SendNetworkRemoval(parent.ID);
 					

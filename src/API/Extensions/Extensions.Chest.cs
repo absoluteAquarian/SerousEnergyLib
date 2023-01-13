@@ -9,6 +9,15 @@ using Terraria.ID;
 namespace SerousEnergyLib.API {
 	partial class Extensions {
 		/// <summary>
+		/// Performs a better check for locating a chest than <see cref="Chest.FindChestByGuessing(int, int)"/>
+		/// </summary>
+		/// <param name="chest"></param>
+		/// <param name="x"></param>
+		/// <param name="y"></param>
+		/// <returns>Whether any sub-tile of <paramref name="chest"/> was located at (<paramref name="x"/>, <paramref name="y"/>)</returns>
+		public static bool IsChestAt(this Chest chest, int x, int y) => chest.x <= x && chest.x + 2 > x && chest.y <= y && chest.y + 2 > y;
+
+		/// <summary>
 		/// Checks if <paramref name="chest"/> can have <paramref name="item"/> imported into it
 		/// </summary>
 		/// <param name="chest">The chest instance</param>
@@ -27,8 +36,10 @@ namespace SerousEnergyLib.API {
 			for (int i = 0; i < inv.Length; i++) {
 				Item slot = inv[i];
 
-				if (slot.IsAir)
+				if (slot.IsAir) {
+					stackImported = stack;
 					return true;
+				}
 
 				if (ItemFunctions.AreStrictlyEqual(slot, item) && slot.stack < slot.maxStack) {
 					int diff = slot.maxStack - slot.stack;
@@ -96,14 +107,21 @@ namespace SerousEnergyLib.API {
 		/// This parameter is required for netcode to properly send updates of the items in <paramref name="chest"/>
 		/// </param>
 		/// <param name="network">The item network to import the items into</param>
+		/// <param name="inventoryTile">The sub-tile that the extraction is performed from</param>
 		/// <param name="extractCount">A counter for how many more items can be extracted from <paramref name="chest"/></param>
 		/// <param name="simulation">If <see langword="true"/>, items will not be removed from <paramref name="chest"/></param>
 		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
-		public static List<InventoryExtractionResult> ExtractItems(this Chest chest, int chestNum, ItemNetwork network, ref int extractCount, bool simulation = true) {
+		public static List<InventoryExtractionResult> ExtractItems(this Chest chest, int chestNum, ItemNetwork network, Point16 inventoryTile, ref int extractCount, bool simulation = true) {
 			var inv = chest.item;
 			
 			// Attempt to extract the items from the chest
 			List<InventoryExtractionResult> results = new();
+
+			network.ignoredValidTargets.Clear();
+			network.ignoredValidTargets.Add(new Point16(chest.x, chest.y));
+			network.ignoredValidTargets.Add(new Point16(chest.x + 1, chest.y));
+			network.ignoredValidTargets.Add(new Point16(chest.x, chest.y + 1));
+			network.ignoredValidTargets.Add(new Point16(chest.x + 1, chest.y + 1));
 
 			for (int i = 0; i < inv.Length; i++) {
 				Item slot = inv[i];
@@ -118,7 +136,7 @@ namespace SerousEnergyLib.API {
 				if (network.FindValidImportTarget(import, out Point16 target, out int stackImported)) {
 					// There was a valid target
 					import.stack = stackImported;
-					results.Add(new InventoryExtractionResult(target, import));
+					results.Add(new InventoryExtractionResult(target, inventoryTile, import, i));
 					extractCount -= stackImported;
 
 					if (!simulation) {
@@ -134,6 +152,8 @@ namespace SerousEnergyLib.API {
 						break;
 				}
 			}
+
+			network.ignoredValidTargets.Clear();
 
 			return results;
 		}

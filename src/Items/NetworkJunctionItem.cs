@@ -37,13 +37,21 @@ namespace SerousEnergyLib.Items {
 
 		public override bool AltFunctionUse(Player player) => true;
 
+		private bool switchingMode;
+
 		public override bool? UseItem(Player player) {
 			if (player.altFunctionUse == 2) {
+				switchingMode = Item.createTile != -1;
+
 				// Cycle to the next style and prevent placement
-				Item.placeStyle = ++Item.placeStyle % 3;
+				if (!switchingMode)
+					Item.placeStyle = ++Item.placeStyle % 3;
+
 				Item.createTile = -1;
 				Item.useStyle = ItemUseStyleID.HoldUp;
 			} else {
+				switchingMode = Item.createTile == -1;
+
 				// Allow placement of the tile
 				Item.createTile = ModContent.TileType<NetworkJunction>();
 				Item.useStyle = ItemUseStyleID.Swing;
@@ -54,7 +62,7 @@ namespace SerousEnergyLib.Items {
 
 		public override bool ConsumeItem(Player player) {
 			// Right click should not consume the item, only rotate it
-			return player.altFunctionUse != 2;
+			return player.altFunctionUse != 2 && !switchingMode;
 		}
 
 		public override void AddRecipes() {

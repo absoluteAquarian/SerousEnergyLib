@@ -124,7 +124,14 @@ namespace SerousEnergyLib.Systems {
 				foreach (var coarseLocation in coarsePath.Keys)
 					UpdateCoarseNode(coarseLocation);
 			}
+
+			CopyExtraData(other);
 		}
+
+		/// <summary>
+		/// Copy extra data from <paramref name="source"/> into this network here
+		/// </summary>
+		protected virtual void CopyExtraData(NetworkInstance source) { }
 
 		/// <summary>
 		/// Returns <see langword="true"/> if this network contains a node at <paramref name="location"/>
@@ -229,6 +236,16 @@ namespace SerousEnergyLib.Systems {
 			var node = CreateNetworkNode(x, y, ref adjacent, ref nextIndex);
 			nodes.Add(location, node);
 
+			// Update adjacent nodes
+			Span<Point16> adjacentAdjacent = stackalloc Point16[4];
+			int nextAdjacentIndex = 0;
+			for (int i = 0; i < nextIndex; i++) {
+				var adj = adjacent[i];
+
+				if (HasEntry(adj))
+					nodes[adj] = CreateNetworkNode(adj.X, adj.Y, ref adjacentAdjacent, ref nextAdjacentIndex);
+			}
+
 			OnEntryAdded(location);
 
 			// Preemptively add a coarse node entry
@@ -239,16 +256,6 @@ namespace SerousEnergyLib.Systems {
 			if (!recalculating) {
 				// Refresh the coarse node
 				UpdateCoarseNode(coarse);
-
-				// Update the adjacent nodes
-				for (int i = 0; i < node.adjacent.Length; i++) {
-					Point16 adj = node.adjacent[i];
-
-					if (nodes.TryGetValue(adj, out var adjNode)) {
-						node = CreateNetworkNode(adj.X, adj.Y, ref adjacent, ref nextIndex);
-						nodes[adj] = node;
-					}
-				}
 			}
 		}
 
@@ -261,6 +268,8 @@ namespace SerousEnergyLib.Systems {
 		internal static List<NetworkInstance> RemoveEntry(NetworkInstance orig, int x, int y) {
 			Point16 location = new Point16(x, y);
 			orig.nodes.Remove(location);
+
+			orig.OnEntryRemoved(location);
 
 			// If no more nodes exist in the source coarse node, then remove it as well
 			Point16 coarse = location / CoarseNode.Coarseness;
@@ -312,47 +321,69 @@ namespace SerousEnergyLib.Systems {
 			NetworkInstance netLeft = null;
 			if (orig.HasEntry(left)) {
 				netLeft = CloneNetwork(orig, leftUpConnected, up, leftRightConnected, right, leftDownConnected, down);
-				networks.Add(netLeft);
 
-				origIDUsed = true;
-				netLeft.ID = orig.ID;
+				if (!netLeft.IsEmpty) {
+					networks.Add(netLeft);
+
+					origIDUsed = true;
+					netLeft.ID = orig.ID;
+				} else {
+					netLeft.Dispose();
+					netLeft = null;
+				}
 			}
 			
 			// Generate the "up" network
 			NetworkInstance netUp = null;
 			if (orig.HasEntry(right) && !(netLeft?.HasEntry(up) ?? false)) {
 				netUp = CloneNetwork(orig, leftUpConnected, left, upRightConnected, right, upDownConnected, down);
-				networks.Add(netUp);
 
-				if (!origIDUsed) {
-					origIDUsed = true;
-					netUp.ID = orig.ID;
-				} else
-					netUp.ReserveNextID();
+				if (!netUp.IsEmpty) {
+					networks.Add(netUp);
+
+					if (!origIDUsed) {
+						origIDUsed = true;
+						netUp.ID = orig.ID;
+					} else
+						netUp.ReserveNextID();
+				} else {
+					netUp.Dispose();
+					netUp = null;
+				}
 			}
 
 			// Generate the "right" network
 			NetworkInstance netRight = null;
 			if (orig.HasEntry(right) && !(netLeft?.HasEntry(right) ?? false) && !(netUp?.HasEntry(right) ?? false)) {
 				netRight = CloneNetwork(orig, leftRightConnected, left, upRightConnected, up, rightDownConnected, down);
-				networks.Add(netRight);
 
-				if (!origIDUsed) {
-					origIDUsed = true;
-					netRight.ID = orig.ID;
-				} else
-					netRight.ReserveNextID();
+				if (!netRight.IsEmpty) {
+					networks.Add(netRight);
+
+					if (!origIDUsed) {
+						origIDUsed = true;
+						netRight.ID = orig.ID;
+					} else
+						netRight.ReserveNextID();
+				} else {
+					netRight.Dispose();
+					netRight = null;
+				}
 			}
 
 			// Generate the "down" network
 			if (orig.HasEntry(down) && !(netLeft?.HasEntry(down) ?? false) && !(netUp?.HasEntry(down) ?? false) && !(netRight?.HasEntry(down) ?? false)) {
 				NetworkInstance netDown = CloneNetwork(orig, leftDownConnected, left, upDownConnected, up, rightDownConnected, right);
-				networks.Add(netDown);
 
-				if (!origIDUsed)
-					netDown.ID = orig.ID;
-				else
-					netDown.ReserveNextID();
+				if (!netDown.IsEmpty) {
+					networks.Add(netDown);
+
+					if (!origIDUsed)
+						netDown.ID = orig.ID;
+					else
+						netDown.ReserveNextID();
+				} else
+					netDown.Dispose();
 			}
 
 			return networks;
@@ -384,27 +415,29 @@ namespace SerousEnergyLib.Systems {
 				net.UpdateCoarseNode(loc);
 			}
 
+			net.OnNetworkCloned(orig);
+
 			return net;
 		}
 
 		/// <summary>
 		/// This method is called after this network was cloned from another network and this network's nodes were updated
 		/// </summary>
-		protected virtual void OnNetworkCloned() { }
+		protected virtual void OnNetworkCloned(NetworkInstance orig) { }
 
 		private static void RemoveUnnecessaryNodes(NetworkInstance net, Point16 start, bool updateCoarseNodes = true) {
 			Queue<Point16> queue = new Queue<Point16>();
 			queue.Enqueue(start);
 
 			// Remove this node and its adjacent nodes
-			while (queue.Count > 0) {
-				Point16 pos = queue.Dequeue();
-
+			while (queue.TryDequeue(out Point16 pos)) {
 				if (!net.TryGetEntry(pos, out NetworkInstanceNode node))
 					continue;
 
 				net.nodes.Remove(pos);
 				net.foundJunctions.Remove(pos);
+
+				net.OnEntryRemoved(pos);
 
 				foreach (var adj in node.adjacent)
 					queue.Enqueue(adj);
@@ -435,7 +468,7 @@ namespace SerousEnergyLib.Systems {
 				foundJunctions.Add(location);
 			}
 
-			return new NetworkInstanceNode(location, nextIndex == 0 ? Array.Empty<Point16>() : adjacent[..(nextIndex - 1)].ToArray());
+			return new NetworkInstanceNode(location, nextIndex == 0 ? Array.Empty<Point16>() : adjacent[..nextIndex].ToArray());
 		}
 
 		/// <summary>
@@ -531,7 +564,8 @@ namespace SerousEnergyLib.Systems {
 			if (!coarsePath.TryGetValue(coarseLocation, out CoarseNode node))
 				return;
 
-			totalCoarsePaths -= node.thresholds.Count - 1;
+			if (node.thresholds.Count > 0)
+				totalCoarsePaths -= node.thresholds.Count - 1;
 			node.thresholds.Clear();
 
 			int coarseX = coarseLocation.X;
@@ -563,51 +597,55 @@ namespace SerousEnergyLib.Systems {
 		#region Pathfinding Recalculation Helpers
 		private void CheckCoarseNodeHorizontalEdge(CoarseNode node, int fineX, int fineY, ConnectionDirection direction) {
 			int absY = direction == ConnectionDirection.Up ? fineY : fineY + CoarseNode.Stride - 1;
+			int offset = direction == ConnectionDirection.Up ? -1 : 1;
 
 			for (int x = 0; x < CoarseNode.Stride; x++) {
 				int absX = x + fineX;
 
-				if (HasEntry(absX, absY) && HasEntry(absX, absY + 1)) {
+				if (HasEntry(absX, absY) && HasEntry(absX, absY + offset)) {
 					// Generate paths within the node that go to this tile
-					GenerateThresholdPaths(node, absX, absY, fineX, fineY, ConnectionDirection.Down);
+					GenerateThresholdPaths(node, absX, absY, fineX, fineY, direction);
 				}
 			}
 		}
 
 		private void CheckCoarseNodeVerticalEdge(CoarseNode node, int fineX, int fineY, ConnectionDirection direction) {
 			int absX = direction == ConnectionDirection.Left ? fineX : fineX + CoarseNode.Stride - 1;
+			int offset = direction == ConnectionDirection.Left ? -1 : 1;
+
 			for (int y = 0; y < CoarseNode.Stride; y++) {
 				int absY = y + fineY;
 
-				if (HasEntry(absX, absY) && HasEntry(absX - 1, absY)) {
+				if (HasEntry(absX, absY) && HasEntry(absX + offset, absY)) {
 					// Generate paths within the node that go to this tile
-					GenerateThresholdPaths(node, absX, absY, fineX, fineY, ConnectionDirection.Left);
+					GenerateThresholdPaths(node, absX, absY, fineX, fineY, direction);
 				}
 			}
 		}
 
 		private void GenerateThresholdPaths(CoarseNode node, int x, int y, int nodeX, int nodeY, ConnectionDirection direction) {
-			Point16 end = new Point16(x, y);
+			Point16 start = new Point16(x, y);
 
-			CoarseNodeThresholdTile threshold = new CoarseNodeThresholdTile(end, direction);
+			CoarseNodeThresholdTile threshold = new CoarseNodeThresholdTile(start, direction);
 
 			List<CoarseNodePathHeuristic> pathList = new();
 
-			foreach (Point16 start in GetCoarseNodeValidThresholds(nodeX, nodeY, direction)) {
-				// Threshold should not pathfind to itself
-				if (start == end)
-					continue;
-
-				var path = innerCoarseNodePathfinder.GetPath(start, end);
+			foreach (Point16 adjacentNodeThreshold in GetCoarseNodeValidThresholds(nodeX, nodeY, direction)) {
+				var path = innerCoarseNodePathfinder.GetPath(start, adjacentNodeThreshold);
 
 				// If the path is null, then there isn't a connection with the target threshold and the source threshold
-				if (path is not null)
+				if (path is not null) {
+					// Threshold should not pathfind to itself
+					if (path.FindLastIndex(p => p == start) > 0)
+						continue;
+
 					pathList.Add(new CoarseNodePathHeuristic(path.ToArray()));
+				}
 			}
 
 			threshold.paths = pathList.ToArray();
 
-			node.thresholds.Add(end, threshold);
+			node.thresholds.Add(start, threshold);
 
 			totalCoarsePaths += threshold.paths.Length - 1;
 		}
@@ -629,7 +667,7 @@ namespace SerousEnergyLib.Systems {
 			for (int y = 0; y < CoarseNode.Stride; y++) {
 				Point16 possible = new Point16(targetX, nodeY + y);
 
-				if (HasEntry(possible))
+				if (HasEntry(targetX + 1, nodeY + y) && HasEntry(possible))
 					yield return possible;
 			}
 		}
@@ -640,7 +678,7 @@ namespace SerousEnergyLib.Systems {
 			for (int x = 0; x < CoarseNode.Stride; x++) {
 				Point16 possible = new Point16(nodeX + x, targetY);
 
-				if (HasEntry(possible))
+				if (HasEntry(nodeX + x, targetY + 1) && HasEntry(possible))
 					yield return possible;
 			}
 		}
@@ -651,7 +689,7 @@ namespace SerousEnergyLib.Systems {
 			for (int y = 0; y < CoarseNode.Stride; y++) {
 				Point16 possible = new Point16(targetX, nodeY + y);
 
-				if (HasEntry(possible))
+				if (HasEntry(targetX - 1, nodeY + y) && HasEntry(possible))
 					yield return possible;
 			}
 		}
@@ -662,7 +700,7 @@ namespace SerousEnergyLib.Systems {
 			for (int x = 0; x < CoarseNode.Stride; x++) {
 				Point16 possible = new Point16(nodeX + x, targetY);
 
-				if (HasEntry(possible))
+				if (HasEntry(nodeX + x, targetY - 1) && HasEntry(possible))
 					yield return possible;
 			}
 		}
@@ -748,7 +786,10 @@ namespace SerousEnergyLib.Systems {
 			}
 
 			// All four directions are allowed
-			return node.adjacent.ToList();
+			Point16 loc = node.location;
+
+			// Convert adjacent absolute to adjacent direction
+			return node.adjacent.Select(a => a - loc).ToList();
 		}
 		#endregion
 
@@ -778,8 +819,13 @@ namespace SerousEnergyLib.Systems {
 			// If the start end end coarse nodes are the same, then just perform A* pathfinding within the node since it would still be fast
 			if (startCoarse == endCoarse) {
 				var innerPath = innerCoarseNodePathfinder.GetPath(start, end);
-				travelTime = new CoarseNodePathHeuristic(innerPath.ToArray()).travelTime;
-				return innerPath;
+
+				if (innerPath is not null) {
+					travelTime = new CoarseNodePathHeuristic(innerPath.ToArray()).travelTime;
+					return innerPath;
+				}
+
+				return null;
 			}
 
 			// Sanity check
@@ -793,8 +839,11 @@ namespace SerousEnergyLib.Systems {
 				var path = innerCoarseNodePathfinder.GetPath(start, location);
 
 				// The starting tile could pathfind to the threshold
-				if (path is not null)
-					paths.Push(new CoarsePathBuilder(path, end));
+				if (path is not null) {
+					var builder = new CoarsePathBuilder(path, end);
+					builder.seenThresholds.Add(startNode.thresholds[location]);
+					paths.Push(builder);
+				}
 			}
 
 			// Keep generating paths until they reach the target or run out of tiles to pathfind
@@ -829,14 +878,13 @@ namespace SerousEnergyLib.Systems {
 				}
 
 				// Next threshold must exist for pathfinding to continue
-				if (!TryFindNextThresholdTile(threshold, out CoarseNodeThresholdTile nextThreshold)) {
+				if (check.cannotContinuePath || !TryFindNextThresholdTile(threshold, out CoarseNodeThresholdTile nextThreshold)) {
 					// Path might be invalid or at the final coarse node
-					Point16 possible = GetNextPossibleThresholdLocation(threshold);
-					Point16 coarse = possible / CoarseNode.Coarseness;
+					Point16 coarse = pathEnd / CoarseNode.Coarseness;
 
-					if (coarse == endCoarse && HasEntry(possible)) {
+					if (coarse == endCoarse && HasEntry(pathEnd)) {
 						// The path might exist
-						var path = innerCoarseNodePathfinder.GetPath(possible, end);
+						var path = innerCoarseNodePathfinder.GetPath(pathEnd, end);
 
 						if (path is not null) {
 							check.Append(new CoarseNodePathHeuristic(path.ToArray()));
@@ -851,13 +899,18 @@ namespace SerousEnergyLib.Systems {
 
 				var builders = CoarsePathBuilder.Append(check, nextThreshold);
 
-				foreach (var builder in builders) {
-					if (TryGetThresholdTile(builder.path[^1], out CoarseNodeThresholdTile endThreshold))
-						builder.seenThresholds.Add(endThreshold);
-				}
+				if (builders is not null) {
+					// Remove the old instance
+					paths.Pop();
 
-				foreach (var builder in builders.Skip(1))
-					paths.Push(builder);
+					foreach (var builder in builders) {
+						if (TryGetThresholdTile(builder.path[^1], out CoarseNodeThresholdTile endThreshold))
+							builder.seenThresholds.Add(endThreshold);
+					}
+
+					foreach (var builder in builders)
+						paths.Push(builder);
+				}
 			}
 
 			// Get the quickest path, or null if none exist

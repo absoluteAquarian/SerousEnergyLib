@@ -35,7 +35,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 		private List<Point16> path;
 		private Item item;
 
-		private int pathIndex;
+		private int pathIndex = 1;
 
 		private double travelFactor;  // How far along in the current tile the item has moved
 
@@ -52,7 +52,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 		/// <summary>
 		/// The next tile that this item will be located at
 		/// </summary>
-		public Point16 NextTile { get; private set; }
+		public Point16 NextTile { get; private set; } = Point16.NegativeOne;
 
 		private int aliveTime = -1;
 
@@ -64,11 +64,13 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 		#pragma warning disable CS1591
 		public readonly int UniqueID;
 
+		internal bool delayPumpRetargetting = true;
+
 		internal PipedItem(ItemNetwork network, Point16 source, Point16 current, Point16 target, List<Point16> path, Item item, int id) {
 			this.network = network;
 			PreviousTile = source;
 			CurrentTile = current;
-			this.Target = target;
+			Target = target;
 			this.path = path;
 			this.item = item;
 			UniqueID = id;
@@ -135,6 +137,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			writer.Write(NextTile);
 			writer.Write(aliveTime);
 			writer.Write(Destroyed);
+			writer.Write(delayPumpRetargetting);
 
 			if (full) {
 				writer.Write(path.Count);
@@ -175,6 +178,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			Point16 nextTile = reader.ReadPoint16();
 			int aliveTime = reader.ReadInt32();
 			bool destroyed = reader.ReadBoolean();
+			bool delayPump = reader.ReadBoolean();
 
 			if (item is null) {
 				List<Point16> path = new List<Point16>();
@@ -188,7 +192,8 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				// Make a new instance
 				item = new PipedItem(net, previousTile, currentTile, target, path, data, id) {
 					Destroyed = destroyed,
-					NextTile = nextTile
+					NextTile = nextTile,
+					delayPumpRetargetting = delayPump
 				};
 
 				net.AddPipedItem(item);
@@ -214,6 +219,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				item.NextTile = nextTile;
 				item.aliveTime = aliveTime;
 				item.Destroyed = destroyed;
+				item.delayPumpRetargetting = delayPump;
 			}
 		}
 
@@ -257,10 +263,11 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 				Netcode.SyncPipedItem(this, fullSync: false);
 				return;
-			}
+			} else if (modTile is not IItemPumpTile)
+				delayPumpRetargetting = false;  // Item has exited the pump.  Allow it to be redirected by future pumps
 
 			bool hackPumpRetarget = false;
-			if (modTile is IItemPumpTile) {
+			if (modTile is IItemPumpTile && !delayPumpRetargetting) {
 				// Reverse direction and force a retarget
 				NextTile = PreviousTile;
 				Target = Point16.NegativeOne;
@@ -281,11 +288,24 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			// If there is a target, move along the path to the target
 			// Otherwise, wander around in the network unless this is at a dead end, then just keep moving until this exits the network
 			if (Target != Point16.NegativeOne) {
-				travelFactor += transport.TransportSpeed * 16d / 60d;
+				double pixelsPerSecond = transport.TransportSpeed * 16;
+				double pixelsPerTick = pixelsPerSecond / 60d;
 
-				if (travelFactor > 1) {
-					travelFactor %= 1;
-					pathIndex++;
+				// Pixel distance ranges from 0 to 16, whereas travel factor ranges from 0 to 1
+				double factorPerTick = pixelsPerTick / 16;
+
+				travelFactor += factorPerTick;
+
+				if (NextTile == Point16.NegativeOne) {
+					// NextTile needs to be initialized
+					NextTile = pathIndex < path.Count ? path[pathIndex] : Target;
+				}
+
+				while (travelFactor > 1) {
+					travelFactor--;
+
+					if (pathIndex < path.Count)
+						pathIndex++;
 
 					PreviousTile = CurrentTile;
 					CurrentTile = NextTile;
@@ -351,6 +371,8 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 			this.path = null;
 			pathIndex = -1;
+
+			network.ignoredValidTargets.Clear();
 
 			if (network.FindValidImportTarget(import, out Point16 inventory, out _) && network.AttemptToGeneratePathToInventoryTarget(CurrentTile, inventory) is List<Point16> path)
 				UseTarget(inventory, path);
@@ -441,10 +463,10 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 			if (travelFactor < 0.5) {
 				// Moving from previous to current
-				center -= toCurrent * ((float)travelFactor * 2);
+				center -= toCurrent * ((float)(0.5 - travelFactor) * 2);
 			} else {
 				// Moving from current to next
-				center += fromCurrent * (((float)travelFactor - 0.5f) * 2);
+				center += fromCurrent * ((float)(travelFactor - 0.5) * 2);
 			}
 
 			return true;
