@@ -158,6 +158,9 @@ namespace SerousEnergyLib.API.Machines {
 
 			// Import the network items
 			foreach (var pipedItem in network.items) {
+				if (pipedItem is not { Destroyed: false })
+					continue;
+
 				if (pipedItem.Target == Point16.NegativeOne)
 					continue;
 

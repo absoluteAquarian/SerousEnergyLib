@@ -297,7 +297,7 @@ namespace SerousEnergyLib.Tiles {
 			// However, if the item is partially in the tile to the left or above this tile, do not draw it in order to prevent clipping issues
 			if (Network.GetItemNetworkAt(i, j) is ItemNetwork network) {
 				foreach (var pipedItem in network.items) {
-					if (pipedItem is null || pipedItem.Destroyed)
+					if (pipedItem is not { Destroyed: false })
 						continue;
 
 					// If the item isn't at a valid location, don't draw it

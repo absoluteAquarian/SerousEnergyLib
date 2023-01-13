@@ -130,13 +130,13 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// <param name="item">The item to add</param>
 		/// <returns>The index of <paramref name="item"/> in this network's collection</returns>
 		public int AddPipedItem(PipedItem item) {
-			if (item is null || item.Destroyed)
+			if (item is not { Destroyed: false })
 				return -1;
 
 			for (int i = 0; i < items.Count; i++) {
 				PipedItem p = items[i];
 
-				if (p is null || p.Destroyed) {
+				if (p is not { Destroyed: false }) {
 					items[i] = item;
 					return i;
 				}
@@ -154,7 +154,7 @@ namespace SerousEnergyLib.Systems.Networks {
 			ItemNetwork src = source as ItemNetwork;
 
 			foreach (var item in src.items) {
-				if (item is null || item.Destroyed) {
+				if (item is not { Destroyed: false }) {
 					items.Add(null);
 					continue;
 				}
@@ -419,7 +419,7 @@ namespace SerousEnergyLib.Systems.Networks {
 
 			writer.Write(items.Count);
 			foreach (var item in items) {
-				if (item is null || item.Destroyed)
+				if (item is not { Destroyed: false })
 					writer.Write(true);
 				else {
 					writer.Write(false);

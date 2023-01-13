@@ -88,6 +88,9 @@ namespace SerousEnergyLib.API {
 			ChestExtensions_blockChestSyncing = true;
 
 			foreach (var pipedItem in network.items) {
+				if (pipedItem is not { Destroyed: false })
+					continue;
+
 				if (pipedItem.Target == Point16.NegativeOne)
 					continue;
 
