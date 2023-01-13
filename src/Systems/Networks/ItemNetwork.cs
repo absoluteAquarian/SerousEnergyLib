@@ -268,7 +268,7 @@ namespace SerousEnergyLib.Systems.Networks {
 
 				if (NetworkHandler.locationToChest.TryGetValue(adjacent, out int chest)) {
 					// Tile was a chest
-					if (Main.chest[chest].CanImportItem(import, out stackImported) && stackImported > 0) {
+					if (Main.chest[chest].CheckItemImportPrediction(this, import, out stackImported) && stackImported > 0) {
 						inventory = adjacent;
 						return true;
 					}
@@ -280,7 +280,7 @@ namespace SerousEnergyLib.Systems.Networks {
 				Tile tile = Main.tile[adjacent.X, adjacent.Y];
 
 				if (TileLoader.GetTile(tile.TileType) is IMachineTile && IMachine.TryFindMachine(adjacent, out IInventoryMachine machine)) {
-					if (IInventoryMachine.CanImportItem(machine, import, out stackImported) && stackImported > 0) {
+					if (IInventoryMachine.CheckItemImportPrediction(machine, this, import, out stackImported) && stackImported > 0) {
 						inventory = adjacent;
 						return true;
 					}

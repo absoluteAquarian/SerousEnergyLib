@@ -294,6 +294,11 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				// Pixel distance ranges from 0 to 16, whereas travel factor ranges from 0 to 1
 				double factorPerTick = pixelsPerTick / 16;
 
+				if (factorPerTick > 1) {
+					// Weird things would happen if the item transportation were too fast
+					factorPerTick = 1;
+				}
+
 				travelFactor += factorPerTick;
 
 				if (NextTile == Point16.NegativeOne) {
@@ -301,8 +306,8 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 					NextTile = pathIndex < path.Count ? path[pathIndex] : Target;
 				}
 
-				while (travelFactor > 1) {
-					travelFactor--;
+				if (travelFactor > 1) {
+					travelFactor %= 1;
 
 					if (pathIndex < path.Count)
 						pathIndex++;
@@ -338,6 +343,8 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			if (!netSent)
 				Netcode.SyncPipedItem(this, fullSync: false);
 		}
+
+		public Item GetItemClone() => item?.Clone();
 
 		private void AttemptChestImport(Item import, Point16 entry) {
 			if (import.IsAir)

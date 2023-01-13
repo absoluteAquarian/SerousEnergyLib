@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.Pathfinding.Objects;
+using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using System;
 using System.Collections.Generic;
@@ -57,6 +58,69 @@ namespace SerousEnergyLib.API {
 		}
 
 		/// <summary>
+		/// Simulates importing <paramref name="item"/> and the items in <paramref name="network"/> into <paramref name="chest"/> and returns <see langword="true"/> if the import for <paramref name="item"/> would be successful
+		/// </summary>
+		/// <param name="chest">The chest instance</param>
+		/// <param name="network">The item network</param>
+		/// <param name="item">The item to import</param>
+		/// <param name="stackImported">The quantity of <paramref name="item"/> that was imported into <paramref name="chest"/></param>
+		public static bool CheckItemImportPrediction(this Chest chest, ItemNetwork network, Item item, out int stackImported) {
+			stackImported = 0;
+
+			if (item.IsAir)
+				return false;
+
+			// Make a clone of the inventory
+			var inv = chest.item;
+
+			Chest clone = new Chest() {
+				item = new Item[chest.item.Length].Populate(index => {
+					var slot = inv[index];
+
+					if (slot is null || slot.IsAir)
+						return slot;
+
+					return slot.Clone();
+				})
+			};
+
+			// Import the network items
+			ChestExtensions_blockChestSyncing = true;
+
+			foreach (var pipedItem in network.items) {
+				if (pipedItem.Target == Point16.NegativeOne)
+					continue;
+
+				if (!NetworkHandler.locationToChest.TryGetValue(pipedItem.Target, out int targetChest))
+					continue;
+
+				Chest target = Main.chest[targetChest];
+				if (chest.x != target.x || chest.y != target.y)
+					continue;
+
+				var import = pipedItem.GetItemClone();
+
+				clone.ImportItem(-1, import);
+
+				if (!import.IsAir) {
+					// Prediction failed -- new item cannot be imported
+					return false;
+				}
+			}
+
+			// Import the actual item
+			int oldStack = item.stack;
+			clone.ImportItem(-1, item);
+			stackImported = oldStack - item.stack;
+
+			ChestExtensions_blockChestSyncing = false;
+
+			return stackImported > 0;
+		}
+
+		private static bool ChestExtensions_blockChestSyncing;
+
+		/// <summary>
 		/// Imports <paramref name="item"/> into <paramref name="chest"/>
 		/// </summary>
 		/// <param name="chest">The chest instance</param>
@@ -86,13 +150,15 @@ namespace SerousEnergyLib.API {
 						// TODO: Copy the OnStackHooks DMD code from Magic Storage
 						item.stack = 0;
 
-						NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
+						if (!ChestExtensions_blockChestSyncing)
+							NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
 						return;
 					} else if (slot.stack < slot.maxStack) {
 						item.stack -= slot.maxStack - slot.stack;
 						slot.stack = slot.maxStack;
 
-						NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
+						if (!ChestExtensions_blockChestSyncing)
+							NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
 					}
 				}
 			}

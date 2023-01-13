@@ -124,6 +124,69 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
+		/// Simulates importing <paramref name="item"/> and the items in <paramref name="network"/> into <paramref name="machine"/> and returns <see langword="true"/> if the import for <paramref name="item"/> would be successful
+		/// </summary>
+		/// <param name="machine">The machine instance</param>
+		/// <param name="network">The item network</param>
+		/// <param name="item">The item to import</param>
+		/// <param name="stackImported">The quantity of <paramref name="item"/> that was imported into <paramref name="machine"/></param>
+		public static bool CheckItemImportPrediction(IInventoryMachine machine, ItemNetwork network, Item item, out int stackImported) {
+			stackImported = 0;
+
+			if (item.IsAir)
+				return false;
+
+			// Machine must be an entity, otherwise it couldn't be a target for pathfinding anyway
+			if (machine is not ModTileEntity entity)
+				return false;
+
+			// Make a clone of the machine
+			var clone = ModTileEntity.ConstructFromBase(entity) as IInventoryMachine
+				?? throw new Exception("Constructed machine object was not an IInventoryMachine");
+
+			var inv = machine.Inventory;
+			clone.Inventory = new Item[inv.Length].Populate(index => {
+				var slot = inv[index];
+
+				if (slot is null || slot.IsAir)
+					return slot;
+
+				return slot.Clone();
+			});
+
+			blockSlotSyncing = true;
+
+			// Import the network items
+			foreach (var pipedItem in network.items) {
+				if (pipedItem.Target == Point16.NegativeOne)
+					continue;
+
+				if (!TryFindMachine(pipedItem.Target, out IInventoryMachine inventory) || inventory is not ModTileEntity target || entity.Position != target.Position)
+					continue;
+
+				var import = pipedItem.GetItemClone();
+
+				ImportItem(inventory, item);
+
+				if (!import.IsAir) {
+					// Prediction failed -- new item cannot be imported
+					return false;
+				}
+			}
+
+			// Import the actual item
+			int oldStack = item.stack;
+			ImportItem(clone, item);
+			stackImported = oldStack - item.stack;
+
+			blockSlotSyncing = false;
+
+			return stackImported > 0;
+		}
+
+		private static bool blockSlotSyncing;
+
+		/// <summary>
 		/// Attempt to add <paramref name="import"/> to this machine's <see cref="Inventory"/> here.<br/>
 		/// If any part of <paramref name="import"/>'s stack is to be sent back to the network, indicate as such by making its stack positive.
 		/// </summary>
@@ -149,7 +212,8 @@ namespace SerousEnergyLib.API.Machines {
 				existing.stack = existing.maxStack;
 			}
 
-			Netcode.SyncMachineInventorySlot(this, slot);
+			if (blockSlotSyncing)
+				Netcode.SyncMachineInventorySlot(this, slot);
 		}
 
 		/// <summary>
