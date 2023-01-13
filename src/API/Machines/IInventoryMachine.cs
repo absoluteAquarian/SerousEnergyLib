@@ -264,7 +264,10 @@ namespace SerousEnergyLib.API.Machines {
 		/// <returns>Whether the extraction was successful</returns>
 		public virtual bool ExportItemAtSlot(ItemNetwork network, int slot, ref int extractCount, bool simulation, out InventoryExtractionResult result) {
 			Item item = Inventory[slot];
+
 			Item import = Inventory[slot].Clone();
+			if (import.stack > extractCount)
+				import.stack = extractCount;
 
 			if (network.FindValidImportTarget(import, out Point16 target, out int stackImported)) {
 				// There was a valid target
