@@ -216,6 +216,8 @@ namespace SerousEnergyLib.Systems.Networks {
 		public void AddAdjacentInventory(Point16 inventory) {
 			if (IMachine.TryFindMachine(inventory, out IInventoryMachine _))
 				adjacentInventoryTiles.Add(inventory);
+			if (ChestFinder.FindByGuessingImproved(inventory.X, inventory.Y) > -1)
+				adjacentInventoryTiles.Add(inventory);
 		}
 
 		/// <summary>

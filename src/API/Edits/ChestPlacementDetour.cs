@@ -32,7 +32,7 @@ namespace SerousEnergyLib.API.Edits {
 				for (int i = 0; i < 8; i++) {
 					var offset = offsets[i];
 
-					if (Network.GetItemNetworkAt(offset.X, offset.Y) is ItemNetwork net) {
+					if (Network.GetItemNetworkAt(chestTopLeft.X + offset.X, chestTopLeft.Y + offset.Y) is ItemNetwork net) {
 						int chestX = offset.X, chestY = offset.Y;
 						
 						// Adjust the network offset to its adjacent chest sub-tile location
@@ -46,7 +46,7 @@ namespace SerousEnergyLib.API.Edits {
 						else if (offset.Y == 2)
 							chestY--;
 
-						net.AddAdjacentInventory(new Point16(chestX, chestY));
+						net.AddAdjacentInventory(chestTopLeft + new Point16(chestX, chestY));
 					}
 				}
 			}
