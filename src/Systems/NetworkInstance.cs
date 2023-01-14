@@ -784,7 +784,7 @@ namespace SerousEnergyLib.Systems {
 					return new List<Point16>() { new Point16(diff.Y, diff.X) };    // Left -> Up, Right -> Down
 				else
 					return new List<Point16>();  // Failsafe
-			} else if (modTile is IPumpTile) {
+			} else if (modTile is IPumpTile && previous != Point16.NegativeOne) {
 				// Pathfinding can only approach the pump from the head, so no more walkable directions should be used
 				return new List<Point16>();
 			}
