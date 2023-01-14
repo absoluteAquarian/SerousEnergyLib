@@ -22,6 +22,11 @@ namespace SerousEnergyLib.Pathfinding {
 		private IsInterEntryPathValidDelegate PathToNextTileIsValid;
 		private GetWalkableDirectionsDelegate GetWalkableDirections;
 
+		/// <summary>
+		/// The initial "moving direction".  Defaults to <see cref="Point16.NegativeOne"/>
+		/// </summary>
+		public Point16 startingDirection = Point16.NegativeOne;
+
 		public AStar(int capacity, GenerateEntryDelegate<TEntry> generateEntry, DoesEntryExistDelegate entryExists, IsInterEntryPathValidDelegate pathIsValid, GetWalkableDirectionsDelegate getWalkableDirections) {
 			ArgumentNullException.ThrowIfNull(generateEntry);
 			ArgumentNullException.ThrowIfNull(entryExists);
@@ -47,11 +52,15 @@ namespace SerousEnergyLib.Pathfinding {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
-			if (!EntryExists(start) || !EntryExists(end))
+			if (!EntryExists(start) || !EntryExists(end)) {
+				startingDirection = Point16.NegativeOne;
 				return null;
+			}
 
-			if (start == end)
+			if (start == end) {
+				startingDirection = Point16.NegativeOne;
 				return new List<Point16>() { start };
+			}
 
 			HashSet<Point16> visitedMaze = new HashSet<Point16>();
 
@@ -63,6 +72,8 @@ namespace SerousEnergyLib.Pathfinding {
 				TEntry check = activeMaze.Top;
 
 				if (check.Location == end) {
+					startingDirection = Point16.NegativeOne;
+
 					// Path found; construct it based on the entry parents
 					List<TEntry> path = new() { check };
 
@@ -100,13 +111,23 @@ namespace SerousEnergyLib.Pathfinding {
 			}
 
 			// Could not find a path
+			startingDirection = Point16.NegativeOne;
 			return null;
 		}
 
 		private List<TEntry> GetWalkableEntries(HashSet<Point16> visited, TEntry parent, Point16 target) {
 			List<TEntry> possible = new ();
 
-			var dirs = GetWalkableDirections(parent.Location, parent.Parent?.Location ?? Point16.NegativeOne);
+			Point16 previous;
+			if (parent.Parent is null) {
+				if (startingDirection != Point16.NegativeOne)
+					previous = parent.Location + startingDirection;
+				else
+					previous = startingDirection;
+			} else
+				previous = parent.Parent.Location;
+
+			var dirs = GetWalkableDirections(parent.Location, previous);
 
 			foreach (var dir in dirs)
 				TryGenerateWalkableEntry(parent, visited, possible, dir);

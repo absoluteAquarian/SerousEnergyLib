@@ -44,6 +44,8 @@ namespace SerousEnergyLib.Systems {
 		private AStar<CoarseNodeEntry> innerCoarseNodePathfinder;
 		internal static bool ignoreTravelTimeWhenPathfinding;
 
+		protected ref Point16 PathfindingStartDirection => ref innerCoarseNodePathfinder.startingDirection;
+
 		public bool IsEmpty => nodes.Count == 0;
 
 		public int EntryCount => nodes.Count;
@@ -94,7 +96,7 @@ namespace SerousEnergyLib.Systems {
 				throw new ArgumentException("Network instances had mismatched filters", nameof(other));
 
 			foreach (var (loc, node) in other.nodes) {
-				nodes.Add(loc, node);
+				nodes[loc] = node;
 
 				Point16 coarse = loc / CoarseNode.Coarseness;
 
@@ -764,8 +766,56 @@ namespace SerousEnergyLib.Systems {
 			ModTile modTile = TileLoader.GetTile(tile.TileType);
 
 			if (modTile is NetworkJunction) {
-				if (previous == Point16.NegativeOne)
-					return new List<Point16>();  // Pathfinding is not permitted to start at a junction
+				int mode = tile.TileFrameX / 18;
+
+				if (previous == Point16.NegativeOne) {
+					// Pathfinding is not permitted to start at a junction due to its adjacent-ness
+					//   being based on the heading direction, which can't be easily determined when
+					//   the junction is the starting tile.
+					// If the current node is at the edge of a coarse node, then assume that the heading
+					//   is into the node, aka the direction can be determined
+					Point16 coarse = center / CoarseNode.Coarseness * CoarseNode.Coarseness;
+					int coarseDiffX = center.X - coarse.X;
+					int coarseDiffY = center.Y - coarse.Y;
+					
+					// If any of the following are true, the junction is at the edge of a coarse node
+					if (coarseDiffX == 0) {
+						// Junction is at the left edge
+						if (mode == 0)
+							return new List<Point16>() { new Point16(-1, 0), new Point16(1, 0) };  // Left -> Right
+						else if (mode == 1)
+							return new List<Point16>() { new Point16(-1, 0), new Point16(0, 1) };  // Left -> Down
+						else if (mode == 2)
+							return new List<Point16>() { new Point16(-1, 0), new Point16(0, -1) };  // Left -> Up
+					} else if (coarseDiffY == 0) {
+						// Junction is at the top edge
+						if (mode == 0)
+							return new List<Point16>() { new Point16(0, -1), new Point16(0, 1) };  // Up -> Down
+						else if (mode == 1)
+							return new List<Point16>() { new Point16(0, -1), new Point16(1, 0) };  // Up -> Right
+						else if (mode == 2)
+							return new List<Point16>() { new Point16(0, -1), new Point16(-1, 0) };  // Up -> Left
+					} else if (coarseDiffX == CoarseNode.Stride - 1) {
+						// Junction is at the right edge
+						if (mode == 0)
+							return new List<Point16>() { new Point16(1, 0), new Point16(-1, 0) };  // Right -> Left
+						else if (mode == 1)
+							return new List<Point16>() { new Point16(1, 0), new Point16(0, -1) };  // Right -> Up
+						else if (mode == 2)
+							return new List<Point16>() { new Point16(1, 0), new Point16(0, 1) };  // Right -> Down
+					} else if (coarseDiffY == CoarseNode.Stride - 1) {
+						// Junction is at the bottom edge
+						if (mode == 0)
+							return new List<Point16>() { new Point16(0, 1), new Point16(0, -1) };  // Down -> Up
+						else if (mode == 1)
+							return new List<Point16>() { new Point16(0, 1), new Point16(-1, 0) };  // Down -> Left
+						else if (mode == 2)
+							return new List<Point16>() { new Point16(0, 1), new Point16(1, 0) };  // Down -> Right
+					}
+
+					// Failsafe: mode was invalid or tile wasn't at a coarse node's edge
+					return new List<Point16>();
+				}
 
 				// Only one valid direction is allowed
 				Point16 diff = center - previous;
@@ -774,16 +824,14 @@ namespace SerousEnergyLib.Systems {
 				if ((diff.X == 0 && diff.Y == 0) || (diff.X != 0 && diff.Y != 0))
 					return new List<Point16>();
 
-				int mode = tile.TileFrameX / 18;
-
 				if (mode == 0)
-					return new List<Point16>() { new Point16(-diff.X, -diff.Y) };  // Left -> Right, Up -> Down
+					return new List<Point16>() { diff, new Point16(-diff.X, -diff.Y) };  // Left -> Right, Up -> Down
 				else if (mode == 1)
-					return new List<Point16>() { new Point16(-diff.Y, -diff.X) };  // Left -> Down, Up -> Right
+					return new List<Point16>() { diff, new Point16(-diff.Y, -diff.X) };  // Left -> Down, Up -> Right
 				else if (mode == 2)
-					return new List<Point16>() { new Point16(diff.Y, diff.X) };    // Left -> Up, Right -> Down
-				else
-					return new List<Point16>();  // Failsafe
+					return new List<Point16>() { diff, new Point16(diff.Y, diff.X) };    // Left -> Up, Right -> Down
+				
+				return new List<Point16>();  // Failsafe
 			} else if (modTile is IPumpTile && previous != Point16.NegativeOne) {
 				// Pathfinding can only approach the pump from the head, so no more walkable directions should be used
 				return new List<Point16>();
@@ -982,7 +1030,16 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
-		private static readonly (int offsetX, int offsetY)[,] junctionDirectionRedirect = new (int, int)[3, 4] {
+		/// <summary>
+		/// Indexed by <c>[mode, direction]</c><br/>
+		/// Mode = tile frame X / 18<br/>
+		/// Directions:<br/>
+		/// Left = 0<br/>
+		/// Down = 1<br/>
+		/// Right = 2<br/>
+		/// Up = 3<br/>
+		/// </summary>
+		internal static readonly (int offsetX, int offsetY)[,] junctionDirectionRedirect = new (int, int)[3, 4] {
 			// Entering from: left, up, right, down
 			// Mode 0
 			{ (1, 0), (0, 1), (-1, 0), (0, -1) },

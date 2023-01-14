@@ -322,6 +322,10 @@ namespace SerousEnergyLib.Systems.Networks {
 				if (ignoredValidTargets.Contains(adjacent))
 					continue;
 
+				// If the inventory is no longer adjacent, it needs to be removed from the collection
+				if (!HasEntry(adjacent + new Point16(-1, 0)) && !HasEntry(adjacent + new Point16(0, -1)) && !HasEntry(adjacent + new Point16(1, 0)) && !HasEntry(adjacent + new Point16(0, 1)))
+					goto doesItStillExist;
+
 				if (NetworkHandler.locationToChest.TryGetValue(adjacent, out int chest)) {
 					// Tile was a chest
 					if (Main.chest[chest].CheckItemImportPrediction(this, import, out stackImported) && stackImported > 0) {
@@ -358,6 +362,11 @@ namespace SerousEnergyLib.Systems.Networks {
 		}
 
 		/// <summary>
+		/// This field is used to initialize the pathfinding for <see cref="AttemptToGeneratePathToInventoryTarget(Point16, Point16)"/>
+		/// </summary>
+		internal Point16 pipedItemDirection = Point16.NegativeOne;
+
+		/// <summary>
 		/// Attempts to generate a path from <paramref name="current"/> to <paramref name="inventory"/>
 		/// </summary>
 		/// <param name="current">The tile coordinate to start the pathfinding at</param>
@@ -368,19 +377,25 @@ namespace SerousEnergyLib.Systems.Networks {
 			// Pumps cannot be the final tile in the path
 			Point16 leftPos = inventory + new Point16(-1, 0);
 			double leftTime = 0;
+			base.PathfindingStartDirection = pipedItemDirection;
 			var left = !HasPump(leftPos, out _) ? GeneratePath(current, leftPos, out leftTime) : null;
 
 			Point16 upPos = inventory + new Point16(0, -1);
 			double upTime = 0;
+			base.PathfindingStartDirection = pipedItemDirection;
 			var up = !HasPump(upPos, out _) ? GeneratePath(current, upPos, out upTime) : null;
 			
 			Point16 rightPos = inventory + new Point16(1, 0);
 			double rightTime = 0;
+			base.PathfindingStartDirection = pipedItemDirection;
 			var right = !HasPump(rightPos, out _) ? GeneratePath(current, rightPos, out rightTime) : null;
 			
 			Point16 downPos = inventory + new Point16(0, 1);
 			double downTime = 0;
+			base.PathfindingStartDirection = pipedItemDirection;
 			var down = !HasPump(downPos, out _) ? GeneratePath(current, downPos, out downTime) : null;
+
+			pipedItemDirection = Point16.NegativeOne;
 				
 			if (left is null && up is null && right is null && down is null) {
 				// No path found

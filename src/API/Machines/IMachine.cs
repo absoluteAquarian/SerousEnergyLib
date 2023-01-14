@@ -176,8 +176,10 @@ namespace SerousEnergyLib.API.Machines {
 
 					if (net is ItemNetwork itemNet) {
 						Point16 subTile = result.machineTileAdjacentToNetwork;
+						Point16 netPos = result.tileInNetwork;
 						itemNet.AddAdjacentInventory(subTile);
 						itemNet.AttemptToRetargetWanderingItems(subTile);
+						Network.UpdateEntryConnections(netPos.X, netPos.Y);
 					} else if (net is FluidNetwork fluidNet)
 						fluidNet.AddAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
 					else if (net is PowerNetwork powerNet)

@@ -297,7 +297,7 @@ namespace SerousEnergyLib.Tiles {
 
 			// For every item in an item network, if the item would be in this network tile, draw it
 			// However, if the item is partially in the tile to the left or above this tile, do not draw it in order to prevent clipping issues
-			if (Network.GetItemNetworkAt(i, j) is ItemNetwork network) {
+			foreach (var network in Network.GetItemNetworksAt(i, j)) {
 				foreach (var pipedItem in network.items) {
 					if (pipedItem is not { Destroyed: false })
 						continue;

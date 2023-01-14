@@ -11,6 +11,7 @@ using Terraria.DataStructures;
 using System;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Tiles;
+using System.Linq;
 
 namespace SerousEnergyLib.Global {
 	internal class DebugTileOverlays : GlobalTile {
@@ -97,11 +98,11 @@ namespace SerousEnergyLib.Global {
 			if (tile.Get<NetworkInfo>().Type == NetworkType.None)
 				return;
 
-			if (Network.GetItemNetworkAt(netX, netY) is ItemNetwork itemNet && itemNet.HasEntry(i, j))
+			if (Network.GetItemNetworksAt(netX, netY).Where(n => n.HasEntry(i, j)).Any())
 				red = 0xff;
-			if (Network.GetFluidNetworkAt(netX, netY) is FluidNetwork fluidNet && fluidNet.HasEntry(i, j))
+			if (Network.GetFluidNetworksAt(netX, netY).Where(n => n.HasEntry(i, j)).Any())
 				green = 0xff;
-			if (Network.GetPowerNetworkAt(netX, netY) is PowerNetwork powerNet && powerNet.HasEntry(i, j))
+			if (Network.GetPowerNetworksAt(netX, netY).Where(n => n.HasEntry(i, j)).Any())
 				blue = 0xff;
 
 			checkColors:

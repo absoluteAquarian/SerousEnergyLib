@@ -392,8 +392,16 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 			network.ignoredValidTargets.Clear();
 
-			if (network.FindValidImportTarget(import, out Point16 inventory, out _) && network.AttemptToGeneratePathToInventoryTarget(CurrentTile, inventory) is List<Point16> path)
-				UseTarget(inventory, path);
+			if (network.FindValidImportTarget(import, out Point16 inventory, out _)) {
+				Point16 orig = CurrentTile;
+
+				// Set the starting direction so that pathfinding won't fail if this item is at a junction tile
+				if (TileLoader.GetTile(Main.tile[orig.X, orig.Y].TileType) is NetworkJunction)
+					network.pipedItemDirection = CurrentTile - PreviousTile;
+
+				if (network.AttemptToGeneratePathToInventoryTarget(orig, inventory) is List<Point16> path)
+					UseTarget(inventory, path);
+			}
 		}
 
 		private void UseTarget(Point16 target, List<Point16> pathToTarget) {
@@ -409,32 +417,60 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			List<Point16> possible = new();
 
 			// Get a valid direction that isn't backwards
-			if (moveDir.X < 0 && moveDir.Y == 0) {
-				// Moving to the left
-				possible.Add(new Point16(-1, 0));  // Left
-				possible.Add(new Point16(0, -1));  // Up
-				possible.Add(new Point16(0, 1));   // Down
-			} else if (moveDir.X == 0 && moveDir.Y < 0) {
-				// Moving upward
-				possible.Add(new Point16(-1, 0));  // Left
-				possible.Add(new Point16(1, 0));   // Right
-				possible.Add(new Point16(0, 1));   // Down
-			} else if (moveDir.X > 0 && moveDir.Y == 0) {
-				// Moving to the right
-				possible.Add(new Point16(0, -1));  // Up
-				possible.Add(new Point16(1, 0));   // Right
-				possible.Add(new Point16(0, 1));   // Down
-			} else if (moveDir.X == 0 && moveDir.Y > 0) {
-				// Moving downward
-				possible.Add(new Point16(-1, 0));  // Left
-				possible.Add(new Point16(1, 0));   // Right
-				possible.Add(new Point16(0, 1));   // Down
+			Tile tile = Main.tile[CurrentTile.X, CurrentTile.Y];
+			if (TileLoader.GetTile(tile.TileType) is not NetworkJunction) {
+				if (moveDir.X < 0 && moveDir.Y == 0) {
+					// Moving to the left
+					possible.Add(new Point16(-1, 0));  // Left
+					possible.Add(new Point16(0, -1));  // Up
+					possible.Add(new Point16(0, 1));   // Down
+				} else if (moveDir.X == 0 && moveDir.Y < 0) {
+					// Moving upward
+					possible.Add(new Point16(-1, 0));  // Left
+					possible.Add(new Point16(1, 0));   // Right
+					possible.Add(new Point16(0, 1));   // Down
+				} else if (moveDir.X > 0 && moveDir.Y == 0) {
+					// Moving to the right
+					possible.Add(new Point16(0, -1));  // Up
+					possible.Add(new Point16(1, 0));   // Right
+					possible.Add(new Point16(0, 1));   // Down
+				} else if (moveDir.X == 0 && moveDir.Y > 0) {
+					// Moving downward
+					possible.Add(new Point16(-1, 0));  // Left
+					possible.Add(new Point16(1, 0));   // Right
+					possible.Add(new Point16(0, 1));   // Down
+				} else {
+					// Invalid direction or not moving
+					possible.Add(new Point16(-1, 0));  // Left
+					possible.Add(new Point16(0, -1));  // Up
+					possible.Add(new Point16(1, 0));   // Right
+					possible.Add(new Point16(0, 1));   // Down
+				}
 			} else {
-				// Invalid direction or not moving
-				possible.Add(new Point16(-1, 0));  // Left
-				possible.Add(new Point16(0, -1));  // Up
-				possible.Add(new Point16(1, 0));   // Right
-				possible.Add(new Point16(0, 1));   // Down
+				// Only one direction should be valid for a junction tile
+				int mode = tile.TileFrameX / 18;
+
+				int direction;
+				if (moveDir.X < 0 && moveDir.Y == 0) {
+					// Direction = Left
+					direction = 0;
+				} else if (moveDir.X == 0 && moveDir.Y < 0) {
+					// Direction = Up
+					direction = 3;
+				} else if (moveDir.X > 0 && moveDir.Y == 0) {
+					// Direction = Right
+					direction = 2;
+				} else if (moveDir.X == 0 && moveDir.Y > 0) {
+					// Direction = Down
+					direction = 1;
+				} else {
+					// Default to Right
+					direction = 2;
+				}
+
+				(int offsetX, int offsetY) = NetworkInstance.junctionDirectionRedirect[mode, direction];
+
+				possible.Add(new Point16(offsetX, offsetY));
 			}
 
 			for (int i = possible.Count - 1; i >= 0; i--) {

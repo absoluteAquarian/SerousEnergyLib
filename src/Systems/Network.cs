@@ -2,6 +2,7 @@
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -74,7 +75,8 @@ namespace SerousEnergyLib.Systems {
 
 			bool isPump;
 			int maxPumpTime = -1;
-			if (TileLoader.GetTile(tile.TileType) is IPumpTile pump) {
+			ModTile modTile = TileLoader.GetTile(tile.TileType);
+			if (modTile is IPumpTile pump) {
 				info.IsPump = isPump = true;
 				tags.PumpDirection = pump.GetDirection(x, y);
 				maxPumpTime = pump.GetMaxTimer(x, y);
@@ -92,7 +94,36 @@ namespace SerousEnergyLib.Systems {
 			Netcode.SyncNetworkInfoDiamond(x, y);
 
 			// Combine any adjacent networks
-			PlaceEntry_UpdateNetworkInstances(x, y, type);
+			if (modTile is not NetworkJunction) {
+				var allowed = PermittedAdjacentNetworks.All;
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Items, allowed, itemNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Fluids, allowed, fluidNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Power, allowed, powerNetworks);
+			} else {
+				int mode = tile.TileFrameX / 18;
+
+				var allowed = mode switch {
+					0 => PermittedAdjacentNetworks.LeftRight,
+					1 => PermittedAdjacentNetworks.LeftDown,
+					2 => PermittedAdjacentNetworks.LeftUp,
+					_ => throw new Exception("Invalid NetworkJunction frameX")
+				};
+
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Items, allowed, itemNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Fluids, allowed, fluidNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Power, allowed, powerNetworks);
+
+				allowed = mode switch {
+					0 => PermittedAdjacentNetworks.UpDown,
+					1 => PermittedAdjacentNetworks.UpRight,
+					2 => PermittedAdjacentNetworks.RightDown,
+					_ => default
+				};
+
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Items, allowed, itemNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Fluids, allowed, fluidNetworks);
+				PlaceEntry_CheckFilter(x, y, type, NetworkType.Power, allowed, powerNetworks);
+			}
 
 			if (isPump) {
 				Point16 location = new Point16(x, y);
@@ -109,16 +140,32 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
-		private static void PlaceEntry_UpdateNetworkInstances(int x, int y, NetworkType type) {
-			PlaceEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Items, itemNetworks);
-			PlaceEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Fluids, fluidNetworks);
-			PlaceEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Power, powerNetworks);
+		private readonly struct PermittedAdjacentNetworks {
+			public readonly bool left;
+			public readonly bool up;
+			public readonly bool right;
+			public readonly bool down;
+
+			public static readonly PermittedAdjacentNetworks All = new(true, true, true, true);
+			public static readonly PermittedAdjacentNetworks LeftRight = new(true, false, true, false);
+			public static readonly PermittedAdjacentNetworks UpDown = new(false, true, false, true);
+			public static readonly PermittedAdjacentNetworks LeftUp = new(true, true, false, false);
+			public static readonly PermittedAdjacentNetworks RightDown = new(false, false, true, true);
+			public static readonly PermittedAdjacentNetworks LeftDown = new(true, false, false, true);
+			public static readonly PermittedAdjacentNetworks UpRight = new(false, true, true, false);
+
+			public PermittedAdjacentNetworks(bool left, bool up, bool right, bool down) {
+				this.left = left;
+				this.up = up;
+				this.right = right;
+				this.down = down;
+			}
 		}
 
-		private static void PlaceEntry_UpdateNetworkInstances_CheckFilter(int x, int y, NetworkType type, NetworkType filter, List<NetworkInstance> source) {
+		private static void PlaceEntry_CheckFilter(int x, int y, NetworkType type, NetworkType filter, PermittedAdjacentNetworks allowed, List<NetworkInstance> source) {
 			if ((type & filter) == filter) {
 				// Update any nearby item networks or create one if necessary
-				List<NetworkInstance> adjacent = GetCardinalAdjacentNetworks(x, y, source, out List<int> indices);
+				List<NetworkInstance> adjacent = GetCardinalAdjacentNetworks(x, y, source, allowed, out List<int> indices);
 
 				Point16 location = new Point16(x, y);
 
@@ -169,23 +216,23 @@ namespace SerousEnergyLib.Systems {
 			}
 		}
 
-		private static List<NetworkInstance> GetCardinalAdjacentNetworks(int x, int y, List<NetworkInstance> source, out List<int> indices) {
+		private static List<NetworkInstance> GetCardinalAdjacentNetworks(int x, int y, List<NetworkInstance> source, PermittedAdjacentNetworks allowed, out List<int> indices) {
 			List<NetworkInstance> instances = new();
 			HashSet<int> netIDs = new();
 			indices = new();
 
 			int index = 0;
 			foreach (NetworkInstance net in source) {
-				if (net.HasEntry(x - 1, y) && netIDs.Add(net.ID)) {
+				if (allowed.left && net.HasEntry(x - 1, y) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x, y - 1) && netIDs.Add(net.ID)) {
+				} else if (allowed.up && net.HasEntry(x, y - 1) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x + 1, y) && netIDs.Add(net.ID)) {
+				} else if (allowed.right && net.HasEntry(x + 1, y) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (net.HasEntry(x, y + 1) && netIDs.Add(net.ID)) {
+				} else if (allowed.down && net.HasEntry(x, y + 1) && netIDs.Add(net.ID)) {
 					instances.Add(net);
 					indices.Add(index);
 				}
@@ -228,16 +275,12 @@ namespace SerousEnergyLib.Systems {
 			// NOTE: pump timer does not need to be synced... The network will automatically remove it during its update code
 
 			// Split the network into separate networks
-			RemoveEntry_UpdateNetworkInstances(x, y, type);
+			RemoveEntry_CheckFilter(x, y, type, NetworkType.Items, itemNetworks);
+			RemoveEntry_CheckFilter(x, y, type, NetworkType.Fluids, fluidNetworks);
+			RemoveEntry_CheckFilter(x, y, type, NetworkType.Power, powerNetworks);
 		}
 
-		private static void RemoveEntry_UpdateNetworkInstances(int x, int y, NetworkType type) {
-			RemoveEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Items, itemNetworks);
-			RemoveEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Fluids, fluidNetworks);
-			RemoveEntry_UpdateNetworkInstances_CheckFilter(x, y, type, NetworkType.Power, powerNetworks);
-		}
-
-		private static void RemoveEntry_UpdateNetworkInstances_CheckFilter(int x, int y, NetworkType type, NetworkType filter, List<NetworkInstance> source) {
+		private static void RemoveEntry_CheckFilter(int x, int y, NetworkType type, NetworkType filter, List<NetworkInstance> source) {
 			if ((type & filter) == filter) {
 				NetworkInstance parent = GetNetworkAt(x, y, filter, out int index);
 
