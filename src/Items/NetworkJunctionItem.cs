@@ -18,7 +18,8 @@ namespace SerousEnergyLib.Items {
 		public override void SetStaticDefaults() {
 			// Frame gets overwritten in custom PlayerDrawLayers
 			Main.RegisterItemAnimation(Type, new DrawAnimationHorizontal(1000, 3) {
-				NotActuallyAnimating = true
+				NotActuallyAnimating = true,
+				SizeOffsetY = -2  // Needed to counteract height removal
 			});
 		}
 
