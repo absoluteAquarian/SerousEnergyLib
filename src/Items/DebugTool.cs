@@ -7,6 +7,7 @@ using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Items {
@@ -68,30 +69,40 @@ namespace SerousEnergyLib.Items {
 
 			int x = ActiveNetwork.X, y = ActiveNetwork.Y;
 
-			if (Network.GetItemNetworkAt(x, y) is ItemNetwork itemNet) {
-				yield return "[c/ff0000:Item Network]";
-				yield return $"  - ID: {itemNet.ID}";
-				yield return $"  - Nodes: {itemNet.EntryCount}";
-				yield return $"  - Items: {itemNet.items.Where(static p => p is { Destroyed: false }).Count()} active";
-				yield return $"  - Pumps: {itemNet.PumpCount}";
-				yield return $"  - Inventories: {itemNet.AdjacentInventoryCount}";
-			}
+			foreach (var net in Network.GetNetworksAt(x, y, NetworkType.Items | NetworkType.Fluids | NetworkType.Power)) {
+				if (net is ItemNetwork itemNet) {
+					string lang = "Mods.SerousEnergyLib.Debug.Item.";
 
-			if (Network.GetFluidNetworkAt(x, y) is FluidNetwork fluidNet) {
-				yield return "[c/00ff00:Fluid Network]";
-				yield return $"  - ID: {fluidNet.ID}";
-				yield return $"  - Nodes: {fluidNet.EntryCount}";
-				yield return $"  - Pumps: {fluidNet.PumpCount}";
-				yield return $"  - Storages: {fluidNet.AdjacentStorageCount}";
-				yield return $"  - Net Fluid: [c/{NetworkHelper.GetNetColor(fluidNet.Storage.CurrentCapacity, fluidNet.NetFluid)}:{fluidNet.NetFluid:+0.###;-#.###} L/gt]";
-			}
+					yield return Language.GetTextValue(lang + "Header");
+					yield return Language.GetTextValue(lang + "ID", itemNet.ID);
+					yield return Language.GetTextValue(lang + "NodeCount", itemNet.EntryCount);
+					yield return Language.GetTextValue(lang + "MovingItems", itemNet.items.Where(static p => p is { Destroyed: false }).Count());
+					yield return Language.GetTextValue(lang + "PumpCount", itemNet.PumpCount);
+					yield return Language.GetTextValue(lang + "AdjTiles", itemNet.AdjacentInventoryCount);
+				}
 
-			if (Network.GetPowerNetworkAt(x, y) is PowerNetwork powerNet) {
-				yield return "[c/0000ff:Power Network]";
-				yield return $"  - ID: {powerNet.ID}";
-				yield return $"  - Nodes: {powerNet.EntryCount}";
-				yield return $"  - Storages: {powerNet.AdjacentStorageCount}";
-				yield return $"  - Net Power: [c/{NetworkHelper.GetNetColor((double)powerNet.Storage.CurrentCapacity, (double)powerNet.NetPower)}:{(double)powerNet.NetPower:+0.###;-#.###} TF/gt]";
+				if (net is FluidNetwork fluidNet) {
+					string lang = "Mods.SerousEnergyLib.Debug.Fluid.";
+
+					yield return Language.GetTextValue(lang + "Header");
+					yield return Language.GetTextValue(lang + "ID", fluidNet.ID);
+					yield return Language.GetTextValue(lang + "NodeCount", fluidNet.EntryCount);
+					yield return Language.GetTextValue(lang + "Current", fluidNet.Storage.CurrentCapacity, fluidNet.Storage.MaxCapacity);
+					yield return Language.GetTextValue(lang + "Net", NetworkHelper.GetNetColor(fluidNet.NetFluid), fluidNet.NetFluid);
+					yield return Language.GetTextValue(lang + "PumpCount", fluidNet.PumpCount);
+					yield return Language.GetTextValue(lang + "AdjTiles", fluidNet.AdjacentStorageCount);
+				}
+
+				if (net is PowerNetwork powerNet) {
+					string lang = "Mods.SerousEnergyLib.Debug.Power.";
+
+					yield return Language.GetTextValue(lang + "Header");
+					yield return Language.GetTextValue(lang + "ID", powerNet.ID);
+					yield return Language.GetTextValue(lang + "NodeCount", powerNet.EntryCount);
+					yield return Language.GetTextValue(lang + "Current", (double)powerNet.Storage.CurrentCapacity, (double)powerNet.Storage.MaxCapacity);
+					yield return Language.GetTextValue(lang + "Net", NetworkHelper.GetNetColor((double)powerNet.NetPower), (double)powerNet.NetPower);
+					yield return Language.GetTextValue(lang + "AdjTiles", powerNet.AdjacentStorageCount);
+				}
 			}
 		}
 	}

@@ -277,7 +277,7 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y=coordinate</param>
 		/// <param name="type">The filter to use when checking for networks.  Multiple network types can be searched through via OR-ing multiple <see cref="NetworkType"/> constants</param>
-		/// <returns>A valid <see cref="NetworkInstance"/> object, or <see langword="null"/> if one wasn't found at the provided location</returns>
+		/// <returns>The first valid <see cref="NetworkInstance"/> object, or <see langword="null"/> if one wasn't found at the provided location</returns>
 		public static NetworkInstance GetNetworkAt(int x, int y, NetworkType type) => GetNetworkAt(x, y, type, out _);
 		
 		internal static NetworkInstance GetNetworkAt(int x, int y, NetworkType type, out int networkIndex) {
@@ -323,7 +323,7 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
-		/// <returns>An <see cref="ItemNetwork"/> instance if one was found, <see langword="null"/> otherwise.</returns>
+		/// <returns>The first <see cref="ItemNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
 		public static ItemNetwork GetItemNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Items, out _) as ItemNetwork;
 
 		/// <summary>
@@ -331,7 +331,7 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
-		/// <returns>A <see cref="FluidNetwork"/> instance if one was found, <see langword="null"/> otherwise.</returns>
+		/// <returns>The first <see cref="FluidNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
 		public static FluidNetwork GetFluidNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Fluids, out _) as FluidNetwork;
 
 		/// <summary>
@@ -339,8 +339,74 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
-		/// <returns>An <see cref="PowerNetwork"/> instance if one was found, <see langword="null"/> otherwise.</returns>
+		/// <returns>The first <see cref="PowerNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
 		public static PowerNetwork GetPowerNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Power, out _) as PowerNetwork;
+
+		/// <summary>
+		/// Attempts to find any networks at the location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y=coordinate</param>
+		/// <param name="type">The filter to use when checking for networks.  Multiple network types can be searched through via OR-ing multiple <see cref="NetworkType"/> constants</param>
+		/// <returns>An enumeration of valid <see cref="NetworkInstance"/> objects if any where found, an empty enumeration otherwise</returns>
+		public static IEnumerable<NetworkInstance> GetNetworksAt(int x, int y, NetworkType type) {
+			Point16 loc = new Point16(x, y);
+
+			int networkIndex;
+			if ((type & NetworkType.Items) == NetworkType.Items) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in itemNetworks) {
+					if (net.HasEntry(loc))
+						yield return net;
+
+					networkIndex++;
+				}
+			}
+
+			if ((type & NetworkType.Fluids) == NetworkType.Fluids) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in fluidNetworks) {
+					if (net.HasEntry(loc))
+						yield return net;
+
+					networkIndex++;
+				}
+			}
+
+			if ((type & NetworkType.Power) == NetworkType.Power) {
+				networkIndex = 0;
+				foreach (NetworkInstance net in powerNetworks) {
+					if (net.HasEntry(loc))
+						yield return net;
+
+					networkIndex++;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Attempts to find an item network at location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		/// <returns>An enumeration of <see cref="ItemNetwork"/> instances if any were found, an empty enumeration otherwise</returns>
+		public static IEnumerable<ItemNetwork> GetItemNetworksAt(int x, int y) => GetNetworksAt(x, y, NetworkType.Items).OfType<ItemNetwork>();
+
+		/// <summary>
+		/// Attempts to find a fluid network at location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		/// <returns>An enumeration of <see cref="FluidNetwork"/> instances if any were found, an empty enumeration otherwise</returns>
+		public static IEnumerable<FluidNetwork> GetFluidNetworksAt(int x, int y) => GetNetworksAt(x, y, NetworkType.Fluids).OfType<FluidNetwork>();
+
+		/// <summary>
+		/// Attempts to find a power network at location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The tile X-coordinate</param>
+		/// <param name="y">The tile Y-coordinate</param>
+		/// <returns>An enumeration of <see cref="PowerNetwork"/> instances if any were found, an empty enumeration otherwise</returns>
+		public static IEnumerable<PowerNetwork> GetPowerNetworksAt(int x, int y) => GetNetworksAt(x, y, NetworkType.Power).OfType<PowerNetwork>();
 
 		internal static void UpdateEntryConnections(int x, int y) {
 			Tile tile = Main.tile[x, y];

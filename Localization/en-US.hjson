@@ -96,5 +96,35 @@
 				}
 			}
 		}
+
+		Debug: {
+			Item: {
+				Header: "[c/ff0000:Item Network]"
+				ID: "ID: {0}"
+				NodeCount: "Nodes: {0}"
+				MovingItems: "Items: {0} active"
+				PumpCount: "Pumps: {0}"
+				AdjTiles: "Inventories: {0}"
+			}
+
+			Fluid: {
+				Header: "[c/00ff00:Fluid Network]"
+				ID: "ID: {0}"
+				NodeCount: "Nodes: {0}"
+				Current: "Fluid: {0:0.###} / {1:0.###} L"
+				Net: "Net Fluid: [c/{0}:{1:+0.###;-#.###} L/gt]"
+				PumpCount: "Pumps: {0}"
+				AdjTiles: "Storages: {0}"
+			}
+
+			Power: {
+				Header: "[c/00ff00:Fluid Network]"
+				ID: "ID: {0}"
+				NodeCount: "Nodes: {0}"
+				Current: "Power: {0:0.###} / {1:0.###} TF"
+				Net: "Net Fluid: [c/{0}:{1:+0.###;-#.###} TF/gt]"
+				AdjTiles: "Storages: {0}"
+			}
+		}
 	}
 }

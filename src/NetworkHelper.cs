@@ -33,32 +33,18 @@ namespace SerousEnergyLib {
 		/// <summary>
 		/// Retrieves a color indicator string for use with chat tags
 		/// </summary>
-		/// <param name="current">The current capacity of the network</param>
 		/// <param name="netChange">The change in capacity for the network</param>
-		public static string GetNetColor(double current, double netChange) {
-			// 0x loss should be white
-			// -0.5x loss should be bright red
-			// +2x gain should be bright green
-			double orig = current - netChange;
+		public static string GetNetColor(double netChange) {
+			Color net;
 
-			Color netZero = new Color(Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor);
-			Color netEnd;
-			double lerpStart, lerpEnd;
+			if (netChange > 0)
+				net = Color.Green;
+			else if (netChange < 0)
+				net = Color.Red;
+			else
+				net = Color.White;
 
-			if (netChange > 0) {
-				netEnd = Color.Green;
-				lerpStart = orig;
-				lerpEnd = orig * 2;
-			} else if (netChange < 0) {
-				netEnd = Color.Red;
-				lerpStart = orig / 2;
-				lerpEnd = orig;
-			} else
-				return netZero.Hex3();
-
-			double t = Utils.GetLerpValue(lerpStart, lerpEnd, current, clamped: true);
-			Color lerp = Color.Lerp(netZero, netEnd, (float)t);
-			return lerp.Hex3();
+			return new Color(net.ToVector3() * (Main.mouseTextColor / 255f)).Hex3();
 		}
 	}
 }
