@@ -72,7 +72,7 @@ namespace SerousEnergyLib.Tiles {
 			Main.tileNoAttach[tile.Type] = true;
 			Main.tileFrameImportant[tile.Type] = true;
 
-			TileObjectData.newTile.AnchorBottom = new AnchorData(AnchorType.SolidTile | AnchorType.SolidWithTop | AnchorType.SolidBottom, (int)width, 0);
+			TileObjectData.newTile.AnchorBottom = AnchorData.Empty;
 			TileObjectData.newTile.CoordinateHeights = ArrayFunctions.Create1DArray(16, height);
 			TileObjectData.newTile.CoordinateWidth = 16;
 			TileObjectData.newTile.Height = (int)height;
