@@ -132,7 +132,7 @@
 			}
 
 			Power: {
-				Header: "[c/00ff00:Fluid Network]"
+				Header: "[c/0000ff:Power Network]"
 				ID: "ID: {0}"
 				NodeCount: "Nodes: {0}"
 				Current: "Power: {0:0.###} / {1:0.###} TF"

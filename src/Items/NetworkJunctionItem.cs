@@ -23,9 +23,9 @@ namespace SerousEnergyLib.Items {
 		}
 
 		public override void SetDefaults() {
-			Item.width = 16;
-			Item.height = 16;
-			Item.scale = 16f / 14f;
+			Item.width = 32;
+			Item.height = 32;
+			Item.scale = 26f / 30f;
 			Item.useStyle = ItemUseStyleID.Swing;
 			Item.useTime = 15;
 			Item.useAnimation = 15;
