@@ -243,6 +243,18 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// <param name="inventory">The tile location of the adjacent tile</param>
 		public bool HasAdjacentInventory(Point16 inventory) => adjacentInventoryTiles.Contains(inventory);
 
+		internal void AttemptToRetargetWanderingItems(Point16 inventory) {
+			if (!adjacentInventoryTiles.Contains(inventory))
+				return;
+
+			foreach (var item in items) {
+				if (item is not { Destroyed: false })
+					continue;
+
+				item.FindNewTargetIfWandering();
+			}
+		}
+
 		protected override void DisposeSelf(bool disposing) {
 			if (disposing) {
 				adjacentInventoryTiles.Clear();
@@ -353,10 +365,22 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// <returns>A list of tile coordinates for pathfinding, or <see langword="null"/> if no path was found</returns>
 		public List<Point16> AttemptToGeneratePathToInventoryTarget(Point16 current, Point16 inventory) {
 			// Generate a path to the target
-			var left = GeneratePath(current, inventory + new Point16(-1, 0), out double leftTime);
-			var up = GeneratePath(current, inventory + new Point16(0, -1), out double upTime);
-			var right = GeneratePath(current, inventory + new Point16(1, 0), out double rightTime);
-			var down = GeneratePath(current, inventory + new Point16(0, 1), out double downTime);
+			// Pumps cannot be the final tile in the path
+			Point16 leftPos = inventory + new Point16(-1, 0);
+			double leftTime = 0;
+			var left = !HasPump(leftPos, out _) ? GeneratePath(current, leftPos, out leftTime) : null;
+
+			Point16 upPos = inventory + new Point16(0, -1);
+			double upTime = 0;
+			var up = !HasPump(upPos, out _) ? GeneratePath(current, upPos, out upTime) : null;
+			
+			Point16 rightPos = inventory + new Point16(1, 0);
+			double rightTime = 0;
+			var right = !HasPump(rightPos, out _) ? GeneratePath(current, rightPos, out rightTime) : null;
+			
+			Point16 downPos = inventory + new Point16(0, 1);
+			double downTime = 0;
+			var down = !HasPump(downPos, out _) ? GeneratePath(current, downPos, out downTime) : null;
 				
 			if (left is null && up is null && right is null && down is null) {
 				// No path found

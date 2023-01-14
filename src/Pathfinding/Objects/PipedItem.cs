@@ -377,6 +377,13 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 				Destroy(dropItem: false);
 		}
 
+		internal void FindNewTargetIfWandering() {
+			if (Target != Point16.NegativeOne)
+				return;
+
+			FindNewTarget();
+		}
+
 		private void FindNewTarget() {
 			Item import = item.Clone();
 

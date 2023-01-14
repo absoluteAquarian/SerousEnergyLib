@@ -761,8 +761,9 @@ namespace SerousEnergyLib.Systems {
 				return new List<Point16>();
 
 			Tile tile = Main.tile[center.X, center.Y];
+			ModTile modTile = TileLoader.GetTile(tile.TileType);
 
-			if (TileLoader.GetTile(tile.TileType) is NetworkJunction) {
+			if (modTile is NetworkJunction) {
 				if (previous == Point16.NegativeOne)
 					return new List<Point16>();  // Pathfinding is not permitted to start at a junction
 
@@ -783,6 +784,9 @@ namespace SerousEnergyLib.Systems {
 					return new List<Point16>() { new Point16(diff.Y, diff.X) };    // Left -> Up, Right -> Down
 				else
 					return new List<Point16>();  // Failsafe
+			} else if (modTile is IPumpTile) {
+				// Pathfinding can only approach the pump from the head, so no more walkable directions should be used
+				return new List<Point16>();
 			}
 
 			// All four directions are allowed

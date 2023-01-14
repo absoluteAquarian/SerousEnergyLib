@@ -46,7 +46,9 @@ namespace SerousEnergyLib.API.Edits {
 						else if (offset.Y == 2)
 							chestY--;
 
-						net.AddAdjacentInventory(chestTopLeft + new Point16(chestX, chestY));
+						Point16 subTile = chestTopLeft + new Point16(chestX, chestY);
+						net.AddAdjacentInventory(subTile);
+						net.AttemptToRetargetWanderingItems(subTile);
 					}
 				}
 			}
