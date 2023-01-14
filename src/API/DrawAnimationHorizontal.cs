@@ -8,8 +8,6 @@ namespace SerousEnergyLib.API {
 	public class DrawAnimationHorizontal : DrawAnimation {
 		public bool PingPong;
 		public bool NotActuallyAnimating;
-		public int SizeOffsetX;
-		public int SizeOffsetY;
 
 		public DrawAnimationHorizontal(int ticksperframe, int frameCount, bool pingPong = false) {
 			Frame = 0;
@@ -43,8 +41,8 @@ namespace SerousEnergyLib.API {
 				if (PingPong && num3 >= FrameCount)
 					num3 = FrameCount * 2 - 2 - num3;
 
-				Rectangle result = texture.Frame(1, FrameCount, 0, num3, SizeOffsetX, SizeOffsetY);
-				result.Height -= 2;
+				Rectangle result = texture.Frame(1, FrameCount, 0, num3);
+				result.Width -= 2;
 				return result;
 			}
 
@@ -52,8 +50,8 @@ namespace SerousEnergyLib.API {
 			if (PingPong && Frame >= FrameCount)
 				frameX = FrameCount * 2 - 2 - Frame;
 
-			Rectangle result2 = texture.Frame(FrameCount, 1, frameX, 0, SizeOffsetX, SizeOffsetY);
-			result2.Height -= 2;
+			Rectangle result2 = texture.Frame(FrameCount, 1, frameX, 0);
+			result2.Width -= 2;
 			return result2;
 		}
 	}
