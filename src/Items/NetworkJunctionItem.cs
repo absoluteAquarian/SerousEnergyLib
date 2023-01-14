@@ -89,7 +89,7 @@ namespace SerousEnergyLib.Items {
 			animation.Frame = 0;
 
 			var texture = TextureAssets.Item[Type].Value;
-			frame = texture.Frame(3, 0, Item.placeStyle, 0);
+			frame = texture.Frame(3, 1, Item.placeStyle, 0);
 			spriteBatch.Draw(texture, position, frame, drawColor, 0f, origin, scale, SpriteEffects.None, 0);
 			return false;
 		}
@@ -100,7 +100,7 @@ namespace SerousEnergyLib.Items {
 			animation.Frame = 0;
 
 			var texture = TextureAssets.Item[Type].Value;
-			Rectangle frame = texture.Frame(3, 0, Item.placeStyle, 0);
+			Rectangle frame = texture.Frame(3, 1, Item.placeStyle, 0);
 			spriteBatch.Draw(texture, Item.Center - Main.screenPosition, frame, lightColor, rotation, frame.Size() / 2f, scale, SpriteEffects.None, 0);
 			return false;
 		}
