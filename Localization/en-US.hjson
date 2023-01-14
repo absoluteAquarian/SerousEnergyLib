@@ -28,8 +28,8 @@
 		ItemTooltip: {
 			NetworkJunctionItem:
 			'''
-			Allows wires and pipes paths to intersect without making them part of the same network.
-			Right click while holding this item to cycle through the three junction modes.
+			Allows wire and pipe paths to intersect without making them part of the same network.
+			<JUNCTION_MODE>
 			'''
 			UnloadedUpgradeItem:
 			'''
@@ -62,6 +62,20 @@
 		<POWER_USAGE>
 		<POWER_GENERATION>
 		'''
+
+		JunctionTooltips: {
+			Placing:
+			'''
+			This item is currently in [c/00ff00:placing] mode.
+			Right click while holding this item to switch to [c/ff0000:orientation] mode.
+			'''
+			Orientation:
+			'''
+			This item is currently in [c/ff0000:orientation] mode.
+			Tile placing is blocked while in [c/ff0000:orientation] mode.
+			Left click while holding this item to switch to [c/00ff00:placing] mode.
+			'''
+		}
 
 		PowerUsageTooltips: {
 			PerGameTick: "Power Usage: {0:0.###} {1}/gt ({2:0.###} {1}/s)"

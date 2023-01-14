@@ -1,10 +1,13 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using SerousCommonLib.API;
 using SerousEnergyLib.API;
 using SerousEnergyLib.Tiles;
+using System.Collections.Generic;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.Items {
@@ -71,6 +74,13 @@ namespace SerousEnergyLib.Items {
 				.AddRecipeGroup(RecipeGroupID.Wood, 10)
 				.AddTile(TileID.WorkBenches)
 				.Register();
+		}
+
+		public override void ModifyTooltips(List<TooltipLine> tooltips) {
+			TooltipHelper.FindAndInsertLines(Mod, tooltips,
+				"<JUNCTION_MODE>",
+				static i => "JunctionDesc_" + i,
+				Language.GetTextValue("Mods.SerousEnergyLib.JunctionTooltips." + (Item.createTile == -1 ? "Orientation" : "Placing")));
 		}
 
 		public override bool PreDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) {
