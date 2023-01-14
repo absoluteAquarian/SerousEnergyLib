@@ -11,7 +11,7 @@ namespace SerousEnergyLib.Items.Materials.Default {
 		public override string Texture => "Terraria/Images/Liquid_0";
 
 		public override void SetStaticDefaults() {
-			Main.RegisterItemAnimation(Type, new DrawAnimationHorizontal(8, 17) { SizeOffsetX = -2 });
+			Main.RegisterItemAnimation(Type, new DrawAnimationHorizontal(8, 17));
 		}
 
 		public override void SetDefaults() {
