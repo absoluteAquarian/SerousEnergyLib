@@ -13,7 +13,7 @@ using Terraria.ModLoader;
 namespace SerousEnergyLib.Items {
 	#pragma warning disable CS1591
 	public sealed class NetworkJunctionItem : ModItem {
-		public override string Texture => "SerousEnergyLib/Assets/Tiles/NetworkJunction";
+		public override string Texture => "SerousEnergyLib/Assets/Items/NetworkJunctionItem";
 
 		public override void SetStaticDefaults() {
 			// Frame gets overwritten in custom PlayerDrawLayers
