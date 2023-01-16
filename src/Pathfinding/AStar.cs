@@ -121,7 +121,7 @@ namespace SerousEnergyLib.Pathfinding {
 			Point16 previous;
 			if (parent.Parent is null) {
 				if (startingDirection != Point16.NegativeOne)
-					previous = parent.Location + startingDirection;
+					previous = parent.Location - startingDirection;
 				else
 					previous = startingDirection;
 			} else

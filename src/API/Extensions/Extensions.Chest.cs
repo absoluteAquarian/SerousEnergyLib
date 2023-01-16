@@ -177,10 +177,11 @@ namespace SerousEnergyLib.API {
 		/// </param>
 		/// <param name="network">The item network to import the items into</param>
 		/// <param name="inventoryTile">The sub-tile that the extraction is performed from</param>
+		/// <param name="pathfindingStart">The starting tile for pathfinding to possible inventories</param>
 		/// <param name="extractCount">A counter for how many more items can be extracted from <paramref name="chest"/></param>
 		/// <param name="simulation">If <see langword="true"/>, items will not be removed from <paramref name="chest"/></param>
 		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
-		public static List<InventoryExtractionResult> ExtractItems(this Chest chest, int chestNum, ItemNetwork network, Point16 inventoryTile, ref int extractCount, bool simulation = true) {
+		public static List<InventoryExtractionResult> ExtractItems(this Chest chest, int chestNum, ItemNetwork network, Point16 inventoryTile, Point16 pathfindingStart, ref int extractCount, bool simulation = true) {
 			var inv = chest.item;
 			
 			// Attempt to extract the items from the chest
@@ -202,23 +203,25 @@ namespace SerousEnergyLib.API {
 				if (import.stack > extractCount)
 					import.stack = extractCount;
 
-				if (network.FindValidImportTarget(import, out Point16 target, out int stackImported)) {
-					// There was a valid target
-					import.stack = stackImported;
-					results.Add(new InventoryExtractionResult(target, inventoryTile, import, i));
-					extractCount -= stackImported;
+				if (network.FindValidImportTargets(import, out List<InventoryInsertionResult> targets)) {
+					if (network.GetFastestPath(pathfindingStart, targets, out Point16 chosenInventory, out int stackImported) is List<Point16> path) {
+						// There was a valid target
+						import.stack = stackImported;
+						results.Add(new InventoryExtractionResult(chosenInventory, path, inventoryTile, import, i));
+						extractCount -= stackImported;
 
-					if (!simulation) {
-						slot.stack -= stackImported;
+						if (!simulation) {
+							slot.stack -= stackImported;
 
-						if (slot.stack <= 0)
-							slot.TurnToAir();
+							if (slot.stack <= 0)
+								slot.TurnToAir();
 
-						NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
+							NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: i);
+						}
+
+						if (extractCount <= 0)
+							break;
 					}
-
-					if (extractCount <= 0)
-						break;
 				}
 			}
 

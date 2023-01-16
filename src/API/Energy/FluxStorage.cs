@@ -62,7 +62,7 @@ namespace SerousEnergyLib.API.Energy {
 			TerraFlux import = amount;
 
 			if (CurrentCapacity + import > MaxCapacity)
-				import = MaxCapacity - import;
+				import = MaxCapacity - CurrentCapacity;
 
 			CurrentCapacity += import;
 			amount -= import;

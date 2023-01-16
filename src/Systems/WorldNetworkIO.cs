@@ -49,7 +49,7 @@ namespace SerousEnergyLib.Systems {
 			Network.itemNetworks.Clear();
 			Network.fluidNetworks.Clear();
 			Network.powerNetworks.Clear();
-			if (tag.GetList<TagCompound>("maps") is List<TagCompound> maps) {
+			if (tag.TryGet("maps", out List<TagCompound> maps)) {
 				foreach (var map in maps) {
 					try {
 						NetworkType filter = (NetworkType)map.GetByte("type");

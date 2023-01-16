@@ -13,6 +13,7 @@ namespace SerousEnergyLib.API.Fluid {
 				mod.AddContent(new WaterFluidID());
 				mod.AddContent(new LavaFluidID());
 				mod.AddContent(new HoneyFluidID());
+				mod.AddContent(new UnloadedFluidID(null, null));
 			}
 
 			public void Unload() {

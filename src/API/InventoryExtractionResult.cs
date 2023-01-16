@@ -1,8 +1,6 @@
-﻿using SerousEnergyLib.API.Machines;
-using SerousEnergyLib.Systems;
+﻿using System.Collections.Generic;
 using Terraria;
 using Terraria.DataStructures;
-using Terraria.ID;
 
 namespace SerousEnergyLib.API {
 	/// <summary>
@@ -20,6 +18,11 @@ namespace SerousEnergyLib.API {
 		public readonly Point16 target;
 
 		/// <summary>
+		/// The path that this item will use to move to the target inventory
+		/// </summary>
+		public readonly List<Point16> path;
+
+		/// <summary>
 		/// The tile coordinates of the inventory that this item will pathfind from
 		/// </summary>
 		public readonly Point16 source;
@@ -29,38 +32,14 @@ namespace SerousEnergyLib.API {
 		/// </summary>
 		public readonly int sourceSlot;
 
-		internal InventoryExtractionResult(Point16 target, Point16 source, Item item, int sourceSlot) {
+		internal InventoryExtractionResult(Point16 target, List<Point16> path, Point16 source, Item item, int sourceSlot) {
 			this.target = target;
+			this.path = path;
 			this.source = source;
 			this.item = item;
 			this.sourceSlot = sourceSlot;
 		}
 
-		internal InventoryExtractionResult ChangeSource(Point16 source, int? slot = null) => new(target, source, item, slot ?? sourceSlot);
-
-		/// <summary>
-		/// Forces this extraction result back into the inventory that it originated from
-		/// </summary>
-		internal void UndoExtraction() {
-			if (NetworkHandler.locationToChest.TryGetValue(source, out int chestNum)) {
-				ref var slotItem = ref Main.chest[chestNum].item[sourceSlot];
-
-				if (slotItem.IsAir)
-					slotItem = item;
-				else
-					slotItem.stack += item.stack;
-
-				NetMessage.SendData(MessageID.SyncChestItem, number: chestNum, number2: sourceSlot);
-			} else if (IMachine.TryFindMachine(source, out IInventoryMachine machine)) {
-				ref var slotItem = ref machine.Inventory[sourceSlot];
-
-				if (slotItem.IsAir)
-					slotItem = item;
-				else
-					slotItem.stack += item.stack;
-
-				Netcode.SyncMachineInventorySlot(machine, sourceSlot);
-			}
-		}
+		internal InventoryExtractionResult ChangeSource(Point16 source, int? slot = null) => new(target, path, source, item, slot ?? sourceSlot);
 	}
 }

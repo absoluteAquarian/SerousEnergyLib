@@ -4,6 +4,7 @@ using SerousEnergyLib.Items;
 using SerousEnergyLib.Systems;
 using Terraria;
 using Terraria.Audio;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -32,7 +33,7 @@ namespace SerousEnergyLib.Players {
 				IMachine.AddUpgrade(machine, item.ModItem as BaseUpgradeItem);
 			} else if (machine is IInventoryMachine inventoryMachine) {
 				// Attempt to deposit the item into the machine's input inventory
-				IInventoryMachine.ImportItem(inventoryMachine, item);
+				IInventoryMachine.ImportItem(inventoryMachine, item, Point16.NegativeOne);
 			}
 
 			if (item.type != oldType || item.stack != oldStack) {

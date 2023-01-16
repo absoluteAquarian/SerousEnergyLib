@@ -175,13 +175,13 @@ namespace SerousEnergyLib.Systems.Networks {
 				down = location + new Point16(0, 1);
 
 			// Add adjacent machines
-			if (IMachine.TryFindMachine(left, out IFluidMachine _))
+			if (IMachine.TryFindMachine(left, out IFluidMachine machine) && machine.CanMergeWithFluidPipe(location.X, location.Y, left.X, left.Y))
 				adjacentFluidStorageTiles.Add(left);
-			if (IMachine.TryFindMachine(up, out IFluidMachine _))
+			if (IMachine.TryFindMachine(up, out machine) && machine.CanMergeWithFluidPipe(location.X, location.Y, up.X, up.Y))
 				adjacentFluidStorageTiles.Add(up);
-			if (IMachine.TryFindMachine(right, out IFluidMachine _))
+			if (IMachine.TryFindMachine(right, out machine) && machine.CanMergeWithFluidPipe(location.X, location.Y, right.X, right.Y))
 				adjacentFluidStorageTiles.Add(right);
-			if (IMachine.TryFindMachine(down, out IFluidMachine _))
+			if (IMachine.TryFindMachine(down, out machine) && machine.CanMergeWithFluidPipe(location.X, location.Y, down.X, down.Y))
 				adjacentFluidStorageTiles.Add(down);
 		}
 
@@ -235,10 +235,14 @@ namespace SerousEnergyLib.Systems.Networks {
 				right = location + new Point16(1, 0),
 				down = location + new Point16(0, 1);
 
-			adjacentFluidStorageTiles.Remove(left);
-			adjacentFluidStorageTiles.Remove(up);
-			adjacentFluidStorageTiles.Remove(right);
-			adjacentFluidStorageTiles.Remove(down);
+			if (!HasEntryAdjacentTo(left))
+				adjacentFluidStorageTiles.Remove(left);
+			if (!HasEntryAdjacentTo(up))
+				adjacentFluidStorageTiles.Remove(up);
+			if (!HasEntryAdjacentTo(right))
+				adjacentFluidStorageTiles.Remove(right);
+			if (!HasEntryAdjacentTo(down))
+				adjacentFluidStorageTiles.Remove(down);
 
 			// Remove the pump timer if it's present
 			pumpTimers.Remove(location);
@@ -271,7 +275,7 @@ namespace SerousEnergyLib.Systems.Networks {
 
 			pumpTimers.Clear();
 
-			if (tag.GetList<TagCompound>("pumps") is List<TagCompound> pumpTags) {
+			if (tag.TryGet("pumps", out List<TagCompound> pumpTags)) {
 				foreach (var pump in pumpTags) {
 					if (!pump.TryGet("x", out short x))
 						continue;

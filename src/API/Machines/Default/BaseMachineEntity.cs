@@ -1,4 +1,5 @@
 ﻿using SerousEnergyLib.API.Machines.UI;
+using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Items;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +17,14 @@ namespace SerousEnergyLib.API.Machines.Default {
 		public abstract BaseMachineUI MachineUI { get; }
 		
 		public List<BaseUpgradeItem> Upgrades { get; set; }
+
+		/// <summary>
+		/// Whether this entity instance is a clone used for item tooltips
+		/// </summary>
+		public bool IsDummyInstance => ID == -1;
+
+		/// <inheritdoc cref="IMachine.CanUpgradeApply(BaseUpgrade)"/>
+		public virtual bool CanUpgradeApply(BaseUpgrade upgrade) => true;
 
 		public override void Update() {
 			IMachine.Update(this);

@@ -85,5 +85,15 @@ namespace SerousEnergyLib.Items.Materials {
 			Item.maxStack = 1;
 			Item.rare = ItemRarityID.Yellow;
 		}
+
+		public override void ModifyTooltips(List<TooltipLine> tooltips) {
+			// Modify the name line to change something like "N/A Seconds" to "Maximum: 10 seconds (600 ticks)"
+			int index = tooltips.FindIndex(t => t.Mod == "Terraria" && t.Name == "ItemName");
+			if (index != -1) {
+				ref string name = ref tooltips[index].Text;
+
+				name = DisplayName.GetTranslation(Language.ActiveCulture);
+			}
+		}
 	}
 }

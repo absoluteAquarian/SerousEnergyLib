@@ -18,12 +18,23 @@ namespace SerousEnergyLib.API.Machines.Default {
 
 		public abstract BaseMachineUI MachineUI { get; }
 
+		/// <inheritdoc cref="IMachine.Upgrades"/>
 		public List<BaseUpgradeItem> Upgrades { get; set; }
 
 		public abstract FluidStorage[] FluidStorage { get; set; }
 
-		public abstract bool CanMergeWithFluidPipe(int pipeX, int pipeY, int machineX, int machineY);
+		/// <summary>
+		/// Whether this entity instance is a clone used for item tooltips
+		/// </summary>
+		public bool IsDummyInstance => ID == -1;
 
+		/// <inheritdoc cref="IMachine.CanUpgradeApply(BaseUpgrade)"/>
+		public virtual bool CanUpgradeApply(BaseUpgrade upgrade) => true;
+
+		/// <inheritdoc cref="IFluidMachine.CanMergeWithFluidPipe(int, int, int, int)"/>
+		public virtual bool CanMergeWithFluidPipe(int pipeX, int pipeY, int machineX, int machineY) => true;
+
+		/// <inheritdoc cref="IFluidMachine.CanUpgradeApplyTo(BaseUpgrade, int)"/>
 		public virtual bool CanUpgradeApplyTo(BaseUpgrade upgrade, int slot) => true;
 
 		public abstract int SelectFluidExportSource(Point16 pump, Point16 subtile);

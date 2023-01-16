@@ -174,15 +174,16 @@ namespace SerousEnergyLib.API.Machines {
 				foreach (var result in GetAdjacentNetworks(this, search)) {
 					var net = result.network;
 
-					if (net is ItemNetwork itemNet) {
-						Point16 subTile = result.machineTileAdjacentToNetwork;
-						Point16 netPos = result.tileInNetwork;
+					Point16 subTile = result.machineTileAdjacentToNetwork;
+					Point16 netPos = result.tileInNetwork;
+
+					if (net is ItemNetwork itemNet && (this is not IInventoryMachine inventory || inventory.CanMergeWithItemPipe(netPos.X, netPos.Y, subTile.X, subTile.Y))) {
 						itemNet.AddAdjacentInventory(subTile);
 						itemNet.AttemptToRetargetWanderingItems(subTile);
 						Network.UpdateEntryConnections(netPos.X, netPos.Y);
-					} else if (net is FluidNetwork fluidNet)
+					} else if (net is FluidNetwork fluidNet && (this is not IFluidMachine fluid || fluid.CanMergeWithFluidPipe(netPos.X, netPos.Y, subTile.X, subTile.Y)))
 						fluidNet.AddAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
-					else if (net is PowerNetwork powerNet)
+					else if (net is PowerNetwork powerNet && (this is not IPoweredMachine powered || powered.CanMergeWithWire(netPos.X, netPos.Y, subTile.X, subTile.Y)))
 						powerNet.AddAdjacentFluxStorage(result.machineTileAdjacentToNetwork);
 				}
 			}
@@ -212,6 +213,12 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
+		/// Return whether <paramref name="upgrade"/> can be applied to this machine
+		/// </summary>
+		/// <param name="upgrade">The upgrade instance</param>
+		bool CanUpgradeApply(BaseUpgrade upgrade);
+
+		/// <summary>
 		/// Iterates over <see cref="Upgrades"/> and applies <paramref name="mutator"/> to each of them
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
@@ -223,7 +230,7 @@ namespace SerousEnergyLib.API.Machines {
 
 			foreach (var upgrade in machine.Upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
-				if (upgrade.Upgrade.CanApplyTo(machine))
+				if (upgrade.Upgrade.CanApplyTo(machine) && machine.CanUpgradeApply(upgrade.Upgrade))
 					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
@@ -243,7 +250,7 @@ namespace SerousEnergyLib.API.Machines {
 
 			foreach (var upgrade in upgrades) {
 				// Invalid upgrades shouldn't be in the collection in the first place, but it's a good idea to double check here
-				if (upgrade.Upgrade.CanApplyTo(machine))
+				if (upgrade.Upgrade.CanApplyTo(machine) && machine.CanUpgradeApply(upgrade.Upgrade))
 					calculated = mutator(upgrade.Upgrade, upgrade.Stack, calculated);
 			}
 
@@ -271,10 +278,10 @@ namespace SerousEnergyLib.API.Machines {
 			if (upgrade is null)
 				return false;
 
-			if (!upgrade.Upgrade.CanApplyTo(machine))
+			if (!upgrade.Upgrade.CanApplyTo(machine) || !machine.CanUpgradeApply(upgrade.Upgrade))
 				return false;
 
-			int type = upgrade.Type;
+			int type = upgrade.Upgrade.Type;
 			var existing = machine.Upgrades.Where(u => u.Upgrade.Type == type).FirstOrDefault();
 
 			int max = upgrade.Upgrade.MaxUpgradesPerMachine;
@@ -395,7 +402,7 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		public static void LoadData(IMachine machine, TagCompound tag) {
-			machine.Upgrades = tag.GetList<TagCompound>("upgrades") is List<TagCompound> list
+			machine.Upgrades = tag.TryGet("upgrades", out List<TagCompound> list)
 				? list.Select(UpgradeLoader.LoadUpgrade).OfType<BaseUpgradeItem>().Where(static s => s.Upgrade is not null).ToList()
 				: new();
 		}

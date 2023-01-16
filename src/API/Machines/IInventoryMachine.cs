@@ -1,6 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using SerousEnergyLib.API.Fluid;
-using SerousEnergyLib.Items;
 using SerousEnergyLib.Pathfinding.Objects;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
@@ -61,15 +59,32 @@ namespace SerousEnergyLib.API.Machines {
 		/// Whether <paramref name="import"/> can be inserted in this machine's inventory at the given <paramref name="slot"/> in <see cref="Inventory"/>
 		/// </summary>
 		/// <param name="import">The item to be imported</param>
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// This parameter will be <see cref="Point16.NegativeOne"/> if the sub-tile could not be determined.
+		/// </param>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
 		/// <param name="stackImported">How many items would be imported should the import be successful</param>
-		public virtual bool CanImportItemAtSlot(Item import, int slot, out int stackImported) {
+		bool CanImportItemAtSlot(Item import, Point16 subtile, int slot, out int stackImported);
+		
+		/// <summary>
+		/// This method executes the standard logic for <see cref="CanImportItemAtSlot(Item, Point16, int, out int)"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="import">The item to be imported</param>
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// Set this parameter to <see cref="Point16.NegativeOne"/> to indicate that the sub-tile cannot be determined.
+		/// </param>
+		/// <param name="slot">The slot in <see cref="Inventory"/></param>
+		/// <param name="stackImported">How many items would be imported should the import be successful</param>
+		public static bool DefaultCanImportItemAtSlot(IInventoryMachine machine, Item import, Point16 subtile, int slot, out int stackImported) {
 			stackImported = 0;
 
 			if (import.IsAir)
 				return false;
 
-			var inv = Inventory;
+			var inv = machine.Inventory;
 			var stack = import.stack;
 
 			Item existing = inv[slot];
@@ -98,8 +113,12 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="import">The item to be imported</param>
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// Set this parameter to <see cref="Point16.NegativeOne"/> to indicate that the sub-tile cannot be determined.
+		/// </param>
 		/// <param name="stackImported">How many items would be imported should the import be successful</param>
-		public static bool CanImportItem(IInventoryMachine machine, Item import, out int stackImported) {
+		public static bool CanImportItem(IInventoryMachine machine, Item import, Point16 subtile, out int stackImported) {
 			stackImported = 0;
 
 			var slots = machine.GetInputSlotsOrDefault();
@@ -110,7 +129,7 @@ namespace SerousEnergyLib.API.Machines {
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				if (machine.CanImportItemAtSlot(import, slot, out int stack)) {
+				if (machine.CanImportItemAtSlot(import, subtile, slot, out int stack)) {
 					stackImported += stack;
 					import.stack -= stack;
 
@@ -130,8 +149,12 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine instance</param>
 		/// <param name="network">The item network</param>
 		/// <param name="item">The item to import</param>
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// Set this parameter to <see cref="Point16.NegativeOne"/> to indicate that the sub-tile cannot be determined.
+		/// </param>
 		/// <param name="stackImported">The quantity of <paramref name="item"/> that was imported into <paramref name="machine"/></param>
-		public static bool CheckItemImportPrediction(IInventoryMachine machine, ItemNetwork network, Item item, out int stackImported) {
+		public static bool CheckItemImportPrediction(IInventoryMachine machine, ItemNetwork network, Item item, Point16 subtile, out int stackImported) {
 			stackImported = 0;
 
 			if (item.IsAir)
@@ -150,6 +173,10 @@ namespace SerousEnergyLib.API.Machines {
 			entity.SaveData(tag);
 			cloneEntity.LoadData(tag);
 
+			// Copy other data not set by LoadData
+			cloneEntity.Position = entity.Position;
+			cloneEntity.ID = entity.ID;
+
 			blockSlotSyncing = true;
 
 			// Import the network items
@@ -165,7 +192,7 @@ namespace SerousEnergyLib.API.Machines {
 
 				var import = pipedItem.GetItemClone();
 
-				ImportItem(clone, import);
+				ImportItem(clone, import, subtile);
 
 				if (!import.IsAir) {
 					// Prediction failed -- new item cannot be imported
@@ -175,7 +202,7 @@ namespace SerousEnergyLib.API.Machines {
 
 			// Import the actual item
 			int oldStack = item.stack;
-			ImportItem(clone, item);
+			ImportItem(clone, item, subtile);
 			stackImported = oldStack - item.stack;
 
 			blockSlotSyncing = false;
@@ -183,7 +210,10 @@ namespace SerousEnergyLib.API.Machines {
 			return stackImported > 0;
 		}
 
-		private static bool blockSlotSyncing;
+		/// <summary>
+		/// Whether slot syncing should be permitted.  Defaults to <see langword="false"/>
+		/// </summary>
+		protected static bool blockSlotSyncing;
 
 		/// <summary>
 		/// Attempt to add <paramref name="import"/> to this machine's <see cref="Inventory"/> here.<br/>
@@ -191,8 +221,10 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="import">The item to import</param>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
-		public virtual void ImportItemAtSlot(Item import, int slot) {
-			var inv = Inventory;
+		void ImportItemAtSlot(Item import, int slot);
+		
+		public static void DefaultImportItemAtSlot(IInventoryMachine machine, Item import, int slot) {
+			var inv = machine.Inventory;
 
 			Item existing = inv[slot];
 
@@ -212,7 +244,7 @@ namespace SerousEnergyLib.API.Machines {
 			}
 
 			if (!blockSlotSyncing)
-				Netcode.SyncMachineInventorySlot(this, slot);
+				Netcode.SyncMachineInventorySlot(machine, slot);
 		}
 
 		/// <summary>
@@ -220,7 +252,11 @@ namespace SerousEnergyLib.API.Machines {
 		/// </summary>
 		/// <param name="machine">The machine to process</param>
 		/// <param name="import">The item to import.  Any leftover stack will be in this parameter after calling this method</param>
-		public static void ImportItem(IInventoryMachine machine, Item import) {
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// Set this parameter to <see cref="Point16.NegativeOne"/> to indicate that the sub-tile cannot be determined.
+		/// </param>
+		public static void ImportItem(IInventoryMachine machine, Item import, Point16 subtile) {
 			if (import.IsAir)
 				return;
 
@@ -231,7 +267,7 @@ namespace SerousEnergyLib.API.Machines {
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				if (machine.CanImportItemAtSlot(import, slot, out _))
+				if (machine.CanImportItemAtSlot(import, subtile, slot, out _))
 					machine.ImportItemAtSlot(import, slot);
 
 				if (import.stack <= 0)
@@ -250,41 +286,60 @@ namespace SerousEnergyLib.API.Machines {
 		/// Whether the given <paramref name="slot"/> in <see cref="Inventory"/> can be exported from
 		/// </summary>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
-		bool CanExportItemAtSlot(int slot);
+		/// <param name="subtile">
+		/// The sub-tile within this machine that the item would be imported to.<br/>
+		/// This parameter will be <see cref="Point16.NegativeOne"/> if the sub-tile could not be determined.
+		/// </param>
+		bool CanExportItemAtSlot(int slot, Point16 subtile);
 
 		/// <summary>
-		/// Attempt to extract an item at the given <paramref name="slot"/> in <see cref="Inventory"/><br/>
-		/// By default, this method acts like extracting items from a chest
+		/// Attempt to extract an item at the given <paramref name="slot"/> in <see cref="Inventory"/>
 		/// </summary>
 		/// <param name="network">The network to extract items to</param>
 		/// <param name="slot">The slot in <see cref="Inventory"/></param>
+		/// <param name="pathfindingStart">The starting tile for pathfinding to possible inventories</param>
 		/// <param name="extractCount">The remaining count of items to extract from this machine</param>
 		/// <param name="simulation">Whether to actually remove items from this inventory or just simulate the removal.</param>
 		/// <param name="result">A valid extraction result if the extraction was successful, <see langword="default"/> otherwise.</param>
 		/// <returns>Whether the extraction was successful</returns>
-		public virtual bool ExportItemAtSlot(ItemNetwork network, int slot, ref int extractCount, bool simulation, out InventoryExtractionResult result) {
-			Item item = Inventory[slot];
+		bool ExportItemAtSlot(ItemNetwork network, int slot, Point16 pathfindingStart, ref int extractCount, bool simulation, out InventoryExtractionResult result);
 
-			Item import = Inventory[slot].Clone();
+		/// <summary>
+		/// This method executes the standard logic for <see cref="ExportItemAtSlot(ItemNetwork, int, Point16, ref int, bool, out InventoryExtractionResult)"/>, where the inventory in <paramref name="machine"/> is treated like a chest inventory
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="network">The network to extract items to</param>
+		/// <param name="slot">The slot in <see cref="Inventory"/></param>
+		/// <param name="pathfindingStart">The starting tile for pathfinding to possible inventories</param>
+		/// <param name="extractCount">The remaining count of items to extract from this machine</param>
+		/// <param name="simulation">Whether to actually remove items from this inventory or just simulate the removal.</param>
+		/// <param name="result">A valid extraction result if the extraction was successful, <see langword="default"/> otherwise.</param>
+		/// <returns>Whether the extraction was successful</returns>
+		public static bool DefaultExportItemAtSlot(IInventoryMachine machine, ItemNetwork network, int slot, Point16 pathfindingStart, ref int extractCount, bool simulation, out InventoryExtractionResult result) {
+			Item item = machine.Inventory[slot];
+
+			Item import = machine.Inventory[slot].Clone();
 			if (import.stack > extractCount)
 				import.stack = extractCount;
 
-			if (network.FindValidImportTarget(import, out Point16 target, out int stackImported)) {
-				// There was a valid target
-				import.stack = stackImported;
-				extractCount -= stackImported;
+			if (network.FindValidImportTargets(import, out List<InventoryInsertionResult> results)) {
+				if (network.GetFastestPath(pathfindingStart, results, out Point16 chosenInventory, out int stackImported) is List<Point16> path) {
+					// There was a valid target
+					import.stack = stackImported;
+					extractCount -= stackImported;
 
-				if (!simulation) {
-					item.stack -= stackImported;
+					if (!simulation) {
+						item.stack -= stackImported;
 
-					if (item.stack <= 0)
-						item.TurnToAir();
+						if (item.stack <= 0)
+							item.TurnToAir();
 
-					Netcode.SyncMachineInventorySlot(this, slot);
+						Netcode.SyncMachineInventorySlot(machine, slot);
+					}
+
+					result = new InventoryExtractionResult(chosenInventory, path, Point16.NegativeOne, import, slot);
+					return true;
 				}
-
-				result = new InventoryExtractionResult(target, Point16.NegativeOne, import, slot);
-				return true;
 			}
 
 			result = default;
@@ -297,10 +352,11 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		/// <param name="network">The item network to import the items into</param>
 		/// <param name="inventoryTile">The sub-tile that the extraction is performed from</param>
+		/// <param name="pathfindingStart">The starting tile for pathfinding to possible inventories</param>
 		/// <param name="extractCount">A counter for how many more items can be extracted from this machine</param>
 		/// <param name="simulation">If <see langword="true"/>, items will not be removed from this machine</param>
 		/// <returns>A list of extraction results for use in creating <see cref="PipedItem"/> objects</returns>
-		public static List<InventoryExtractionResult> ExtractItems(IInventoryMachine machine, ItemNetwork network, Point16 inventoryTile, ref int extractCount, bool simulation = true) {
+		public static List<InventoryExtractionResult> ExtractItems(IInventoryMachine machine, ItemNetwork network, Point16 inventoryTile, Point16 pathfindingStart, ref int extractCount, bool simulation = true) {
 			// Attempt to extract items from the machine
 			List<InventoryExtractionResult> results = new();
 
@@ -310,6 +366,9 @@ namespace SerousEnergyLib.API.Machines {
 
 			network.ignoredValidTargets.Clear();
 
+			// Allow the machine to target itself
+			// This is not permitted for chests due to them always being able to be exported to, given they have room to store the exported items
+			/*
 			if (machine is ModTileEntity entity && TileLoader.GetTile(Main.tile[entity.Position.X, entity.Position.Y].TileType) is IMachineTile machineTile) {
 				machineTile.GetMachineDimensions(out uint width, out uint height);
 
@@ -318,6 +377,7 @@ namespace SerousEnergyLib.API.Machines {
 						network.ignoredValidTargets.Add(entity.Position + new Point16(x, y));
 				}
 			}
+			*/
 
 			var inv = machine.Inventory;
 
@@ -327,9 +387,9 @@ namespace SerousEnergyLib.API.Machines {
 				if (inv[slot].IsAir)
 					continue;
 
-				if (machine.CanExportItemAtSlot(slot)) {
+				if (machine.CanExportItemAtSlot(slot, inventoryTile)) {
 					int count = extractCount;
-					if (!machine.ExportItemAtSlot(network, slot, ref extractCount, simulation, out InventoryExtractionResult result)) {
+					if (!machine.ExportItemAtSlot(network, slot, pathfindingStart, ref extractCount, simulation, out InventoryExtractionResult result)) {
 						extractCount = count;  // Safeguard
 						continue;
 					}
@@ -374,6 +434,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		public static IEnumerable<ItemNetwork> GetAdjacentItemNetworks(IInventoryMachine machine) {
 			return GetAdjacentNetworks(machine, NetworkType.Items)
+				.Where(r => machine.CanMergeWithItemPipe(r.tileInNetwork.X, r.tileInNetwork.Y, r.machineTileAdjacentToNetwork.X, r.machineTileAdjacentToNetwork.Y))
 				.Select(r => r.network as ItemNetwork)
 				.OfType<ItemNetwork>();
 		}
@@ -439,16 +500,16 @@ namespace SerousEnergyLib.API.Machines {
 			return drop;
 		}
 
-		public static void SaveInventory(IInventoryMachine machine, TagCompound tag) {
+		public static void SaveData(IInventoryMachine machine, TagCompound tag) {
 			tag["inventory"] = machine.Inventory.Select(ItemIO.Save).ToList();
 		}
 
-		public static void LoadInventory(IInventoryMachine machine, TagCompound tag) {
+		public static void LoadData(IInventoryMachine machine, TagCompound tag) {
 			machine.Inventory = null;
 			Update(machine);
 
 			var inv = machine.Inventory;
-			if (tag.GetList<Item>("inventory") is List<Item> items && inv.Length == items.Count) {
+			if (tag.TryGet("inventory", out List<Item> items) && inv.Length == items.Count) {
 				for (int i = 0; i < items.Count; i++)
 					inv[i] = items[i];
 			}

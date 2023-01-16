@@ -41,6 +41,10 @@ namespace SerousEnergyLib.Systems {
 
 		public int ID { get; private set; }
 
+		// Used during network removal to get the index in the parent collection
+		// This field should not be used otherwise
+		internal int networkIndex = -1;
+
 		private AStar<CoarseNodeEntry> innerCoarseNodePathfinder;
 		internal static bool ignoreTravelTimeWhenPathfinding;
 
@@ -161,6 +165,39 @@ namespace SerousEnergyLib.Systems {
 		}
 
 		/// <summary>
+		/// Returns <see langword="true"/> if this network has a node adjacent to <paramref name="location"/>
+		/// </summary>
+		/// <param name="location">The center tile coordinate</param>
+		/// <exception cref="ObjectDisposedException"/>
+		public bool HasEntryAdjacentTo(Point16 location) {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			return nodes.ContainsKey(location + new Point16(-1, 0))
+				|| nodes.ContainsKey(location + new Point16(0, -1))
+				|| nodes.ContainsKey(location + new Point16(1, 0))
+				|| nodes.ContainsKey(location + new Point16(0, 1));
+		}
+
+		/// <summary>
+		/// Returns <see langword="true"/> if this network has a node adjacent to location (<paramref name="x"/>, <paramref name="y"/>)
+		/// </summary>
+		/// <param name="x">The center tile X-coordinate</param>
+		/// <param name="y">The center tile Y-coordinate</param>
+		/// <exception cref="ObjectDisposedException"/>
+		public bool HasEntryAdjacentTo(int x, int y) {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			Point16 location = new Point16(x, y);
+
+			return nodes.ContainsKey(location + new Point16(-1, 0))
+				|| nodes.ContainsKey(location + new Point16(0, -1))
+				|| nodes.ContainsKey(location + new Point16(1, 0))
+				|| nodes.ContainsKey(location + new Point16(0, 1));
+		}
+
+		/// <summary>
 		/// Attempts to find a node within this network
 		/// </summary>
 		/// <param name="location">The tile location</param>
@@ -237,6 +274,15 @@ namespace SerousEnergyLib.Systems {
 
 			var node = CreateNetworkNode(x, y, ref adjacent, ref nextIndex);
 			nodes.Add(location, node);
+
+			// If the source tile was a junction, it has no adjacent nodes.  Manually check each direction
+			if (TileLoader.GetTile(tile.TileType) is NetworkJunction) {
+				adjacent[0] = new Point16(x - 1, y);
+				adjacent[1] = new Point16(x, y - 1);
+				adjacent[2] = new Point16(x + 1, y);
+				adjacent[3] = new Point16(x, y + 1);
+				nextIndex = 4;
+			}
 
 			// Update adjacent nodes
 			Span<Point16> adjacentAdjacent = stackalloc Point16[4];
@@ -627,12 +673,22 @@ namespace SerousEnergyLib.Systems {
 
 		private void GenerateThresholdPaths(CoarseNode node, int x, int y, int nodeX, int nodeY, ConnectionDirection direction) {
 			Point16 start = new Point16(x, y);
+			Point16 pathfindingDirection = direction switch {
+				ConnectionDirection.Left => new Point16(-1, 0),
+				ConnectionDirection.Up => new Point16(0, -1),
+				ConnectionDirection.Right => new Point16(1, 0),
+				ConnectionDirection.Down => new Point16(0, 1),
+				_ => Point16.NegativeOne
+			};
 
 			CoarseNodeThresholdTile threshold = new CoarseNodeThresholdTile(start, direction);
 
 			List<CoarseNodePathHeuristic> pathList = new();
 
-			foreach (Point16 adjacentNodeThreshold in GetCoarseNodeValidThresholds(nodeX, nodeY, direction)) {
+			foreach (Point16 adjacentNodeThreshold in GetCoarseNodeValidThresholds(nodeX, nodeY)) {
+				// In case the threshold node in this coarse node is a junction, set the initial direction
+				PathfindingStartDirection = pathfindingDirection;
+
 				var path = innerCoarseNodePathfinder.GetPath(start, adjacentNodeThreshold);
 
 				// If the path is null, then there isn't a connection with the target threshold and the source threshold
@@ -652,7 +708,7 @@ namespace SerousEnergyLib.Systems {
 			totalCoarsePaths += threshold.paths.Length - 1;
 		}
 
-		private IEnumerable<Point16> GetCoarseNodeValidThresholds(int nodeX, int nodeY, ConnectionDirection direction) {
+		private IEnumerable<Point16> GetCoarseNodeValidThresholds(int nodeX, int nodeY) {
 			foreach (var node in GetCoarseNodeValidThresholds_IterateLeftEdge(nodeX, nodeY))
 				yield return node;
 			foreach (var node in GetCoarseNodeValidThresholds_IterateTopEdge(nodeX, nodeY))
@@ -732,7 +788,7 @@ namespace SerousEnergyLib.Systems {
 			return tile.HasTile && HasEntry(location);
 		}
 
-		private bool CanContinuePath(Point16 from, Point16 to) {
+		internal static bool CanContinuePath(Point16 from, Point16 to) {
 			Tile fromTile = Main.tile[from.X, from.Y];
 			Tile toTile = Main.tile[to.X, to.Y];
 
@@ -749,11 +805,11 @@ namespace SerousEnergyLib.Systems {
 			if (fromInfo.IsPump && toInfo.IsPump)
 				return false;
 
-			if (fromInfo.IsPump && NetworkTaggedInfo.DoesOrientationMatchPumpDirection(to - from, fromTags.PumpDirection))
-				return true;
+			if (fromInfo.IsPump)
+				return NetworkTaggedInfo.DoesOrientationMatchPumpDirection(to - from, fromTags.PumpDirection);
 
-			if (toInfo.IsPump && NetworkTaggedInfo.DoesOrientationMatchPumpDirection(from - to, toTags.PumpDirection))
-				return true;
+			if (toInfo.IsPump)
+				return NetworkTaggedInfo.DoesOrientationMatchPumpDirection(from - to, toTags.PumpDirection);
 
 			return true;
 		}
@@ -904,6 +960,7 @@ namespace SerousEnergyLib.Systems {
 
 			while (paths.Count > 0) {
 				CoarsePathBuilder check = paths.Top;
+
 				Point16 pathEnd = check.path[^1];
 
 				// The path is taking longer than the shortest known path.  Remove it since it wouldn't be used anyway
@@ -1097,7 +1154,18 @@ namespace SerousEnergyLib.Systems {
 
 			// Save the "start" of the network so that the logic is forced to recalculate it when loading the world
 			if (nodes.Count > 0)
-				tag["start"] = nodes.Keys.First();
+				tag["start"] = FirstNode;
+
+			// Save the junction frames
+			if (foundJunctions.Count > 0) {
+				tag["junctions"] = foundJunctions
+					.Select(static p => new TagCompound() {
+						["x"] = p.X,
+						["y"] = p.Y,
+						["mode"] = Main.tile[p.X, p.Y].TileFrameX / 18
+					})
+					.ToList();
+			}
 
 			TagCompound extra = new();
 			SaveExtraData(extra);
@@ -1119,6 +1187,31 @@ namespace SerousEnergyLib.Systems {
 				throw new IOException("Invalid filter number: " + filter);
 
 			Filter = (NetworkType)filter;
+
+			// Junctions must be loaded before recalculating the path
+			// This is to make sure that the tile frames load properly, etc.
+			if (tag.TryGet("junctions", out List<TagCompound> junctionTags)) {
+				foreach (var junctionTag in junctionTags) {
+					if (!junctionTag.TryGet("x", out short x))
+						continue;
+
+					if (!junctionTag.TryGet("y", out short y))
+						continue;
+
+					if (!junctionTag.TryGet("mode", out int mode))
+						continue;
+
+					Tile tile = Main.tile[x, y];
+
+					if (TileLoader.GetTile(tile.TileType) is not NetworkJunction)
+						continue;
+
+					foundJunctions.Add(new Point16(x, y));
+
+					tile.TileFrameX = (short)(mode * 18);
+					tile.TileFrameY = 0;
+				}
+			}
 
 			if (tag.TryGet("start", out Point16 start))
 				Recalculate(start);
@@ -1328,6 +1421,7 @@ namespace SerousEnergyLib.Systems {
 			coarsePath = null;
 			foundJunctions = null;
 			innerCoarseNodePathfinder = null;
+			networkIndex = -1;
 		}
 
 		protected virtual void DisposeSelf(bool disposing) { }

@@ -29,9 +29,11 @@ namespace SerousEnergyLib.Items.Materials {
 				if (Item.stack == 1)
 					name = "1 " + name;
 				else if (SerousMachines.itemStackRegex.IsMatch(name)) {
-					string stack = SerousMachines.itemStackRegex.Match(name).Groups[1].Value[1..^1];
+					string stack = SerousMachines.itemStackRegex.Match(name).Groups[1].Value;
 
-					name = stack + " " + name[0..name.LastIndexOf('(')];
+					name = name[..(name.IndexOf(stack) - 1)];
+
+					name = stack[1..^1] + " " + name;
 				}
 			}
 		}

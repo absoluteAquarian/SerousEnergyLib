@@ -45,7 +45,7 @@ namespace SerousEnergyLib.Tiles {
 			IMachineTile.DefaultKillMultitile(this, i, j);
 		}
 
-		public virtual bool PreRightClick(IMachine machine, int x, int y) => false;
+		public virtual bool PreRightClick(IMachine machine, int x, int y) => IMachineTile.DefaultPreRightClick(machine);
 
 		public sealed override bool RightClick(int i, int j) {
 			return IMachineTile.HandleRightClick(this, i, j);

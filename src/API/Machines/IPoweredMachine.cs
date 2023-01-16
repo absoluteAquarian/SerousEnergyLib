@@ -74,6 +74,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		public static IEnumerable<PowerNetwork> GetAdjacentPowerNetworks(IPoweredMachine machine) {
 			return GetAdjacentNetworks(machine, NetworkType.Power)
+				.Where(r => machine.CanMergeWithWire(r.tileInNetwork.X, r.tileInNetwork.Y, r.machineTileAdjacentToNetwork.X, r.machineTileAdjacentToNetwork.Y))
 				.Select(r => r.network as PowerNetwork)
 				.OfType<PowerNetwork>();
 		}

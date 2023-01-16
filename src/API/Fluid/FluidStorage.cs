@@ -110,7 +110,7 @@ namespace SerousEnergyLib.API.Fluid {
 				FluidID = LoadFluid(type);
 
 			// Allow unloaded fluid types here, but not in the ctor
-			if (tag.GetList<TagCompound>("allowed") is List<TagCompound> allowed)
+			if (tag.TryGet("allowed", out List<TagCompound> allowed))
 				allowedFluidTypes = allowed.Select(LoadFluid).OfType<FluidTypeID>().ToArray();
 		}
 
@@ -146,7 +146,10 @@ namespace SerousEnergyLib.API.Fluid {
 
 			// Prohibit importing fluids when the types mismatch or when either is "Unloaded"
 			int curFluid = FluidType;
-			if (curFluid != fluidID || curFluid == SerousMachines.FluidType<UnloadedFluidID>() || fluidID == SerousMachines.FluidType<UnloadedFluidID>())
+			if (curFluid == SerousMachines.FluidType<UnloadedFluidID>() || fluidID == SerousMachines.FluidType<UnloadedFluidID>())
+				return;
+
+			if (curFluid != FluidTypeID.None && curFluid != fluidID)
 				return;
 
 			// Prohibit importing fluids that aren't allowed
@@ -166,7 +169,7 @@ namespace SerousEnergyLib.API.Fluid {
 			double import = amount;
 
 			if (CurrentCapacity + import > MaxCapacity)
-				import = MaxCapacity - import;
+				import = MaxCapacity - CurrentCapacity;
 
 			CurrentCapacity += import;
 			amount -= import;
@@ -216,6 +219,10 @@ namespace SerousEnergyLib.API.Fluid {
 			}
 
 			CurrentCapacity -= amount;
+
+			// No more fluid left
+			if (CurrentCapacity <= 0)
+				FluidID = null;
 		}
 
 		/// <summary>

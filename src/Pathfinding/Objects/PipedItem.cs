@@ -6,6 +6,7 @@ using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
@@ -371,7 +372,7 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 			if (!IMachine.TryFindMachine(entry, out IInventoryMachine machine))
 				return;
 
-			IInventoryMachine.ImportItem(machine, import);
+			IInventoryMachine.ImportItem(machine, import, entry);
 
 			if (import.IsAir)
 				Destroy(dropItem: false);
@@ -392,14 +393,14 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 			network.ignoredValidTargets.Clear();
 
-			if (network.FindValidImportTarget(import, out Point16 inventory, out _)) {
+			if (network.FindValidImportTargets(import, out List<InventoryInsertionResult> inventories)) {
 				Point16 orig = CurrentTile;
 
 				// Set the starting direction so that pathfinding won't fail if this item is at a junction tile
-				if (TileLoader.GetTile(Main.tile[orig.X, orig.Y].TileType) is NetworkJunction)
-					network.pipedItemDirection = CurrentTile - PreviousTile;
+				bool setDirection = TileLoader.GetTile(Main.tile[orig.X, orig.Y].TileType) is NetworkJunction;
 
-				if (network.AttemptToGeneratePathToInventoryTarget(orig, inventory) is List<Point16> path)
+				// Imported stack is irrelevant in this context
+				if (network.GetFastestPath(orig, inventories, out Point16 inventory, out _, setDirection ? orig - PreviousTile : null) is List<Point16> path)
 					UseTarget(inventory, path);
 			}
 		}
@@ -452,14 +453,14 @@ namespace SerousEnergyLib.Pathfinding.Objects {
 
 				int direction;
 				if (moveDir.X < 0 && moveDir.Y == 0) {
-					// Direction = Left
-					direction = 0;
+					// Direction = Right
+					direction = 2;
 				} else if (moveDir.X == 0 && moveDir.Y < 0) {
 					// Direction = Up
 					direction = 3;
 				} else if (moveDir.X > 0 && moveDir.Y == 0) {
-					// Direction = Right
-					direction = 2;
+					// Direction = Left
+					direction = 0;
 				} else if (moveDir.X == 0 && moveDir.Y > 0) {
 					// Direction = Down
 					direction = 1;

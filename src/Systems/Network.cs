@@ -5,6 +5,7 @@ using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
@@ -221,18 +222,19 @@ namespace SerousEnergyLib.Systems {
 			HashSet<int> netIDs = new();
 			indices = new();
 
+			Point16 orig = new Point16(x, y);
 			int index = 0;
 			foreach (NetworkInstance net in source) {
-				if (allowed.left && net.HasEntry(x - 1, y) && netIDs.Add(net.ID)) {
+				if (allowed.left && net.HasEntry(x - 1, y) && netIDs.Add(net.ID) && NetworkInstance.CanContinuePath(orig, orig + new Point16(-1, 0))) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (allowed.up && net.HasEntry(x, y - 1) && netIDs.Add(net.ID)) {
+				} else if (allowed.up && net.HasEntry(x, y - 1) && netIDs.Add(net.ID) && NetworkInstance.CanContinuePath(orig, orig + new Point16(0, -1))) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (allowed.right && net.HasEntry(x + 1, y) && netIDs.Add(net.ID)) {
+				} else if (allowed.right && net.HasEntry(x + 1, y) && netIDs.Add(net.ID) && NetworkInstance.CanContinuePath(orig, orig + new Point16(1, 0))) {
 					instances.Add(net);
 					indices.Add(index);
-				} else if (allowed.down && net.HasEntry(x, y + 1) && netIDs.Add(net.ID)) {
+				} else if (allowed.down && net.HasEntry(x, y + 1) && netIDs.Add(net.ID) && NetworkInstance.CanContinuePath(orig, orig + new Point16(0, 1))) {
 					instances.Add(net);
 					indices.Add(index);
 				}
@@ -282,34 +284,36 @@ namespace SerousEnergyLib.Systems {
 
 		private static void RemoveEntry_CheckFilter(int x, int y, NetworkType type, NetworkType filter, List<NetworkInstance> source) {
 			if ((type & filter) == filter) {
-				NetworkInstance parent = GetNetworkAt(x, y, filter, out int index);
+				// Force a ToList() since the collection will be modified
+				var networks = GetNetworksAt(x, y, type & filter).ToList();
+				// Reverse the collection so that networks with higher indices are processed first
+				networks.Reverse();
 
-				if (parent is null)
-					return;  // No network present
-
-				if (parent.EntryCount <= 1) {
-					// This was a single-entry network.  Just remove it
-					Netcode.SendNetworkRemoval(parent.ID);
+				foreach (var parent in networks) {
+					if (parent.EntryCount <= 1) {
+						// This was a single-entry network.  Just remove it
+						Netcode.SendNetworkRemoval(parent.ID);
 					
-					source.RemoveAt(index);
-					parent.Dispose();
-				} else {
-					// Split the network into multiple networks
-					parent.OnEntryRemoved(new Point16(x, y));
+						source.RemoveAt(parent.networkIndex);
+						parent.Dispose();
+					} else {
+						// Split the network into multiple networks
+						parent.OnEntryRemoved(new Point16(x, y));
 
-					// Remove the parent since it won't be returned by RemoveEntry
-					source.RemoveAt(index);
+						// Remove the parent since it won't be returned by RemoveEntry
+						source.RemoveAt(parent.networkIndex);
 
-					Netcode.SendNetworkRemoval(parent.ID);
+						Netcode.SendNetworkRemoval(parent.ID);
 
-					// Add the new networks to the collection
-					foreach (var net in NetworkInstance.RemoveEntry(parent, x, y)) {
-						source.Add(net);
+						// Add the new networks to the collection
+						foreach (var net in NetworkInstance.RemoveEntry(parent, x, y)) {
+							source.Add(net);
 
-						Netcode.SyncFullNetworkData(net.ID);
+							Netcode.SyncFullNetworkData(net.ID);
+						}
+
+						parent.Dispose();
 					}
-
-					parent.Dispose();
 				}
 			}
 		}
@@ -321,14 +325,15 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="y">The tile Y=coordinate</param>
 		/// <param name="type">The filter to use when checking for networks.  Multiple network types can be searched through via OR-ing multiple <see cref="NetworkType"/> constants</param>
 		/// <returns>The first valid <see cref="NetworkInstance"/> object, or <see langword="null"/> if one wasn't found at the provided location</returns>
-		public static NetworkInstance GetNetworkAt(int x, int y, NetworkType type) => GetNetworkAt(x, y, type, out _);
-		
-		internal static NetworkInstance GetNetworkAt(int x, int y, NetworkType type, out int networkIndex) {
+		public static NetworkInstance GetNetworkAt(int x, int y, NetworkType type) {
 			Point16 loc = new Point16(x, y);
 
+			int networkIndex;
 			if ((type & NetworkType.Items) == NetworkType.Items) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in itemNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						return net;
 
@@ -339,6 +344,8 @@ namespace SerousEnergyLib.Systems {
 			if ((type & NetworkType.Fluids) == NetworkType.Fluids) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in fluidNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						return net;
 
@@ -349,6 +356,8 @@ namespace SerousEnergyLib.Systems {
 			if ((type & NetworkType.Power) == NetworkType.Power) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in powerNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						return net;
 
@@ -367,7 +376,7 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
 		/// <returns>The first <see cref="ItemNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
-		public static ItemNetwork GetItemNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Items, out _) as ItemNetwork;
+		public static ItemNetwork GetItemNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Items) as ItemNetwork;
 
 		/// <summary>
 		/// Attempts to find a fluid network at location (<paramref name="x"/>, <paramref name="y"/>)
@@ -375,7 +384,7 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
 		/// <returns>The first <see cref="FluidNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
-		public static FluidNetwork GetFluidNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Fluids, out _) as FluidNetwork;
+		public static FluidNetwork GetFluidNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Fluids) as FluidNetwork;
 
 		/// <summary>
 		/// Attempts to find a power network at location (<paramref name="x"/>, <paramref name="y"/>)
@@ -383,7 +392,7 @@ namespace SerousEnergyLib.Systems {
 		/// <param name="x">The tile X-coordinate</param>
 		/// <param name="y">The tile Y-coordinate</param>
 		/// <returns>The first <see cref="PowerNetwork"/> instance if one was found, <see langword="null"/> otherwise</returns>
-		public static PowerNetwork GetPowerNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Power, out _) as PowerNetwork;
+		public static PowerNetwork GetPowerNetworkAt(int x, int y) => GetNetworkAt(x, y, NetworkType.Power) as PowerNetwork;
 
 		/// <summary>
 		/// Attempts to find any networks at the location (<paramref name="x"/>, <paramref name="y"/>)
@@ -399,6 +408,8 @@ namespace SerousEnergyLib.Systems {
 			if ((type & NetworkType.Items) == NetworkType.Items) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in itemNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						yield return net;
 
@@ -409,6 +420,8 @@ namespace SerousEnergyLib.Systems {
 			if ((type & NetworkType.Fluids) == NetworkType.Fluids) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in fluidNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						yield return net;
 
@@ -419,6 +432,8 @@ namespace SerousEnergyLib.Systems {
 			if ((type & NetworkType.Power) == NetworkType.Power) {
 				networkIndex = 0;
 				foreach (NetworkInstance net in powerNetworks) {
+					net.networkIndex = networkIndex;
+
 					if (net.HasEntry(loc))
 						yield return net;
 

@@ -5,10 +5,10 @@
 		}
 
 		FluidName: {
-			WaterFluidID: "Water"
-			LavaFluidID: "Lava"
-			HoneyFluidID: "Honey"
-			UnloadedFluidID: "Unloaded"
+			WaterFluidID: "Fluid: Water"
+			LavaFluidID: "Fluid: Lava"
+			HoneyFluidID: "Fluid: Honey"
+			UnloadedFluidID: "Fluid: Unloaded"
 		}
 
 		ItemName: {
@@ -48,8 +48,8 @@
 			'''
 		}
 
-		ItemHasMachineData: "This item contains metadata from a machine"
-		DataHash: "Data hash: {0:x8}"
+		ItemHasMachineData: "[c/dddd00:This item contains metadata from a machine]"
+		DataHash: "[c/dddd00:Data hash: {0:x8}]"
 
 		TimeItemDuration: "{0:0.###} seconds ({1} ticks)"
 		TimeItemMinimumDuration: "Minimum: {$Mods.SerousEnergyLib.TimeItemDuration}"

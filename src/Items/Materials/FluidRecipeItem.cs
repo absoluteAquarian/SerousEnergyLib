@@ -28,8 +28,13 @@ namespace SerousEnergyLib.Items.Materials {
 
 				if (Item.stack == 1)
 					name += " (1 mL)";
-				else if (SerousMachines.itemStackRegex.IsMatch(name))
-					name = SerousMachines.itemStackRegex.Replace(name, $"({Item.stack} mL)", 1);
+				else if (SerousMachines.itemStackRegex.IsMatch(name)) {
+					// Insert "mL" next to the stack
+					string stack = SerousMachines.itemStackRegex.Match(name).Groups[1].Value;
+					int parenthesis = stack.IndexOf(')');
+
+					name = name.Replace(stack, stack.Insert(parenthesis, "mL"));
+				}
 			}
 		}
 	}

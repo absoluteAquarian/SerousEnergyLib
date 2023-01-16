@@ -117,6 +117,10 @@ namespace SerousEnergyLib.Items {
 
 			clone.LoadData(MachineData);
 
+			// Inform the dummy object that it is indeed a dummy instance
+			// Things that rely on position (e.g. solar panels) can use this to ignore the position
+			clone.ID = -1;
+
 			var generated = IPowerGeneratorMachine.GetPowerGenerationWithUpgrades(generator, 1);
 
 			string shortUnit = energyType.ShortName;
@@ -144,12 +148,12 @@ namespace SerousEnergyLib.Items {
 			}
 
 			if (GetEnergyUsageString(MachineUsesEnergyPerTick) is string useString)
-				TooltipHelper.FindAndModify(tooltips, "<POWER_USAGE>", useString);
+				TooltipHelper.FindAndModify(tooltips, "<POWER_USAGE>", $"[c/dddd00:{useString}]");
 			else
 				TooltipHelper.FindAndRemoveLine(tooltips, "<POWER_USAGE>");
 
 			if (GetEnergyUsageString(MachineGeneratesEnergyPerTick) is string generateString)
-				TooltipHelper.FindAndModify(tooltips, "<POWER_GENERATION>", generateString);
+				TooltipHelper.FindAndModify(tooltips, "<POWER_GENERATION>", $"[c/dddd00:{generateString}]");
 			else
 				TooltipHelper.FindAndRemoveLine(tooltips, "<POWER_GENERATION>");
 		}

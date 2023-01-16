@@ -100,13 +100,13 @@ namespace SerousEnergyLib.Systems.Networks {
 				down = location + new Point16(0, 1);
 
 			// Add adjacent machines
-			if (IMachine.TryFindMachine(left, out IPoweredMachine _))
+			if (IMachine.TryFindMachine(left, out IPoweredMachine machine) && machine.CanMergeWithWire(location.X, location.Y, left.X, left.Y))
 				adjacentFluxStorageTiles.Add(left);
-			if (IMachine.TryFindMachine(up, out IPoweredMachine _))
+			if (IMachine.TryFindMachine(up, out machine) && machine.CanMergeWithWire(location.X, location.Y, up.X, up.Y))
 				adjacentFluxStorageTiles.Add(up);
-			if (IMachine.TryFindMachine(right, out IPoweredMachine _))
+			if (IMachine.TryFindMachine(right, out machine) && machine.CanMergeWithWire(location.X, location.Y, right.X, right.Y))
 				adjacentFluxStorageTiles.Add(right);
-			if (IMachine.TryFindMachine(down, out IPoweredMachine _))
+			if (IMachine.TryFindMachine(down, out machine) && machine.CanMergeWithWire(location.X, location.Y, down.X, down.Y))
 				adjacentFluxStorageTiles.Add(down);
 		}
 
@@ -157,10 +157,14 @@ namespace SerousEnergyLib.Systems.Networks {
 				right = location + new Point16(1, 0),
 				down = location + new Point16(0, 1);
 
-			adjacentFluxStorageTiles.Remove(left);
-			adjacentFluxStorageTiles.Remove(up);
-			adjacentFluxStorageTiles.Remove(right);
-			adjacentFluxStorageTiles.Remove(down);
+			if (!HasEntryAdjacentTo(left))
+				adjacentFluxStorageTiles.Remove(left);
+			if (!HasEntryAdjacentTo(up))
+				adjacentFluxStorageTiles.Remove(up);
+			if (!HasEntryAdjacentTo(right))
+				adjacentFluxStorageTiles.Remove(right);
+			if (!HasEntryAdjacentTo(down))
+				adjacentFluxStorageTiles.Remove(down);
 		}
 
 		protected override void SaveExtraData(TagCompound tag) {

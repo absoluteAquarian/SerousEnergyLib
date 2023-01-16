@@ -75,6 +75,7 @@ namespace SerousEnergyLib.API.Machines {
 		/// <param name="machine">The machine to process</param>
 		public static IEnumerable<FluidNetwork> GetAdjacentFluidNetworks(IFluidMachine machine) {
 			return GetAdjacentNetworks(machine, NetworkType.Fluids)
+				.Where(r => machine.CanMergeWithFluidPipe(r.tileInNetwork.X, r.tileInNetwork.Y, r.machineTileAdjacentToNetwork.X, r.machineTileAdjacentToNetwork.Y))
 				.Select(r => r.network as FluidNetwork)
 				.OfType<FluidNetwork>();
 		}
@@ -164,7 +165,7 @@ namespace SerousEnergyLib.API.Machines {
 
 		public static void LoadData(IFluidMachine machine, TagCompound tag) {
 			var storage = machine.FluidStorage;
-			if (tag.GetList<TagCompound>("fluids") is List<TagCompound> fluids && fluids.Count == storage.Length) {
+			if (tag.TryGet("fluids", out List<TagCompound> fluids) && fluids.Count == storage.Length) {
 				for (int i = 0; i < storage.Length; i++)
 					storage[i].LoadData(fluids[i]);
 			}

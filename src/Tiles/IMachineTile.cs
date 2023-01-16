@@ -47,7 +47,14 @@ namespace SerousEnergyLib.Tiles {
 		/// <param name="x">The tile X-coordinate that the player clicked</param>
 		/// <param name="y">The tile Y=coordinate that the player clicked</param>
 		/// <returns><see langword="true"/> if the logic for opening this machine's UI should be blocked, <see langword="false"/> otherwise.</returns>
-		public virtual bool PreRightClick(IMachine machine, int x, int y) {
+		bool PreRightClick(IMachine machine, int x, int y);
+
+		/// <summary>
+		/// This method executes the standard logic for trying to right click upgrades onto a machine
+		/// </summary>
+		/// <param name="machine">The entity to try to insert upgrades into</param>
+		/// <returns><see langword="true"/> if an upgrade was added to the machine, <see langword="false"/> otherwise.</returns>
+		public static bool DefaultPreRightClick(IMachine machine) {
 			var item = Main.LocalPlayer.HeldItem;
 
 			if (IMachine.AddUpgrade(machine, item.ModItem as BaseUpgradeItem))
