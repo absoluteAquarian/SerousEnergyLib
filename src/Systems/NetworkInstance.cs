@@ -874,18 +874,18 @@ namespace SerousEnergyLib.Systems {
 				}
 
 				// Only one valid direction is allowed
-				Point16 diff = center - previous;
+				Point16 moveDir = center - previous;
 
 				// Failsafe
-				if ((diff.X == 0 && diff.Y == 0) || (diff.X != 0 && diff.Y != 0))
+				if ((moveDir.X == 0 && moveDir.Y == 0) || (moveDir.X != 0 && moveDir.Y != 0))
 					return new List<Point16>();
 
 				if (mode == 0)
-					return new List<Point16>() { diff, new Point16(-diff.X, -diff.Y) };  // Left -> Right, Up -> Down
+					return new List<Point16>() { moveDir, new Point16(moveDir.X, moveDir.Y) };   // Left -> Right, Up -> Down
 				else if (mode == 1)
-					return new List<Point16>() { diff, new Point16(-diff.Y, -diff.X) };  // Left -> Down, Up -> Right
+					return new List<Point16>() { moveDir, new Point16(moveDir.Y, moveDir.X) };   // Left -> Down, Up -> Right
 				else if (mode == 2)
-					return new List<Point16>() { diff, new Point16(diff.Y, diff.X) };    // Left -> Up, Right -> Down
+					return new List<Point16>() { moveDir, new Point16(-moveDir.Y, -moveDir.X) }; // Left -> Up, Right -> Down
 				
 				return new List<Point16>();  // Failsafe
 			} else if (modTile is IPumpTile && previous != Point16.NegativeOne) {
@@ -944,7 +944,12 @@ namespace SerousEnergyLib.Systems {
 
 			// Get a path from the starting tile to each threshold tile in this coarse node
 			foreach (var location in startNode.thresholds.Keys) {
+				var dir = PathfindingStartDirection;
+
 				var path = innerCoarseNodePathfinder.GetPath(start, location);
+
+				// Restore the startind direction so that all initial builders can use it
+				PathfindingStartDirection = dir;
 
 				// The starting tile could pathfind to the threshold
 				if (path is not null) {
@@ -953,6 +958,8 @@ namespace SerousEnergyLib.Systems {
 					paths.Push(builder);
 				}
 			}
+
+			PathfindingStartDirection = Point16.NegativeOne;
 
 			// Keep generating paths until they reach the target or run out of tiles to pathfind
 			List<CoarsePathBuilder> completedPaths = new();
@@ -993,6 +1000,14 @@ namespace SerousEnergyLib.Systems {
 
 					if (coarse == endCoarse && HasEntry(pathEnd)) {
 						// The path might exist
+						PathfindingStartDirection = check.headingDirection switch {
+							ConnectionDirection.Left => new Point16(-1, 0),
+							ConnectionDirection.Up => new Point16(0, -1),
+							ConnectionDirection.Right => new Point16(1, 0),
+							ConnectionDirection.Down => new Point16(0, 1),
+							_ => Point16.NegativeOne
+						};
+
 						var path = innerCoarseNodePathfinder.GetPath(pathEnd, end);
 
 						if (path is not null) {
@@ -1006,7 +1021,7 @@ namespace SerousEnergyLib.Systems {
 					continue;
 				}
 
-				var builders = CoarsePathBuilder.Append(check, nextThreshold);
+				var builders = CoarsePathBuilder.Append(check, nextThreshold, this);
 
 				if (builders is not null) {
 					// Remove the old instance
@@ -1032,7 +1047,7 @@ namespace SerousEnergyLib.Systems {
 		}
 
 		#region Coarse Pathfinding Helpers
-		private bool TryGetThresholdTile(Point16 location, out CoarseNodeThresholdTile threshold) {
+		internal bool TryGetThresholdTile(Point16 location, out CoarseNodeThresholdTile threshold) {
 			threshold = default;
 			Point16 coarse = location / CoarseNode.Coarseness;
 

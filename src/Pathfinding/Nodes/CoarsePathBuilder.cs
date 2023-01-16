@@ -1,6 +1,8 @@
-﻿using SerousEnergyLib.TileData;
+﻿using SerousEnergyLib.Systems;
+using SerousEnergyLib.TileData;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Terraria.DataStructures;
 
 namespace SerousEnergyLib.Pathfinding.Nodes {
@@ -14,7 +16,7 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 
 		public double Heuristic => travelTime + tileDistance;
 
-		private ConnectionDirection headingDirection;
+		internal ConnectionDirection headingDirection;
 		internal bool cannotContinuePath;
 
 		public CoarsePathBuilder(List<Point16> start, Point16 target) {
@@ -40,7 +42,7 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 				seenThresholds.Add(node);
 		}
 
-		public static List<CoarsePathBuilder> Append(CoarsePathBuilder orig, CoarseNodeThresholdTile threshold) {
+		public static List<CoarsePathBuilder> Append(CoarsePathBuilder orig, CoarseNodeThresholdTile threshold, NetworkInstance nodeSource) {
 			if (!orig.seenThresholds.Add(threshold)) {
 				// Path has already seen this threshold
 				orig.cannotContinuePath = true;
@@ -64,6 +66,10 @@ namespace SerousEnergyLib.Pathfinding.Nodes {
 
 			int numPaths = 0;
 			foreach (var path in threshold.paths) {
+				// Failsafe: ensure that all of the nodes in the threshold path actually exist in the source network
+				if (!path.path.All(nodeSource.HasEntry))
+					continue;
+
 				CoarsePathBuilder builder = new(orig);
 				builder.headingDirection = opposite;
 				

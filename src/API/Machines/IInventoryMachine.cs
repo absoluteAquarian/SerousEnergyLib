@@ -234,6 +234,9 @@ namespace SerousEnergyLib.API.Machines {
 				return;
 			}
 
+			if (existing.stack >= existing.maxStack)
+				return;
+
 			if (existing.stack + import.stack <= existing.maxStack) {
 				existing.stack += import.stack;
 				// TODO: Copy the OnStackHooks DMD code from Magic Storage

@@ -147,6 +147,9 @@ namespace SerousEnergyLib.API {
 					return;
 				}
 
+				if (slot.stack >= slot.maxStack)
+					continue;
+
 				if (ItemFunctions.AreStrictlyEqual(slot, item)) {
 					if (slot.stack + item.stack <= slot.maxStack) {
 						slot.stack += item.stack;

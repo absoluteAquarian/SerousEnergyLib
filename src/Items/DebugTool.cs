@@ -1,4 +1,5 @@
 ﻿using SerousCommonLib.API;
+using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
@@ -13,6 +14,10 @@ using Terraria.ModLoader;
 namespace SerousEnergyLib.Items {
 	internal class DebugTool : ModItem {
 		public override string Texture => "Terraria/Images/Item_" + ItemID.IronPickaxe;
+
+		internal static int ShowCoarseNodesMode;
+		internal static bool ShowThresholdPaths;
+		internal static int thresholdPathIndex;
 
 		public override void SetDefaults() {
 			Item.CloneDefaults(ItemID.IronPickaxe);
@@ -41,6 +46,9 @@ namespace SerousEnergyLib.Items {
 				}
 			} else {
 				ActiveNetwork = Point16.NegativeOne;
+				ShowCoarseNodesMode = 0;
+				ShowThresholdPaths = false;
+				thresholdPathIndex = -1;
 
 				if (player.whoAmI == Main.myPlayer)
 					Main.NewText("Debug coordinates cleared");
@@ -50,8 +58,21 @@ namespace SerousEnergyLib.Items {
 		}
 
 		public override void UpdateInventory(Player player) {
-			if (ActiveNetwork != Point16.NegativeOne && Network.GetNetworkAt(ActiveNetwork.X, ActiveNetwork.Y, NetworkType.Items | NetworkType.Fluids | NetworkType.Power) is null)
+			if (ActiveNetwork != Point16.NegativeOne && Network.GetNetworkAt(ActiveNetwork.X, ActiveNetwork.Y, NetworkType.Items | NetworkType.Fluids | NetworkType.Power) is null) {
 				ActiveNetwork = Point16.NegativeOne;
+				ShowCoarseNodesMode = 0;
+				ShowThresholdPaths = false;
+				thresholdPathIndex = -1;
+			}
+		}
+
+		internal static IEnumerable<CoarseNodeThresholdTile> GetThresholdsAtTileTarget() {
+			int x = Player.tileTargetX, y = Player.tileTargetY;
+			Point16 orig = new Point16(x, y);
+
+			return Network.GetNetworksAt(x, y, NetworkType.Items | NetworkType.Fluids | NetworkType.Power)
+				.Select(n => n.TryGetThresholdTile(orig, out var threshold) ? threshold : default)
+				.Where(static t => t.paths is { Length: > 0 });
 		}
 
 		public override void ModifyTooltips(List<TooltipLine> tooltips) {
