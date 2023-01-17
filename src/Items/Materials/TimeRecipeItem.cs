@@ -1,5 +1,6 @@
 ﻿using SerousEnergyLib.API;
 using System.Collections.Generic;
+using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -11,6 +12,12 @@ namespace SerousEnergyLib.Items.Materials {
 	public sealed class TimeRecipeItem : ModItem {
 		#pragma warning disable CS1591
 		public override string Texture => "Terraria/Images/Item_" + ItemID.GoldWatch;
+
+		internal static readonly Recipe.Condition Requirement = new Recipe.Condition(NetworkText.FromKey("Mods.SerousEnergyLib.TimeCondition"), static r => false);
+
+		public override void Load() {
+			base.Load();
+		}
 
 		public override void SetDefaults() {
 			Item.maxStack = 99999;
@@ -25,6 +32,12 @@ namespace SerousEnergyLib.Items.Materials {
 
 				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemDuration", Item.stack / 60d, Item.stack);
 			}
+		}
+
+		public override void AddRecipes() {
+			CreateRecipe()
+				.AddCondition(Requirement)
+				.Register();
 		}
 	}
 
@@ -49,6 +62,11 @@ namespace SerousEnergyLib.Items.Materials {
 				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMinimumDuration", Item.stack / 60d, Item.stack);
 			}
 		}
+		public override void AddRecipes() {
+			CreateRecipe()
+				.AddCondition(TimeRecipeItem.Requirement)
+				.Register();
+		}
 	}
 
 	/// <summary>
@@ -72,6 +90,12 @@ namespace SerousEnergyLib.Items.Materials {
 				name = Language.GetTextValue("Mods.SerousEnergyLib.TimeItemMaximumDuration", Item.stack / 60d, Item.stack);
 			}
 		}
+
+		public override void AddRecipes() {
+			CreateRecipe()
+				.AddCondition(TimeRecipeItem.Requirement)
+				.Register();
+		}
 	}
 
 	/// <summary>
@@ -94,6 +118,12 @@ namespace SerousEnergyLib.Items.Materials {
 
 				name = DisplayName.GetTranslation(Language.ActiveCulture);
 			}
+		}
+
+		public override void AddRecipes() {
+			CreateRecipe()
+				.AddCondition(TimeRecipeItem.Requirement)
+				.Register();
 		}
 	}
 }

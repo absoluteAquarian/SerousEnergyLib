@@ -61,6 +61,8 @@
 		TimeItemMinimumDuration: "Minimum: {$Mods.SerousEnergyLib.TimeItemDuration}"
 		TimeItemMaximumDuration: "Maximum: {$Mods.SerousEnergyLib.TimeItemDuration}"
 
+		TimeCondition: "Waiting"
+
 		CommonMachineItemTooltipFooter:
 		'''
 		<HAS_ITEM_DATA>
