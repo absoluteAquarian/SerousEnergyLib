@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.API.Machines;
-using SerousEnergyLib.Items.Materials;
 using System.Text.RegularExpressions;
 using Terraria.Localization;
 using Terraria.ModLoader;

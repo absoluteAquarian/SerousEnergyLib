@@ -6,7 +6,6 @@ using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;

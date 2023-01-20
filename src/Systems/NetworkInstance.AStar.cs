@@ -52,6 +52,9 @@ namespace SerousEnergyLib.Systems {
 			ref NetworkInfo fromInfo = ref fromTile.Get<NetworkInfo>();
 			ref NetworkInfo toInfo = ref toTile.Get<NetworkInfo>();
 
+			// Tiles must have their connection directions set
+			if ((fromInfo.Connections & ConnectionDirection.Left) == ConnectionDirection.Left && (toInfo.Connections & ConnectionDirection.Right) == ConnectionDirection.Right)
+
 			// Pumps cannot merge with each other
 			if (fromInfo.IsPump && toInfo.IsPump)
 				return false;

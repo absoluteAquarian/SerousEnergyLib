@@ -1,7 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using SerousEnergyLib.Items;
-using SerousEnergyLib.Systems;
-using SerousEnergyLib.TileData;
 using System.Linq;
 using Terraria;
 using Terraria.Audio;

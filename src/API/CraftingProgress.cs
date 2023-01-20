@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
@@ -61,6 +62,27 @@ namespace SerousEnergyLib.API {
 				SpeedFactor = new StatModifier(add, mult, flat, @base);
 			} else
 				SpeedFactor = StatModifier.Default;
+		}
+
+		public void Send(BinaryWriter writer) {
+			var speed = SpeedFactor;
+
+			writer.Write(Progress);
+			writer.Write(speed.Additive);
+			writer.Write(speed.Multiplicative);
+			writer.Write(speed.Flat);
+			writer.Write(speed.Base);
+		}
+
+		public void Receive(BinaryReader reader) {
+			float progress = reader.ReadSingle();
+			float speedAdditive = reader.ReadSingle();
+			float speedMultiplicative = reader.ReadSingle();
+			float speedFlat = reader.ReadSingle();
+			float speedBase = reader.ReadSingle();
+
+			Progress = progress;
+			SpeedFactor = new StatModifier(speedAdditive, speedMultiplicative, speedFlat, speedBase);
 		}
 	}
 }

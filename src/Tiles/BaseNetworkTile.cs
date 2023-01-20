@@ -1,12 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using ReLogic.Content;
 using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Common.Configs;
-using SerousEnergyLib.Items;
 using SerousEnergyLib.Systems;
-using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using System;
 using Terraria;

@@ -1,9 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using SerousEnergyLib.Tiles;
-using System;
 using Terraria;
 using Terraria.ID;
-using Terraria.ModLoader;
 
 namespace SerousEnergyLib {
 	/// <summary>

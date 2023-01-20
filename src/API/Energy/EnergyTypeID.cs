@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using Microsoft.Xna.Framework;
+using System.Text.RegularExpressions;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
@@ -33,6 +34,11 @@ namespace SerousEnergyLib.API.Energy {
 		/// The item ID to use when displaying this energy type in a recipe
 		/// </summary>
 		public abstract int RecipeItemType { get; }
+
+		/// <summary>
+		/// The color to use in UIs which render this energy type
+		/// </summary>
+		public abstract Color Color { get; }
 
 		#pragma warning disable CS1591
 		protected sealed override void Register() {

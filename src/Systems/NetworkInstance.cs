@@ -1,21 +1,17 @@
-﻿using Microsoft.Xna.Framework;
-using SerousEnergyLib.API;
-using SerousEnergyLib.Pathfinding;
+﻿using SerousEnergyLib.Pathfinding;
 using SerousEnergyLib.Pathfinding.Nodes;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
-using Terraria.ModLoader.IO;
 
 namespace SerousEnergyLib.Systems {
-	#pragma warning disable CS1591
+#pragma warning disable CS1591
 	/// <summary>
 	/// An object representing pathfinding trees in a network of <see cref="BaseNetworkTile"/> tiles
 	/// </summary>
@@ -420,18 +416,22 @@ namespace SerousEnergyLib.Systems {
 			if (dirX != 0 && dirY != 0)
 				return;
 
+			Point16 orig = new Point16(x, y);
 			Point16 pos = new Point16(x + dirX, y + dirY);
-			if (IsValidTile(x + dirX, y + dirY) && CanContinuePath(new Point16(x, y), pos)) {
-				adjacent[nextIndex++] = pos;
+			if (IsValidTile(x + dirX, y + dirY) && CanContinuePath(orig, pos)) {
+				// If not recalculating, the other node must exist in this network
+				if (recalculating || HasEntry(pos)) {
+					adjacent[nextIndex++] = pos;
 
-				if (recalculating) {
-					queue.Enqueue(pos);
+					if (recalculating) {
+						queue.Enqueue(pos);
 
-					Tile check = Main.tile[x + dirX, y + dirY];
+						Tile check = Main.tile[x + dirX, y + dirY];
 
-					// If it's a junction, add the "next" tile that it should redirect to based on this tile's location
-					if (TileLoader.GetTile(check.TileType) is NetworkJunction)
-						CheckTile_FindJunctionOppositeTile(pos.X, pos.Y, dirX, dirY);
+						// If it's a junction, add the "next" tile that it should redirect to based on this tile's location
+						if (TileLoader.GetTile(check.TileType) is NetworkJunction)
+							CheckTile_FindJunctionOppositeTile(pos.X, pos.Y, dirX, dirY);
+					}
 				}
 			}
 		}

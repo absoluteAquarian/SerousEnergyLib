@@ -3,6 +3,7 @@ using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
+using System.Reflection.Emit;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -38,12 +39,14 @@ namespace SerousEnergyLib.Items {
 		public abstract int MachineTile { get; }
 
 		/// <summary>
-		/// If this item's machine is an <see cref="IPoweredMachine"/>, this property indicates whether the tooltip line should be "per game tick" or "per operation"
+		/// If this item's machine is an <see cref="IPoweredMachine"/>, this property indicates whether the tooltip line should be "per game tick" or "per operation".<br/>
+		/// Defaults to <see langword="true"/>.
 		/// </summary>
 		public virtual bool MachineUsesEnergyPerTick => true;
 
 		/// <summary>
-		/// If this item's machine is an <see cref="IPowerGeneratorMachine"/>, this property indicates whether the tooltip line should be "per game tick" or "per operation"
+		/// If this item's machine is an <see cref="IPowerGeneratorMachine"/>, this property indicates whether the tooltip line should be "per game tick" or "per operation".<br/>
+		/// Defaults to <see langword="true"/>.
 		/// </summary>
 		public virtual bool MachineGeneratesEnergyPerTick => true;
 
@@ -84,7 +87,14 @@ namespace SerousEnergyLib.Items {
 			if (EnergyConversions.Get(powered.EnergyID) is not EnergyTypeID energyType)
 				return null;
 
-			clone.LoadData(MachineData);
+			IMachine.Update(powered);
+			IPoweredMachine.Update(powered);
+
+			if (powered is IInventoryMachine inventory)
+				IInventoryMachine.Update(inventory);
+
+			if (MachineData is not null)
+				clone.LoadData(MachineData);
 
 			var consumed = IPoweredMachine.GetPowerConsumptionWithUpgrades(powered, 1);
 
@@ -115,7 +125,14 @@ namespace SerousEnergyLib.Items {
 			if (EnergyConversions.Get(generator.EnergyID) is not EnergyTypeID energyType)
 				return null;
 
-			clone.LoadData(MachineData);
+			IMachine.Update(generator);
+			IPoweredMachine.Update(generator);
+
+			if (generator is IInventoryMachine inventory)
+				IInventoryMachine.Update(inventory);
+
+			if (MachineData is not null)
+				clone.LoadData(MachineData);
 
 			// Inform the dummy object that it is indeed a dummy instance
 			// Things that rely on position (e.g. solar panels) can use this to ignore the position
@@ -152,7 +169,7 @@ namespace SerousEnergyLib.Items {
 			else
 				TooltipHelper.FindAndRemoveLine(tooltips, "<POWER_USAGE>");
 
-			if (GetEnergyUsageString(MachineGeneratesEnergyPerTick) is string generateString)
+			if (GetEnergyGenerationString(MachineGeneratesEnergyPerTick) is string generateString)
 				TooltipHelper.FindAndModify(tooltips, "<POWER_GENERATION>", $"[c/dddd00:{generateString}]");
 			else
 				TooltipHelper.FindAndRemoveLine(tooltips, "<POWER_GENERATION>");

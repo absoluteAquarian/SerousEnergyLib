@@ -1,4 +1,5 @@
-﻿using SerousEnergyLib.API.Energy;
+﻿using Ionic.Zlib;
+using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.API.Energy.Default;
 using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Fluid.Default;
@@ -148,8 +149,8 @@ namespace SerousEnergyLib.API {
 		/// <summary>
 		/// Adds a possible output to this recipe with the given item type, stack size and probability. Ex: <c>recipe.AddPossibleOutput(ItemID.IronAxe, 0.25)</c>
 		/// </summary>
-		/// <param name="type">The item identifier.</param>
-		/// <param name="stack">The stack.</param>
+		/// <param name="type">The item identifier</param>
+		/// <param name="stack">The stack</param>
 		/// <param name="chance">The chance displayed when viewing this recipe</param>
 		public MachineRecipe AddPossibleOutput(int type, int stack = 1, double chance = 1.0) {
 			possibleOutputs.Add(new MachineRecipeOutput(type, stack, chance));
@@ -159,10 +160,99 @@ namespace SerousEnergyLib.API {
 		/// <summary>
 		/// Adds a possible output to this recipe with the given item type, stack size and probability.
 		/// </summary>
-		/// <param name="stack">The stack.</param>
+		/// <param name="stack">The stack</param>
 		/// <param name="chance">The chance displayed when viewing this recipe</param>
 		public MachineRecipe AddPossibleOutput<T>(int stack = 1, double chance = 1.0) where T : ModItem {
 			possibleOutputs.Add(new MachineRecipeOutput(ModContent.ItemType<T>(), stack, chance));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a possible fluid output to this recipe with the given fluid ID, quantity and probability
+		/// </summary>
+		/// <param name="fluidID">The <see cref="FluidTypeID"/> identifier</param>
+		/// <param name="liters">The quantity</param>
+		/// <param name="chance">The chance displayed when viewing this recipe</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public MachineRecipe AddPossibleFluidOutput(int fluidID, double liters, double chance = 1.0) {
+			if (FluidLoader.Get(fluidID) is not FluidTypeID id || id is UnloadedFluidID)
+				throw new ArgumentException("Fluid type ID for output was invalid", nameof(fluidID));
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not FluidRecipeItem)
+				throw new ArgumentException($"Fluid type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (liters < 0.001)
+				throw new ArgumentOutOfRangeException(nameof(liters), "Fluid quantity must be greater than or equal to 1 milliliter");
+
+			possibleOutputs.Add(new MachineRecipeOutput(id.RecipeItemType, (int)(liters * 1000), chance));
+
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a possible fluid output to this recipe with the given fluid ID, quantity and probability
+		/// </summary>
+		/// <param name="liters">The quantity</param>
+		/// <param name="chance">The chance displayed when viewing this recipe</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public MachineRecipe AddPossibleFluidOutput<T>(double liters, double chance = 1.0) where T : FluidTypeID {
+			if (FluidLoader.Get(SerousMachines.FluidType<T>()) is not FluidTypeID id || id is UnloadedFluidID)
+				throw new ArgumentException("Fluid type ID for output was invalid");
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not FluidRecipeItem)
+				throw new ArgumentException($"Fluid type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (liters < 0.001)
+				throw new ArgumentOutOfRangeException(nameof(liters), "Fluid quantity must be greater than or equal to 1 milliliter");
+
+			possibleOutputs.Add(new MachineRecipeOutput(id.RecipeItemType, (int)(liters * 1000), chance));
+
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a possible power output to this recipe with the given energy ID, quantity and probability
+		/// </summary>
+		/// <param name="energyID">The <see cref="EnergyTypeID"/> identifier</param>
+		/// <param name="amount">The quantity</param>
+		/// <param name="chance">The chance displayed when viewing this recipe</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public MachineRecipe AddPossiblePowerOutput(int energyID, int amount, double chance = 1.0) {
+			if (EnergyConversions.Get(energyID) is not EnergyTypeID id)
+				throw new ArgumentException("Energy type ID for output was invalid");
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not EnergyRecipeItem)
+				throw new ArgumentException($"Energy type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (amount <= 0)
+				throw new ArgumentOutOfRangeException(nameof(amount));
+
+			possibleOutputs.Add(new MachineRecipeOutput(id.RecipeItemType, amount, chance));
+
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a possible power output to this recipe with the given energy ID, quantity and probability
+		/// </summary>
+		/// <param name="amount">The quantity</param>
+		/// <param name="chance">The chance displayed when viewing this recipe</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		public MachineRecipe AddPossiblePowerOutput<T>(int amount, double chance = 1.0) where T : EnergyTypeID {
+			var id = EnergyConversions.Get(SerousMachines.EnergyType<T>());
+
+			if (ItemLoader.GetItem(id.RecipeItemType) is not EnergyRecipeItem)
+				throw new ArgumentException($"Energy type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
+
+			if (amount <= 0)
+				throw new ArgumentOutOfRangeException(nameof(amount));
+
+			possibleOutputs.Add(new MachineRecipeOutput(id.RecipeItemType, amount, chance));
+
 			return this;
 		}
 
@@ -329,7 +419,7 @@ namespace SerousEnergyLib.API {
 				throw new ArgumentException($"Fluid type ID \"{id.GetPrintedDisplayName()}\" had an invalid item ID for its RecipeItemType property");
 
 			if (liters < 0.001)
-				throw new ArgumentException("Fluid quantity must be greater than or equal to 1 milliliter");
+				throw new ArgumentOutOfRangeException(nameof(liters), "Fluid quantity must be greater than or equal to 1 milliliter");
 
 			type = fluidType;
 			amountInMilliliters = (int)(liters * 1000d);

@@ -1,5 +1,4 @@
 ﻿using SerousEnergyLib.API.Upgrades;
-using System;
 using Terraria;
 
 namespace SerousEnergyLib.API.Machines {

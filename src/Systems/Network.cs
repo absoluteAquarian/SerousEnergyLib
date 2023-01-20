@@ -1,11 +1,11 @@
-﻿using SerousEnergyLib.API.Machines;
+﻿using SerousEnergyLib.API.Fluid;
+using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.Systems.Networks;
 using SerousEnergyLib.TileData;
 using SerousEnergyLib.Tiles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ID;
@@ -21,7 +21,11 @@ namespace SerousEnergyLib.Systems {
 		internal static readonly List<NetworkInstance> fluidNetworks = new();
 		internal static readonly List<NetworkInstance> powerNetworks = new();
 
-		internal static bool UpdatingPowerGenerators { get; private set; }
+		/// <summary>
+		/// Whether an <see cref="IPowerGeneratorMachine"/> machine should update.
+		/// Use this property to prevent a generator machine from updating twice per game tick.
+		/// </summary>
+		public static bool UpdatingPowerGenerators { get; private set; }
 
 		internal static void UpdateItemNetworks() {
 			// Ensure that no empty networks can exist
@@ -45,8 +49,11 @@ namespace SerousEnergyLib.Systems {
 
 			UpdatingPowerGenerators = true;
 
-			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>())
+			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>()) {
+				// Update() will be blocked later.  This is used to force power generators to run before power consumers
+				(machine as ModTileEntity).Update();
 				IPowerGeneratorMachine.GeneratePower(machine);
+			}
 			
 			UpdatingPowerGenerators = false;
 
@@ -192,6 +199,31 @@ namespace SerousEnergyLib.Systems {
 					NetworkInstance net = adjacent[0];
 
 					net.AddEntry(location);
+
+					// Adjacent networks MUST have a matching fluid type ID or be empty
+					if (filter == NetworkType.Fluids) {
+						var storage = (net as FluidNetwork).Storage;
+						int fluidID = storage.FluidType;
+
+						var adjFluid = new List<NetworkInstance>(adjacent.Skip(1));
+						adjacent = new List<NetworkInstance>() { net };
+
+						foreach (var adj in adjFluid.OfType<FluidNetwork>()) {
+							var adjStorage = adj.Storage;
+							var adjID = adjStorage.FluidType;
+
+							if (adjID > FluidTypeID.None && fluidID == FluidTypeID.None) {
+								// Adjacent network will overwrite this network's type
+								storage.FluidID = adjStorage.FluidID;
+								fluidID = storage.FluidType;
+
+								adjacent.Add(adj);
+							} else if (adjID == FluidTypeID.None) {
+								// Adjacent network will have its type "overwritten" by this network
+								adjacent.Add(adj);
+							}
+						}
+					}
 
 					// Copy the data
 					for (int i = 1; i < adjacent.Count; i++) {

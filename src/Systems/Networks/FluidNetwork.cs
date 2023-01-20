@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework;
-using SerousEnergyLib.API;
+﻿using SerousEnergyLib.API;
 using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
 using SerousEnergyLib.TileData;
@@ -140,10 +139,14 @@ namespace SerousEnergyLib.Systems.Networks {
 		protected override void CopyExtraData(NetworkInstance source) {
 			FluidNetwork src = source as FluidNetwork;
 
-			TagCompound tag = new();
-			src.Storage.SaveData(tag);
-			Storage = new FluidStorage(0);
-			Storage.LoadData(tag);
+			// Previous logic dictates that the two storages will have the same type at this point
+			double cur = Storage.CurrentCapacity;
+			double max = Storage.MaxCapacity;
+			double @base = Storage.BaseMaxCapacity;
+			Storage = new FluidStorage(@base + src.Storage.BaseMaxCapacity) {
+				CurrentCapacity = cur + src.Storage.CurrentCapacity,
+				MaxCapacity = max + src.Storage.MaxCapacity
+			};
 
 			foreach (var (loc, pump) in src.pumpTimers)
 				pumpTimers[loc] = pump;

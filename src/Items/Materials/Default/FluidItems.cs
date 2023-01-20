@@ -1,10 +1,9 @@
 ﻿using SerousEnergyLib.API;
 using SerousEnergyLib.API.Fluid.Default;
 using Terraria;
-using Terraria.ID;
 
 namespace SerousEnergyLib.Items.Materials.Default {
-	#pragma warning disable CS1591
+#pragma warning disable CS1591
 	public class WaterRecipeItem : FluidRecipeItem {
 		public override int FluidType => SerousMachines.FluidType<WaterFluidID>();
 
