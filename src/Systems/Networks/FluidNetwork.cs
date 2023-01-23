@@ -40,7 +40,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		public override void Update() {
 			HashSet<Point16> invalidPumps = new();
 			foreach (var (loc, timer) in pumpTimers) {
-				if (!UpdatePump(loc, timer))
+				if (!HasEntry(loc) || !UpdatePump(loc, timer))
 					invalidPumps.Add(loc);
 			}
 
@@ -139,14 +139,11 @@ namespace SerousEnergyLib.Systems.Networks {
 		protected override void CopyExtraData(NetworkInstance source) {
 			FluidNetwork src = source as FluidNetwork;
 
-			// Previous logic dictates that the two storages will have the same type at this point
-			double cur = Storage.CurrentCapacity;
-			double max = Storage.MaxCapacity;
-			double @base = Storage.BaseMaxCapacity;
-			Storage = new FluidStorage(@base + src.Storage.BaseMaxCapacity) {
-				CurrentCapacity = cur + src.Storage.CurrentCapacity,
-				MaxCapacity = max + src.Storage.MaxCapacity
-			};
+			// Sanity check
+			Storage.FluidID = FluidLoader.Get(src.Storage.FluidType);
+
+			// Add the other network's storage to this one
+			Storage.CurrentCapacity += src.Storage.CurrentCapacity;
 
 			foreach (var (loc, pump) in src.pumpTimers)
 				pumpTimers[loc] = pump;

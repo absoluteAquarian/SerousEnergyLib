@@ -96,6 +96,10 @@ namespace SerousEnergyLib.Items {
 			if (MachineData is not null)
 				clone.LoadData(MachineData);
 
+			// Inform the dummy object that it is indeed a dummy instance
+			// Things that rely on position (e.g. solar panels) can use this to ignore the position
+			clone.ID = -1;
+
 			var consumed = IPoweredMachine.GetPowerConsumptionWithUpgrades(powered, 1);
 
 			string shortUnit = energyType.ShortName;

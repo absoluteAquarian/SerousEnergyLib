@@ -10,6 +10,7 @@ using SerousEnergyLib.Tiles;
 using Terraria.DataStructures;
 using Terraria;
 using System.IO;
+using SerousEnergyLib.Systems;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
@@ -53,6 +54,9 @@ namespace SerousEnergyLib.API.Machines {
 
 			if (flux <= machine.PowerStorage.CurrentCapacity) {
 				machine.PowerStorage.Export(ref flux);
+
+				Netcode.SyncMachinePowerStorage(machine);
+
 				return true;
 			}
 
@@ -125,8 +129,10 @@ namespace SerousEnergyLib.API.Machines {
 				.ApplyTo((double)storage.BaseMaxCapacity));
 
 			// Prevent overflow when removing upgrades
-			if (storage.CurrentCapacity > storage.MaxCapacity)
+			if (storage.CurrentCapacity > storage.MaxCapacity) {
 				storage.CurrentCapacity = storage.MaxCapacity;
+				Netcode.SyncMachinePowerStorage(machine);
+			}
 		}
 
 		#pragma warning disable CS1591

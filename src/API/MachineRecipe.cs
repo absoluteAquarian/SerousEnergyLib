@@ -299,7 +299,7 @@ namespace SerousEnergyLib.API {
 
 				for (int i = 0; i < modifiedIngredients.Count; i++) {
 					IMachineRecipeIngredient obj = modifiedIngredients[i];
-					upgrade.ModifyMachineRecipeIngredient(ref obj, Ingredients, PossibleOutputs);
+					upgrade.ModifyMachineRecipeIngredient(upgradeItem.Stack, ref obj, Ingredients, PossibleOutputs);
 					modifiedIngredients[i] = obj;
 				}
 			}

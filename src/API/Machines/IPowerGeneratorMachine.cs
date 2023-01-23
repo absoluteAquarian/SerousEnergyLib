@@ -40,6 +40,8 @@ namespace SerousEnergyLib.API.Machines {
 			TerraFlux flux = EnergyConversions.ConvertToTerraFlux(generate, machine.EnergyID);
 			machine.PowerStorage.Import(ref flux);
 
+			Netcode.SyncMachinePowerStorage(machine);
+
 			ExportPowerToAdjacentNetworks(machine);
 		}
 

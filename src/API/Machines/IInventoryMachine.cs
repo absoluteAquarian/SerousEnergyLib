@@ -432,6 +432,27 @@ namespace SerousEnergyLib.API.Machines {
 		}
 
 		/// <summary>
+		/// Returns whether all export slots in <paramref name="machine"/> are full
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		protected static bool ExportInventoryIsFull(IInventoryMachine machine) {
+			var slots = machine.GetExportSlotsOrDefault();
+
+			int capacity = slots.Length;
+			var inv = machine.Inventory;
+
+			for (int i = 0; i < capacity; i++) {
+				int slot = slots[i];
+				var item = inv[slot];
+
+				if (item.IsAir || item.stack < item.maxStack)
+					return false;
+			}
+
+			return capacity > 0;
+		}
+
+		/// <summary>
 		/// Returns an enumeration of <see cref="ItemNetwork"/> instances that are adjacent to this machine
 		/// </summary>
 		/// <param name="machine">The machine to process</param>

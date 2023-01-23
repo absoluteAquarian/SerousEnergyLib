@@ -68,10 +68,8 @@ namespace SerousEnergyLib.Systems.Networks {
 		protected override void CopyExtraData(NetworkInstance source) {
 			PowerNetwork src = source as PowerNetwork;
 
-			TagCompound tag = new();
-			src.Storage.SaveData(tag);
-			Storage = new FluxStorage(TerraFlux.Zero);
-			Storage.LoadData(tag);
+			// Add the other network's storage to this one
+			Storage.CurrentCapacity += src.Storage.CurrentCapacity;
 
 			foreach (var loc in src.adjacentFluxStorageTiles)
 				adjacentFluxStorageTiles.Add(loc);

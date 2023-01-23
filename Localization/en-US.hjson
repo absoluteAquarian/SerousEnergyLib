@@ -133,8 +133,8 @@
 				Header: "[c/00ff00:Fluid Network]"
 				ID: "ID: {0}"
 				NodeCount: "Nodes: {0}"
-				Current: "Fluid: {0:0.###} / {1:0.###} L"
-				Net: "Net Fluid: [c/{0}:{1:+0.###;-#.###} L/gt]"
+				Current: "Fluid: {0:0.000} / {1:0.000} L"
+				Net: "Net Fluid: [c/{0}:{1:+0.000;-0.000} L/gt]"
 				PumpCount: "Pumps: {0}"
 				AdjTiles: "Storages: {0}"
 			}
@@ -143,8 +143,8 @@
 				Header: "[c/0000ff:Power Network]"
 				ID: "ID: {0}"
 				NodeCount: "Nodes: {0}"
-				Current: "Power: {0:0.###} / {1:0.###} TF"
-				Net: "Net Fluid: [c/{0}:{1:+0.###;-#.###} TF/gt]"
+				Current: "Power: {0:0.000} / {1:0.000} TF"
+				Net: "Net Fluid: [c/{0}:{1:+0.000;-0.000} TF/gt]"
 				AdjTiles: "Storages: {0}"
 			}
 		}

@@ -31,7 +31,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		public override void Update() {
 			HashSet<Point16> invalidPumps = new();
 			foreach (var (loc, timer) in pumpTimers) {
-				if (!UpdatePump(loc, timer))
+				if (!HasEntry(loc) || !UpdatePump(loc, timer))
 					invalidPumps.Add(loc);
 			}
 

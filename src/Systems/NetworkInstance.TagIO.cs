@@ -132,9 +132,12 @@ namespace SerousEnergyLib.Systems {
 
 						nodes[loc] = new NetworkInstanceNode(loc, adjacent);
 
+						OnEntryAdded(loc);
+
 						Point16 coarseLoc = loc / CoarseNode.Coarseness;
 
-						coarsePath[coarseLoc] = new CoarseNode();
+						if (!coarsePath.ContainsKey(coarseLoc))
+							coarsePath[coarseLoc] = new CoarseNode();
 					}
 
 					// Recalculate the coarse path

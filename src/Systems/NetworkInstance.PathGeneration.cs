@@ -75,6 +75,12 @@ namespace SerousEnergyLib.Systems {
 			while (paths.Count > 0) {
 				CoarsePathBuilder check = paths.Top;
 
+				if (check.path.Count == 0) {
+					// Invalid state
+					paths.Pop();
+					continue;
+				}
+
 				Point16 pathEnd = check.path[^1];
 
 				// The path is taking longer than the shortest known path.  Remove it since it wouldn't be used anyway

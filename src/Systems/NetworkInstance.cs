@@ -88,6 +88,8 @@ namespace SerousEnergyLib.Systems {
 			foreach (var (loc, node) in other.nodes) {
 				nodes[loc] = node;
 
+				OnEntryAdded(loc);
+
 				Point16 coarse = loc / CoarseNode.Coarseness;
 
 				if (!coarsePath.ContainsKey(coarse))
@@ -342,7 +344,7 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		protected virtual void OnNetworkCloned(NetworkInstance orig) { }
 
-		private static void RemoveUnnecessaryNodes(NetworkInstance net, Point16 start, bool updateCoarseNodes = true) {
+		private static void RemoveUnnecessaryNodes(NetworkInstance net, Point16 start) {
 			Queue<Point16> queue = new Queue<Point16>();
 			queue.Enqueue(start);
 

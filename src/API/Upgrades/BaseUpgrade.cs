@@ -112,9 +112,10 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// <summary>
 		/// Modify the <paramref name="ingredient"/> within a <see cref="MachineRecipe"/> with the given <paramref name="possibleOutputs"/> here
 		/// </summary>
+		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
 		/// <param name="ingredient">The ingredient for the recipe</param>
 		/// <param name="defaultIngredients">A collection of the original ingredients that the recipe contains</param>
 		/// <param name="possibleOutputs">A collection of the possible outputs that the recipe contains</param>
-		public virtual void ModifyMachineRecipeIngredient(ref IMachineRecipeIngredient ingredient, IReadOnlyList<IMachineRecipeIngredient> defaultIngredients, IReadOnlyList<MachineRecipeOutput> possibleOutputs) { }
+		public virtual void ModifyMachineRecipeIngredient(int upgradeStack, ref IMachineRecipeIngredient ingredient, IReadOnlyList<IMachineRecipeIngredient> defaultIngredients, IReadOnlyList<MachineRecipeOutput> possibleOutputs) { }
 	}
 }

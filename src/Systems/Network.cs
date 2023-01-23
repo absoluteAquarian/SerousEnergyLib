@@ -221,6 +221,9 @@ namespace SerousEnergyLib.Systems {
 							} else if (adjID == FluidTypeID.None) {
 								// Adjacent network will have its type "overwritten" by this network
 								adjacent.Add(adj);
+							} else if (adjID == fluidID) {
+								// Adjacent network has the same type
+								adjacent.Add(adj);
 							}
 						}
 					}
@@ -329,9 +332,6 @@ namespace SerousEnergyLib.Systems {
 						source.RemoveAt(parent.networkIndex);
 						parent.Dispose();
 					} else {
-						// Split the network into multiple networks
-						parent.OnEntryRemoved(new Point16(x, y));
-
 						// Remove the parent since it won't be returned by RemoveEntry
 						source.RemoveAt(parent.networkIndex);
 
