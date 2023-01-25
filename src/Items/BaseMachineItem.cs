@@ -183,9 +183,5 @@ namespace SerousEnergyLib.Items {
 	/// <inheritdoc cref="BaseMachineItem"/>
 	public abstract class BaseMachineItem<T> : BaseMachineItem where T : ModTile, IMachineTile {
 		public sealed override int MachineTile => ModContent.TileType<T>();
-
-		public override void SafeSetDefaults() {
-			Item.maxStack = 99;
-		}
 	}
 }
