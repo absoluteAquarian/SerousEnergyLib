@@ -158,7 +158,8 @@ namespace SerousEnergyLib.API.Machines {
 
 			Netcode.SyncMachineRemoval(entity.Type, location);
 
-			return tag;
+			// If the tag is empty, assume that the machine did not want to save any data
+			return tag.Count == 0 ? null : tag;
 		}
 
 		internal void AddToAdjacentNetworks() {
