@@ -103,7 +103,8 @@ namespace SerousEnergyLib.Systems {
 
 			threshold.paths = pathList.ToArray();
 
-			node.thresholds.Add(start, threshold);
+			// Future-proof against possible memory leaking
+			node.thresholds[start] = threshold;
 
 			totalCoarsePaths += threshold.paths.Length - 1;
 		}

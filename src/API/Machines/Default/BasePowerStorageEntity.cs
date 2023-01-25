@@ -7,6 +7,7 @@ using Terraria.ModLoader.IO;
 using SerousEnergyLib.Items;
 using System.IO;
 using SerousEnergyLib.API.Upgrades;
+using SerousEnergyLib.Systems;
 
 namespace SerousEnergyLib.API.Machines.Default {
 	/// <summary>
@@ -26,6 +27,9 @@ namespace SerousEnergyLib.API.Machines.Default {
 		/// <inheritdoc cref="IPoweredMachine.EnergyID"/>
 		public virtual int EnergyID => SerousMachines.EnergyType<TerraFluxTypeID>();
 
+		/// <inheritdoc cref="IPowerStorageMachine.StorageExportMode"/>
+		public virtual PowerExportPriority StorageExportMode { get; set; } = PowerExportPriority.LowestPower;
+
 		/// <summary>
 		/// Whether this entity instance is a clone used for item tooltips
 		/// </summary>
@@ -34,10 +38,21 @@ namespace SerousEnergyLib.API.Machines.Default {
 		/// <inheritdoc cref="IMachine.CanUpgradeApply(BaseUpgrade)"/>
 		public virtual bool CanUpgradeApply(BaseUpgrade upgrade) => true;
 
-		public override void Update() {
+		public sealed override void Update() {
+			if (!Network.UpdatingPowerStorages)
+				return;
+
 			IMachine.Update(this);
 			IPoweredMachine.Update(this);
+
+			StorageUpdate();
 		}
+
+		/// <summary>
+		/// A helper method for easily supporting <see cref="Network.UpdatingPowerStorages"/> automatically.<br/>
+		/// If that property is <see langword="false"/>, this method will not execute.
+		/// </summary>
+		public virtual void StorageUpdate() { }
 
 		public override bool IsTileValidForEntity(int x, int y) => IMachine.IsTileValid(this, x, y);
 

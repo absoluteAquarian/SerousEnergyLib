@@ -1,17 +1,21 @@
 ﻿using SerousEnergyLib.API.Energy;
 using SerousEnergyLib.API.Upgrades;
 using SerousEnergyLib.Systems;
-using SerousEnergyLib.Systems.Networks;
-using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
-	/// An interface containing methods used by machines that can generate power
+	/// An interface containing methods used by machines that can generate and export power<br/>
+	/// <b>NOTE:</b> This interface should NOT be used with <see cref="IPowerStorageMachine"/>
 	/// </summary>
 	public interface IPowerGeneratorMachine : IPoweredMachine {
 		// Generators should not consume power by default...
 		double IPoweredMachine.GetPowerConsumption(double ticks) => 0;
+
+		/// <summary>
+		/// The mode used when attempting to export power from this machine
+		/// </summary>
+		PowerExportPriority StorageExportMode { get; set; }
 
 		/// <summary>
 		/// Return how much power in units represented by <see cref="IPoweredMachine.EnergyID"/> should be generated for a duration of <paramref name="ticks"/>
@@ -42,22 +46,7 @@ namespace SerousEnergyLib.API.Machines {
 
 			Netcode.SyncMachinePowerStorage(machine);
 
-			ExportPowerToAdjacentNetworks(machine);
-		}
-
-		/// <summary>
-		/// Exports power from the flux storage in <paramref name="machine"/> to all adjacent <see cref="PowerNetwork"/> instances
-		/// </summary>
-		/// <param name="machine">The machine to process</param>
-		public static void ExportPowerToAdjacentNetworks(IPowerGeneratorMachine machine) {
-			foreach (var network in GetAdjacentPowerNetworks(machine)) {
-				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export, out Point16 exportTile, out _))
-					continue;
-
-				machine.PowerStorage.ExportTo(network.Storage, export);
-
-				Netcode.SyncNetworkPowerStorage(network, exportTile);
-			}
+			ExportPowerToAdjacentNetworks(machine, machine.StorageExportMode);
 		}
 	}
 }

@@ -105,6 +105,8 @@ namespace SerousEnergyLib.Items.Materials {
 		#pragma warning disable CS1591
 		public override string Texture => "Terraria/Images/Item_" + ItemID.GoldWatch;
 
+		protected override bool CloneNewInstances => true;  // Needed to make "DisplayName" not be null in ModifyTooltips
+
 		public override void SetDefaults() {
 			Item.maxStack = 1;
 			Item.rare = ItemRarityID.Yellow;

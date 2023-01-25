@@ -424,10 +424,12 @@ namespace SerousEnergyLib.API.Machines {
 			for (int i = 0; i < capacity; i++) {
 				int slot = slots[i];
 
-				machine.ImportItemAtSlot(item, slot);
+				if (machine.CanImportItemAtSlot(item, Point16.NegativeOne, slot, out _)) {
+					machine.ImportItemAtSlot(item, slot);
 
-				if (item.IsAir)
-					return;
+					if (item.IsAir)
+						return;
+				}
 			}
 		}
 

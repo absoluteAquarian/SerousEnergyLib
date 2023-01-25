@@ -27,6 +27,12 @@ namespace SerousEnergyLib.Systems {
 		/// </summary>
 		public static bool UpdatingPowerGenerators { get; private set; }
 
+		/// <summary>
+		/// Whether an <see cref="IPowerStorageMachine"/> machine should update.
+		/// Use this property to prevent a storage machine from udpating twice per game tick.
+		/// </summary>
+		public static bool UpdatingPowerStorages { get; private set; }
+
 		internal static void UpdateItemNetworks() {
 			// Ensure that no empty networks can exist
 			itemNetworks.RemoveAll(static i => i.IsEmpty);
@@ -47,18 +53,59 @@ namespace SerousEnergyLib.Systems {
 			// Ensure that no empty networks can exist
 			powerNetworks.RemoveAll(static f => f.IsEmpty);
 
+			foreach (var net in powerNetworks) {
+				var power = net as PowerNetwork;
+				power.previousPower = power.Storage.CurrentCapacity;
+			}
+
+			var generators = TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>();
+
+			var storages = TileEntity.ByPosition.Values.OfType<IPowerStorageMachine>();
+			
+			// Send power form power generators
 			UpdatingPowerGenerators = true;
 
-			foreach (var machine in TileEntity.ByPosition.Values.OfType<IPowerGeneratorMachine>()) {
+			foreach (var machine in generators) {
 				// Update() will be blocked later.  This is used to force power generators to run before power consumers
 				(machine as ModTileEntity).Update();
-				IPowerGeneratorMachine.GeneratePower(machine);
 			}
+
+			foreach (var machine in generators)
+				IPowerGeneratorMachine.GeneratePower(machine);
 			
 			UpdatingPowerGenerators = false;
 
+			// Send power from power storages
+			UpdatingPowerStorages = true;
+
+			foreach (var machine in storages)
+				IPoweredMachine.ExportPowerToAdjacentNetworks(machine, machine.StorageExportMode);
+
+			foreach (var machine in storages) {
+				// Update() will be blocked later.  This is used to force power storages to run before power consumers
+				(machine as ModTileEntity).Update();
+			}
+
+			UpdatingPowerStorages = false;
+
+			// Send power to power consumers
 			foreach (var net in powerNetworks)
 				net.Update();
+
+			// Delay power storage importing so that it has lower priority than power consumers
+			UpdatingPowerStorages = true;
+
+			foreach (var machine in storages)
+				IPoweredMachine.ImportPowerFromAdjacentNetworks(machine);
+
+			UpdatingPowerStorages = false;
+
+			foreach (var net in powerNetworks) {
+				var power = net as PowerNetwork;
+				power.netPower = power.Storage.CurrentCapacity - power.previousPower;
+
+				Netcode.SyncNetworkPowerStorage(power, power.FirstNode);
+			}
 		}
 
 		/// <summary>

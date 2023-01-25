@@ -14,7 +14,7 @@ using SerousEnergyLib.Systems;
 
 namespace SerousEnergyLib.API.Machines {
 	/// <summary>
-	/// An interface containing methods used by machines that can store and/or use power
+	/// An interface containing methods used by machines that can consume power
 	/// </summary>
 	public interface IPoweredMachine : IMachine {
 		/// <summary>
@@ -116,6 +116,87 @@ namespace SerousEnergyLib.API.Machines {
 
 			transfer = maxTransfer;
 			return entryExists;
+		}
+
+		/// <summary>
+		/// Exports power from the flux storage in <paramref name="machine"/> to all adjacent <see cref="PowerNetwork"/> instances
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="mode">The mode used to select the order in which the adjacent networks are processed</param>
+		public static void ExportPowerToAdjacentNetworks(IPoweredMachine machine, PowerExportPriority mode) {
+			// I'd love to use lazy evaluation for this, but it doesn't play nice with Enumerable.Count()
+			var nets = OrderByMode(GetAdjacentPowerNetworks(machine), mode).ToList();
+
+			List<FluxStorage> splitStorages = null;
+			if (nets.Count > 0 && mode == PowerExportPriority.SplitEvenly) {
+				splitStorages = new List<FluxStorage>(nets.Count);
+				double capacity = (double)machine.PowerStorage.CurrentCapacity / nets.Count;
+
+				for (int i = 0; i < nets.Count; i++)
+					splitStorages.Add(new FluxStorage(machine.PowerStorage.MaxCapacity) { CurrentCapacity = new TerraFlux(capacity) });
+
+				// Clear the original storage
+				machine.PowerStorage.CurrentCapacity = TerraFlux.Zero;
+			}
+
+			int index = -1;
+			foreach (var network in nets) {
+				++index;
+
+				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export, out Point16 exportTile, out _))
+					continue;
+
+				var storage = mode == PowerExportPriority.SplitEvenly ? splitStorages[index] : machine.PowerStorage;
+
+				storage.ExportTo(network.Storage, export);
+
+				// Does the storage still have power?  If so, split it among the remaining ones
+				if (mode == PowerExportPriority.SplitEvenly && !storage.IsEmpty && index < nets.Count - 1) {
+					double capacity = (double)storage.CurrentCapacity / (nets.Count - 1 - index);
+
+					for (int i = index; i < nets.Count; i++) {
+						TerraFlux import = new(capacity);
+						splitStorages[i].Import(ref import);
+					}
+				}
+
+				Netcode.SyncNetworkPowerStorage(network, exportTile);
+			}
+
+			if (nets.Count > 0 && mode == PowerExportPriority.SplitEvenly) {
+				// Import any leftovers back into the original storage
+				machine.PowerStorage.ImportFrom(splitStorages[^1], machine.PowerStorage.MaxCapacity);
+			}
+		}
+
+		private static IEnumerable<PowerNetwork> OrderByMode(IEnumerable<PowerNetwork> networks, PowerExportPriority mode) {
+			return mode switch {
+				PowerExportPriority.FirstComeFirstServe => networks,
+				PowerExportPriority.LastComeFirstServe => networks.Reverse(),
+				PowerExportPriority.LowestPower => networks.OrderBy(GetOrderPriority),
+				PowerExportPriority.HighestPower => networks.OrderByDescending(GetOrderPriority),
+				// Special logic is used in ExportPowerToAdjacentNetworks for this mode...
+				PowerExportPriority.SplitEvenly => networks,
+				_ => networks
+			};
+		}
+
+		private static double GetOrderPriority(PowerNetwork network)
+			=> network.Storage.MaxCapacity == TerraFlux.Zero ? double.PositiveInfinity : (double)network.Storage.CurrentCapacity / (double)network.Storage.MaxCapacity;
+
+		/// <summary>
+		/// Imports power from all adjacent <see cref="PowerNetwork"/> instances to the flux storage in <paramref name="machine"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		public static void ImportPowerFromAdjacentNetworks(IPoweredMachine machine) {
+			foreach (var network in GetAdjacentPowerNetworks(machine)) {
+				if (!TryGetHighestTransferRate(machine, network, out TerraFlux export, out Point16 exportTile, out _))
+					continue;
+
+				network.Storage.ExportTo(machine.PowerStorage, export);
+
+				Netcode.SyncNetworkPowerStorage(network, exportTile);
+			}
 		}
 
 		/// <summary>

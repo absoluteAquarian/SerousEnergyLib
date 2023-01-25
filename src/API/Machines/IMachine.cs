@@ -177,14 +177,20 @@ namespace SerousEnergyLib.API.Machines {
 					Point16 subTile = result.machineTileAdjacentToNetwork;
 					Point16 netPos = result.tileInNetwork;
 
-					if (net is ItemNetwork itemNet && (this is not IInventoryMachine inventory || inventory.CanMergeWithItemPipe(netPos.X, netPos.Y, subTile.X, subTile.Y))) {
+					if (net is ItemNetwork itemNet && this is IInventoryMachine inventory && inventory.CanMergeWithItemPipe(netPos.X, netPos.Y, subTile.X, subTile.Y)) {
 						itemNet.AddAdjacentInventory(subTile);
 						itemNet.AttemptToRetargetWanderingItems(subTile);
+
 						Network.UpdateEntryConnections(netPos.X, netPos.Y);
-					} else if (net is FluidNetwork fluidNet && (this is not IFluidMachine fluid || fluid.CanMergeWithFluidPipe(netPos.X, netPos.Y, subTile.X, subTile.Y)))
+					} else if (net is FluidNetwork fluidNet && this is IFluidMachine fluid && fluid.CanMergeWithFluidPipe(netPos.X, netPos.Y, subTile.X, subTile.Y)) {
 						fluidNet.AddAdjacentFluidStorage(result.machineTileAdjacentToNetwork);
-					else if (net is PowerNetwork powerNet && (this is not IPoweredMachine powered || powered.CanMergeWithWire(netPos.X, netPos.Y, subTile.X, subTile.Y)))
+
+						Network.UpdateEntryConnections(netPos.X, netPos.Y);
+					} else if (net is PowerNetwork powerNet && this is IPoweredMachine powered && powered.CanMergeWithWire(netPos.X, netPos.Y, subTile.X, subTile.Y)) {
 						powerNet.AddAdjacentFluxStorage(result.machineTileAdjacentToNetwork);
+
+						Network.UpdateEntryConnections(netPos.X, netPos.Y);
+					}
 				}
 			}
 		}
@@ -266,6 +272,35 @@ namespace SerousEnergyLib.API.Machines {
 		/// <returns></returns>
 		public static double GetLuckThreshold(IMachine machine, double orig)
 			=> CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetLuckPercentageMultiplier(s).CombineWith(v)).ApplyTo(orig);
+
+		/// <summary>
+		/// Applies <see cref="BaseUpgrade.GetProgressStepMultiplier(int)"/> to <paramref name="step"/>, then performs the progress step via <paramref name="progress"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="progress">The progress object</param>
+		/// <param name="step">The original step size</param>
+		/// <returns>The return value of <see cref="CraftingProgress.Step(float)"/></returns>
+		public static bool ProgressStepWithUpgrades(IMachine machine, CraftingProgress progress, float step) {
+			step = CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetProgressStepMultiplier(s).CombineWith(v)).ApplyTo(step);
+
+			return progress.Step(step);
+		}
+
+		/// <summary>
+		/// Applies <see cref="BaseUpgrade.GetProgressTicksMultiplier(int)"/> to <paramref name="tickDuration"/>, then performs the progress step via <paramref name="progress"/>
+		/// </summary>
+		/// <param name="machine">The machine to process</param>
+		/// <param name="progress">The progress object</param>
+		/// <param name="tickDuration">The expected duration in ticks that the progress would take to complete</param>
+		/// <returns>The return value of <see cref="CraftingProgress.Step(float)"/></returns>
+		public static bool ProgressStepWithUpgrades(IMachine machine, CraftingProgress progress, int tickDuration) {
+			tickDuration = (int)CalculateFromUpgrades(machine, StatModifier.Default, static (u, s, v) => u.GetProgressTicksMultiplier(s).CombineWith(v)).ApplyTo(tickDuration);
+
+			if (tickDuration < 1)
+				tickDuration = 1;
+
+			return progress.Step(1f / tickDuration);
+		}
 
 		/// <summary>
 		/// Adds <paramref name="upgrade"/> to the upgrade collection in <paramref name="machine"/>

@@ -6,6 +6,7 @@ using SerousEnergyLib.Tiles;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
@@ -25,6 +26,7 @@ namespace SerousEnergyLib.Systems.Networks {
 		/// </summary>
 		public FluxStorage Storage = new FluxStorage(TerraFlux.Zero);
 
+		internal TerraFlux previousPower;
 		internal TerraFlux netPower;
 		/// <summary>
 		/// The net gain/loss of power in this power network
@@ -40,24 +42,21 @@ namespace SerousEnergyLib.Systems.Networks {
 		#pragma warning disable CS1591
 		public override void Update() {
 			// Called separately from when item/fluid networks are updated due to TileEntity update order
-			TerraFlux previousPower = Storage.CurrentCapacity;
-
-			// Generators have already been processed.  Only send power to machines that store/consume it
-			IEnumerable<IPoweredMachine> machines = adjacentFluxStorageTiles.Select(a => IMachine.TryFindMachine(a, out IPoweredMachine machine) ? machine : null)
+			
+			// Generators and storages have already been processed.  Only send power to machines that consume it
+			IEnumerable<IPoweredMachine> machines = adjacentFluxStorageTiles.Select(static a => IMachine.TryFindMachine(a, out IPoweredMachine machine) ? machine : null)
 				.OfType<ModTileEntity>()
 				.OfType<IPoweredMachine>()
-				.Where(p => p is not IPowerGeneratorMachine);
+				.Where(static p => p is not IPowerGeneratorMachine and not IPowerStorageMachine);
 
 			foreach (var machine in machines) {
-				if (!IPoweredMachine.TryGetHighestTransferRate(machine, this, out TerraFlux rate, out _, out _))
+				if (!IPoweredMachine.TryGetHighestTransferRate(machine, this, out TerraFlux rate, out Point16 networkTile, out _))
 					continue;
 
 				Storage.ExportTo(machine.PowerStorage, rate);
+
+				Netcode.SyncNetworkPowerStorage(this, networkTile);
 			}
-
-			netPower = Storage.CurrentCapacity - previousPower;
-
-			Netcode.SyncNetworkPowerStorage(this, FirstNode);
 		}
 
 		public override void OnNetworkReset() {

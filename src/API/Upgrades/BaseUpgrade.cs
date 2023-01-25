@@ -1,5 +1,7 @@
 ﻿using SerousEnergyLib.API.Fluid;
 using SerousEnergyLib.API.Machines;
+using SerousEnergyLib.Configs;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Terraria.ModLoader;
@@ -50,6 +52,16 @@ namespace SerousEnergyLib.API.Upgrades {
 		public virtual void AutoStaticDefaults() {
 			if (DisplayName.IsDefault())
 				DisplayName.SetDefault(Regex.Replace(Name, "([A-Z])", " $1").Trim());
+		}
+
+		/// <summary>
+		/// Returns the standard factor for upgrade performance via <see cref="MachineConfig.UpgradeFactor"/> and <see cref="MaxUpgradesPerMachine"/>
+		/// </summary>
+		/// <param name="upgradeStack">The upgrade quantity</param>
+		/// <param name="exponentFactor">The factor applied to the upgrade quantity factor</param>
+		/// <returns><c>Math.Pow(UpgradeFactor, exponentFactor * upgradeStack / MaxUpgradesPerMachine)</c></returns>
+		protected double GetUpgradeFactor(int upgradeStack, double exponentFactor) {
+			return Math.Pow(MachineConfig.UpgradeFactor, exponentFactor * upgradeStack / MaxUpgradesPerMachine);
 		}
 
 		/// <summary>
@@ -117,5 +129,21 @@ namespace SerousEnergyLib.API.Upgrades {
 		/// <param name="defaultIngredients">A collection of the original ingredients that the recipe contains</param>
 		/// <param name="possibleOutputs">A collection of the possible outputs that the recipe contains</param>
 		public virtual void ModifyMachineRecipeIngredient(int upgradeStack, ref IMachineRecipeIngredient ingredient, IReadOnlyList<IMachineRecipeIngredient> defaultIngredients, IReadOnlyList<MachineRecipeOutput> possibleOutputs) { }
+
+		/// <summary>
+		/// Return a modifier for how much a <see cref="CraftingProgress"/> would step by<br/>
+		/// Bigger multiplier = shorter duration<br/>
+		/// This method is the inverse of <see cref="GetProgressTicksMultiplier(int)"/>
+		/// </summary>
+		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
+		public virtual StatModifier GetProgressStepMultiplier(int upgradeStack) => StatModifier.Default;
+
+		/// <summary>
+		/// Return a modifier for the denominator for the fractional step that a <see cref="CraftingProgress"/> would step by<br/>
+		/// Bigger multiplier = longer duration<br/>
+		/// This method is the inverse of <see cref="GetProgressStepMultiplier(int)"/>
+		/// </summary>
+		/// <param name="upgradeStack">How many instances of this upgrade are stored in the machine</param>
+		public virtual StatModifier GetProgressTicksMultiplier(int upgradeStack) => StatModifier.Default;
 	}
 }

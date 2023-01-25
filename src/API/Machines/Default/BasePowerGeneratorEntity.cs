@@ -27,6 +27,9 @@ namespace SerousEnergyLib.API.Machines.Default {
 		/// <inheritdoc cref="IPoweredMachine.EnergyID"/>
 		public virtual int EnergyID => SerousMachines.EnergyType<TerraFluxTypeID>();
 
+		/// <inheritdoc cref="IPowerGeneratorMachine.StorageExportMode"/>
+		public virtual PowerExportPriority StorageExportMode { get; set; } = PowerExportPriority.SplitEvenly;
+
 		/// <summary>
 		/// Whether this entity instance is a clone used for item tooltips
 		/// </summary>

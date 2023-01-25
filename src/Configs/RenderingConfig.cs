@@ -3,7 +3,7 @@ using System.ComponentModel;
 using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 
-namespace SerousEnergyLib.Common.Configs {
+namespace SerousEnergyLib.Configs {
 	/// <summary>
 	/// The configuration for handling rendering in this mod
 	/// </summary>
@@ -25,7 +25,6 @@ namespace SerousEnergyLib.Common.Configs {
 		/// </summary>
 		[JsonIgnore]
 		public static bool RenderItemsInPipes => Instance.drawItems;
-
 
 		[Label("$Mods.SerousEnergyLib.Config.RenderingConfig.animatePumps.Label")]
 		[Tooltip("$Mods.SerousEnergyLib.Config.RenderingConfig.animatePumps.Tooltip")]

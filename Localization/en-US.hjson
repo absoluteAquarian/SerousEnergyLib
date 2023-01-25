@@ -117,6 +117,19 @@
 					'''
 				}
 			}
+
+			MachineConfig: {
+				Label: "Serverside Machine Config"
+
+				upgradeFactor: {
+					Label: "Uprade Performance Factor"
+					Tooltip:
+					'''
+					The base factor when calculating upgrade performance in machines.
+					Not all upgrades will be affected by this config option.
+					'''
+				}
+			}
 		}
 
 		Debug: {

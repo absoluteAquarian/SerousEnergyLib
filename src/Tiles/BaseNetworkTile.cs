@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using SerousEnergyLib.API;
 using SerousEnergyLib.API.Machines;
-using SerousEnergyLib.Common.Configs;
+using SerousEnergyLib.Configs;
 using SerousEnergyLib.Systems;
 using SerousEnergyLib.TileData;
 using System;
