@@ -147,6 +147,38 @@ namespace SerousEnergyLib.API {
 		}
 
 		/// <summary>
+		/// Adds a text string as a "requirement" for this recipe<br/>
+		/// The generated <see cref="Recipe.Condition"/> objects are purely aesthetic and will always return <see langword="false"/>
+		/// </summary>
+		/// <param name="text">The text literal</param>
+		public MachineRecipe AddConditionTextLiteral(string text) {
+			ingredients.Add(new MachineRecipeInputLiteralCondition(text));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a text string as a "requirement" for this recipe<br/>
+		/// The generated <see cref="Recipe.Condition"/> objects are purely aesthetic and will always return <see langword="false"/>
+		/// </summary>
+		/// <param name="localizationKey">The localization key</param>
+		/// <param name="args">An optional collection of objects used when displaying the localized text</param>
+		public MachineRecipe AddConditionTextLocalized(string localizationKey, params object[] args) {
+			ingredients.Add(new MachineRecipeInputLocalizedCondition(localizationKey, args));
+			return this;
+		}
+
+		/// <summary>
+		/// Adds a text string as a "requirement" for this recipe<br/>
+		/// The generated <see cref="Recipe.Condition"/> objects are purely aesthetic and will always return <see langword="false"/>
+		/// </summary>
+		/// <param name="text">The text literal</param>
+		/// <param name="args">An optional collection of objects used when displaying the formatted text</param>
+		public MachineRecipe AddConditionTextFormattable(string text, params object[] args) {
+			ingredients.Add(new MachineRecipeInputFormattableCondition(text, args));
+			return this;
+		}
+
+		/// <summary>
 		/// Adds a possible output to this recipe with the given item type, stack size and probability. Ex: <c>recipe.AddPossibleOutput(ItemID.IronAxe, 0.25)</c>
 		/// </summary>
 		/// <param name="type">The item identifier</param>
@@ -534,6 +566,61 @@ namespace SerousEnergyLib.API {
 		public void AddToRecipe(Recipe recipe) => recipe.AddIngredient<TimeNoDurationRecipeItem>(1);
 
 		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // The duration is checked in the machine's logic instead of here
+	}
+
+	public readonly struct MachineRecipeInputLiteralCondition : IMachineRecipeIngredient {
+		public readonly string text;
+
+		public MachineRecipeInputLiteralCondition(string text) {
+			this.text = text;
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			if (text is null)
+				return;
+
+			recipe.AddCondition(new Recipe.Condition(NetworkText.FromKey(text), static r => false));
+		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // Ingredient is purely for aesthetics
+	}
+
+	public readonly struct MachineRecipeInputLocalizedCondition : IMachineRecipeIngredient {
+		public readonly string localizationKey;
+		public readonly object[] args;
+
+		public MachineRecipeInputLocalizedCondition(string localizationKey, params object[] args) {
+			this.localizationKey = localizationKey;
+			this.args = args;
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			if (localizationKey is null)
+				return;
+
+			recipe.AddCondition(new Recipe.Condition(NetworkText.FromKey(localizationKey, args ?? Array.Empty<object>()), static r => false));
+		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // Ingredient is purely for aesthetics
+	}
+
+	public readonly struct MachineRecipeInputFormattableCondition : IMachineRecipeIngredient {
+		public readonly string text;
+		public readonly object[] args;
+
+		public MachineRecipeInputFormattableCondition(string text, params object[] args) {
+			this.text = text;
+			this.args = args;
+		}
+
+		public void AddToRecipe(Recipe recipe) {
+			if (text is null)
+				return;
+
+			recipe.AddCondition(new Recipe.Condition(NetworkText.FromFormattable(text, args ?? Array.Empty<object>()), static r => false));
+		}
+
+		public bool IsIngredientRequirementMet(IMachine source, MachineRecipeState state) => true;  // Ingredient is purely for aesthetics
 	}
 
 	/// <summary>

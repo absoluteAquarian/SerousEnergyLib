@@ -15,8 +15,7 @@ using Terraria.ObjectData;
 
 namespace SerousEnergyLib.Tiles {
 	/// <summary>
-	/// The base type for a 1x1 network tile<br/>
-	/// <b>NOTE:</b> The <see cref="Main.tileSolid"/> index for this type will be modified during runtime!
+	/// The base type for a 1x1 network tile
 	/// </summary>
 	public abstract class BaseNetworkTile : ModTile {
 		#pragma warning disable CS1591
@@ -35,6 +34,8 @@ namespace SerousEnergyLib.Tiles {
 
 			Main.tileSolid[Type] = false;
 			Main.tileNoSunLight[Type] = false;
+			// NOTE: This line is what allows these non-solid tiles to be valid anchors for placing tiles adjacent to them
+			TileID.Sets.IsBeam[Type] = true;
 
 			TileObjectData.newTile.CopyFrom(TileObjectData.Style1x1);
 			TileObjectData.newTile.FlattenAnchors = false;
@@ -81,15 +82,7 @@ namespace SerousEnergyLib.Tiles {
 			return 1;
 		}
 
-		public override bool CanPlace(int i, int j) {
-			// This hook is called just before the tile is placed, which means we can fool the game into thinking this tile is solid when it really isn't
-			NetworkTileHacks.SetNetworkTilesToSolid(solid: true);
-			return NetworkHelper.AtLeastOneSurroundingTileIsSolid(i, j);
-		}
-
 		public override void PlaceInWorld(int i, int j, Item item) {
-			// (Continuing from CanPlace) ... then I can just set it back to not solid here
-			NetworkTileHacks.SetNetworkTilesToSolid(solid: false);
 			Network.PlaceEntry(i, j, NetworkTypeToPlace);
 
 			// Force tile merging at this location again
